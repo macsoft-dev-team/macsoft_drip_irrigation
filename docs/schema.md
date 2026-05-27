@@ -14,7 +14,7 @@ datasource db {
 enum UserRole {
   OWNER
   ADMIN
-  OPERATOR
+  FARM_MANAGER
   VIEWER
 }
 
