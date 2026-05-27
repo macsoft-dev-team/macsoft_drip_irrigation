@@ -1,0 +1,37 @@
+[
+  {
+    "id": "1",
+    "name": "Macsoft Admin",
+    "email": "admin@macsoft.com",
+    "role": "MACSOFT_ADMIN",
+    "phone": "+1111111111"
+  },
+  {
+    "id": "2",
+    "name": "Macsoft User",
+    "email": "user@macsoft.com",
+    "role": "MACSOFT_USER",
+    "phone": "+1222222222"
+  },
+  {
+    "id": "3",
+    "name": "Customer Admin",
+    "email": "admin@customer.com",
+    "role": "CUSTOMER_ADMIN",
+    "phone": "+1333333333"
+  },
+  {
+    "id": "4",
+    "name": "Customer User",
+    "email": "user@customer.com",
+    "role": "CUSTOMER_USER",
+    "phone": "+1444444444"
+  },
+  {
+    "id": "5",
+    "name": "End User",
+    "email": "enduser@example.com",
+    "role": "END_USER",
+    "phone": "+1555555555"
+  }
+]

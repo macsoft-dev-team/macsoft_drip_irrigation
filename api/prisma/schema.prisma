@@ -1,0 +1,351 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ================= ENUMS =================
+
+enum Role {
+  MACSOFT_ADMIN
+  MACSOFT_USER
+  CUSTOMER_ADMIN
+  CUSTOMER_USER
+  END_USER
+}
+
+enum DeviceStatus {
+  ONLINE
+  OFFLINE
+  FAULT
+}
+
+enum CommandStatus {
+  PENDING
+  SENT
+  ACK
+  FAILED
+}
+
+enum PumpModel {
+  MODEL_1P1
+  MODEL_2P1
+  MODEL_3P1
+  MODEL_4P1
+}
+
+// ================= TENANT =================
+
+model Customer {
+  id    String  @id @default(cuid())
+  name  String?
+  email String  @unique
+
+  users   User[]
+  devices Device[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ================= USER =================
+
+model User {
+  id       String  @id @default(cuid())
+  email    String  @unique
+  name     String?
+  phone    String?
+  password String
+  role     Role    @default(END_USER)
+
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id])
+
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  notificationRecipients NotificationRecipient[]
+
+  @@index([customerId])
+}
+
+// ================= DEVICE =================
+
+model Device {
+  id         String  @id @default(cuid())
+  imeinumber String  @unique
+  code       String  @unique
+  name       String?
+
+  pumpModel PumpModel
+
+  latitude  Float?
+  longitude Float?
+
+  // MQTT
+  mqttClientId String? @unique
+  mqttUsername String?
+  mqttPassword String?
+
+  mqttTelemetryTopic String?
+  mqttCommandTopic   String?
+  mqttAckTopic       String?
+
+  // Status
+  lastStatus DeviceStatus @default(OFFLINE)
+  lastSeen   DateTime?
+
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id])
+
+  telemetry DeviceTelemetry[]
+  state     DeviceState?
+  config    DeviceConfig?
+  commands  Command[]
+
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  deviceStatusTables DeviceStatusTable[]
+  dailySummaries     DailySummary[]
+  notifications      Notification[]
+
+  @@index([customerId])
+}
+
+// ================= DEVICE STATE =================
+
+model DeviceState {
+  deviceId String @id
+
+  // System
+  amo Boolean?
+  mmo Boolean?
+
+  // VFD
+  p1v Boolean?
+  p2v Boolean?
+  p3v Boolean?
+  p4v Boolean?
+  p5v Boolean?
+
+  // DOL
+  p1d Boolean?
+  p2d Boolean?
+  p3d Boolean?
+  p4d Boolean?
+  p5d Boolean?
+
+  // Service
+  s1m Boolean?
+  s2m Boolean?
+  s3m Boolean?
+  s4m Boolean?
+  s5m Boolean?
+
+  // Latest electrical snapshot (fast UI)
+  p1c Float?
+  p2c Float?
+  p3c Float?
+  p4c Float?
+  p5c Float?
+
+  p1f Float?
+  p2f Float?
+  p3f Float?
+  p4f Float?
+  p5f Float?
+
+  device Device @relation(fields: [deviceId], references: [id])
+
+  updatedAt DateTime @updatedAt
+}
+
+// ================= TELEMETRY (TIMESCALEDB) =================
+
+model DeviceTelemetry {
+  deviceId  String
+  timestamp DateTime @db.Timestamptz(6)
+
+  device Device @relation(fields: [deviceId], references: [id])
+
+  // Common
+  pressure Float?
+  vfd      Float?
+  flt      Int?
+  stm      Int?
+
+  // Runtime
+  p1r Int?
+  p2r Int?
+  p3r Int?
+  p4r Int?
+  p5r Int?
+
+  // Starts
+  s1h Int?
+  s2h Int?
+  s3h Int?
+  s4h Int?
+  s5h Int?
+
+  // Status
+  p1s Int?
+  p2s Int?
+  p3s Int?
+  p4s Int?
+  p5s Int?
+
+  // Electrical
+  p1c Float?
+  p2c Float?
+  p3c Float?
+  p4c Float?
+  p5c Float?
+
+  p1f Float?
+  p2f Float?
+  p3f Float?
+  p4f Float?
+  p5f Float?
+
+  rawPayload Json?
+
+  @@id([deviceId, timestamp])
+  @@index([timestamp])
+}
+
+// ================= CONFIG =================
+
+model DeviceConfig {
+  id       String @id @default(cuid())
+  deviceId String @unique
+
+  version Int @default(1)
+
+  mxp Int?
+  mnp Int?
+  tfs Int?
+  stp Int?
+  dfp Int?
+
+  wut Int?
+  lpc Int?
+  msh Int?
+
+  hvg Int?
+  lvg Int?
+  vcd Int?
+
+  olc Int?
+  ocd Int?
+  drc Int?
+  drd Int?
+
+  swf Int?
+  swt Int?
+  slf Int?
+  slt Int?
+
+  pof Int?
+  pgn Int?
+  ign Int?
+  dgn Int?
+
+  device Device @relation(fields: [deviceId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ================= COMMAND =================
+
+model Command {
+  id       String @id @default(cuid())
+  deviceId String
+
+  commandCode String
+  value       Int?
+
+  status CommandStatus @default(PENDING)
+
+  sentAt DateTime?
+  ackAt  DateTime?
+
+  device Device @relation(fields: [deviceId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([deviceId])
+}
+
+// ================= CONNECTIVITY =================
+
+model DeviceStatusTable {
+  deviceId String @id
+
+  lastSeen       DateTime
+  isOnline       Boolean
+  signalStrength Int?
+
+  device Device @relation(fields: [deviceId], references: [id])
+
+  updatedAt DateTime @updatedAt
+}
+
+// ================= OPTIONAL (AGGREGATION - RECOMMENDED) =================
+
+model DailySummary {
+  id       String   @id @default(cuid())
+  deviceId String
+  date     DateTime
+
+  avgPressure Float?
+  avgVfd      Float?
+
+  totalRuntime Int?
+  totalStarts  Int?
+
+  device Device @relation(fields: [deviceId], references: [id])
+
+  @@index([deviceId, date])
+}
+
+// ================= NOTIFICATION =================
+
+model Notification {
+  id       String @id @default(uuid())
+  deviceId String
+
+  type    String
+  message String
+
+  metadata Json?
+
+  device Device @relation(fields: [deviceId], references: [id])
+
+  recipients NotificationRecipient[]
+
+  createdAt DateTime @default(now())
+}
+
+// ================= NOTIFICATION RECIPIENT =================
+
+model NotificationRecipient {
+  id             String @id @default(uuid())
+  notificationId String
+  userId         String
+
+  isRead Boolean @default(false)
+
+  notification Notification @relation(fields: [notificationId], references: [id])
+  user         User         @relation(fields: [userId], references: [id])
+
+  @@unique([notificationId, userId])
+}
