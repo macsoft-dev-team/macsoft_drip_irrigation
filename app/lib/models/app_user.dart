@@ -3,10 +3,15 @@ enum UserRole { superadmin, admin, user }
 
 UserRole _parseRole(String? raw) {
   switch ((raw ?? '').toUpperCase()) {
+    case 'MACSOFT_ADMIN':
+    case 'MACSOFT_USER':
     case 'SUPERADMIN':
       return UserRole.superadmin;
+    case 'CUSTOMER_ADMIN':
     case 'ADMIN':
       return UserRole.admin;
+    case 'CUSTOMER_USER':
+    case 'END_USER':
     default:
       return UserRole.user;
   }
