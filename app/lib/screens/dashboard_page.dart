@@ -12,7 +12,9 @@ import 'user_device_page.dart';
 import 'users_page.dart';
 
 class DashboardPage extends StatefulWidget {
-  const DashboardPage({super.key});
+  final bool useLegacyShell;
+
+  const DashboardPage({super.key, this.useLegacyShell = false});
 
   @override
   State<DashboardPage> createState() => _DashboardPageState();
@@ -30,7 +32,9 @@ class _DashboardPageState extends State<DashboardPage> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _boot());
+    if (widget.useLegacyShell) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _boot());
+    }
   }
 
   Future<void> _boot() async {
@@ -412,6 +416,12 @@ class _DashboardPageState extends State<DashboardPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.useLegacyShell) {
+      return Consumer<AppState>(
+        builder: (context, state, _) => _buildOverview(state),
+      );
+    }
+
     return Consumer<AppState>(
       builder: (_, state, __) {
         if (state.user?.role == UserRole.user) {

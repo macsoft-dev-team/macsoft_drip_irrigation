@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'app_shell.dart';
 import 'services/app_state.dart';
 import 'screens/login_page.dart';
-import 'screens/dashboard_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,8 +37,8 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: _buildTheme(),
       home: Consumer<AppState>(
-        builder: (_, state, __) =>
-            state.isAuthenticated ? const DashboardPage() : const LoginPage(),
+        builder: (context, state, _) =>
+            state.isAuthenticated ? const AppShell() : const LoginPage(),
       ),
     );
   }
@@ -80,7 +80,7 @@ class MyApp extends StatelessWidget {
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: Colors.white,
         elevation: 0,
-        indicatorColor: const Color(0xFF1565C0).withOpacity(0.12),
+        indicatorColor: const Color(0xFF1565C0).withValues(alpha: 0.12),
         labelTextStyle: WidgetStateProperty.all(
           const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
         ),
