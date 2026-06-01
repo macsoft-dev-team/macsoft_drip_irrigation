@@ -1,0 +1,734 @@
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { motion, AnimatePresence } from 'motion/react';
+import * as XLSX from 'xlsx';
+import {
+    ArrowLeft, Activity, Wifi, WifiOff, Radio, Cpu, MapPin, Calendar,
+    Terminal, Settings, Download, RefreshCw, Copy, Check, Eye, EyeOff,
+    Signal, Layers, ChevronRight,
+} from 'lucide-react';
+import toast from 'react-hot-toast';
+import { fetchDeviceById } from '../../reducers/deviceSlice';
+import { useDevice } from '../../hooks/useDevice';
+import { useDeviceSocket } from '../../hooks/useDeviceSocket';
+import { useSocket } from '../../hooks/useSocket';
+import CommandModal from './CommandModal';
+import DeviceConfigModal from './DeviceConfigModal';
+import { Tank, Pump, Pipe } from '../../components/scada';
+
+// ─── helpers ────────────────────────────────────────────────────────────────
+
+const PAGE_SIZE = 50;
+
+const TELEMETRY_COLUMNS = [
+    { key: 'timestamp', label: 'Timestamp',      format: (v) => v ? new Date(v).toLocaleString('en-GB') : '—' },
+    { key: 'pressure',  label: 'Pressure',        format: (v) => v != null ? v.toFixed(2) : '—' },
+    { key: 'vfd',       label: 'VFD',             format: (v) => v != null ? v.toFixed(1) : '—' },
+    { key: 'p1c',       label: 'Current Ph1 (A)', format: (v) => v != null ? v.toFixed(2) : '—' },
+    { key: 'p2c',       label: 'Current Ph2 (A)', format: (v) => v != null ? v.toFixed(2) : '—' },
+    { key: 'p3c',       label: 'Current Ph3 (A)', format: (v) => v != null ? v.toFixed(2) : '—' },
+    { key: 'p1f',       label: 'Voltage Ph1 (V)', format: (v) => v != null ? v.toFixed(1) : '—' },
+    { key: 'p2f',       label: 'Voltage Ph2 (V)', format: (v) => v != null ? v.toFixed(1) : '—' },
+    { key: 'p3f',       label: 'Voltage Ph3 (V)', format: (v) => v != null ? v.toFixed(1) : '—' },
+    { key: 'flt',       label: 'Fault',           format: (v) => v != null ? v : '—' },
+    { key: 'stm',       label: 'Status',          format: (v) => v != null ? v : '—' },
+    { key: 'p1r',       label: 'Runtime P1',      format: (v) => v != null ? v : '—' },
+    { key: 'p2r',       label: 'Runtime P2',      format: (v) => v != null ? v : '—' },
+    { key: 'p3r',       label: 'Runtime P3',      format: (v) => v != null ? v : '—' },
+];
+
+const TABS = [
+    { id: 'overview',  label: 'Overview',   icon: Layers },
+    { id: 'scada',     label: 'Live View',  icon: Radio },
+    { id: 'telemetry', label: 'Telemetry',  icon: Activity },
+    { id: 'commands',  label: 'Commands',   icon: Terminal },
+    { id: 'config',    label: 'Config',     icon: Settings },
+    { id: 'mqtt',      label: 'MQTT',       icon: Signal },
+];
+
+// ─── Derive pump count from model string ─────────────────────────────────────
+// MODEL_NP1 = N duty pumps + 1 standby → total N+1
+// e.g. MODEL_1P1 = 2 pumps, MODEL_2P1 = 3, MODEL_3P1 = 4, MODEL_4P1 = 5
+const getPumpCount = (pumpModel) => {
+    const m = pumpModel?.match(/MODEL_(\d+)P(\d+)/);
+    if (!m) return 1;
+    return parseInt(m[1]) + parseInt(m[2]);
+};
+
+// ─── sub-components ──────────────────────────────────────────────────────────
+
+const StatusDot = ({ active }) => (
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider border ${
+        active
+            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+            : 'bg-slate-50 text-slate-500 border-slate-200'
+    }`}>
+        <span className="relative flex h-2 w-2">
+            {active && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />}
+            <span className={`relative inline-flex rounded-full h-2 w-2 ${active ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+        </span>
+        {active ? 'Online' : 'Offline'}
+    </span>
+);
+
+const InfoCard = ({ label, value, icon: Icon, color = 'text-slate-500' }) => (
+    <div className="bg-white rounded-xl border border-slate-200 px-4 py-3 flex items-center gap-3">
+        <div className={`p-2 rounded-lg bg-slate-50 ${color}`}>
+            <Icon className="w-4 h-4" />
+        </div>
+        <div className="min-w-0">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{label}</p>
+            <p className="text-sm font-semibold text-slate-700 truncate">{value || '—'}</p>
+        </div>
+    </div>
+);
+
+const LiveStat = ({ label, value, unit, color }) => (
+    <div className={`flex flex-col items-center justify-center rounded-xl border p-3 ${color}`}>
+        <p className="text-[9px] font-bold uppercase tracking-widest opacity-60">{label}</p>
+        <p className="text-lg font-bold font-mono mt-0.5">{value ?? '—'}</p>
+        {unit && <p className="text-[9px] opacity-50">{unit}</p>}
+    </div>
+);
+
+// ─── MQTT tab ────────────────────────────────────────────────────────────────
+
+function MqttTab({ device }) {
+    const [copied, setCopied] = useState(null);
+    const [showPw, setShowPw] = useState(false);
+
+    const copy = (key, val) => {
+        navigator.clipboard.writeText(val);
+        setCopied(key);
+        setTimeout(() => setCopied(null), 2000);
+    };
+
+    const fields = [
+        { label: 'Client ID',         key: 'mqttClientId',       value: device.mqttClientId },
+        { label: 'Username',          key: 'mqttUsername',       value: device.mqttUsername },
+        { label: 'Password',          key: 'mqttPassword',       value: device.mqttPassword, secret: true },
+        { label: 'Telemetry Topic',   key: 'mqttTelemetryTopic', value: device.mqttTelemetryTopic },
+        { label: 'Command Topic',     key: 'mqttCommandTopic',   value: device.mqttCommandTopic },
+        { label: 'Ack Topic',         key: 'mqttAckTopic',       value: device.mqttAckTopic },
+    ];
+
+    return (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {fields.map(({ label, key, value, secret }) => (
+                <div key={key} className="flex items-center justify-between gap-3 p-4 bg-white rounded-xl border border-slate-200 group">
+                    <div className="min-w-0 flex-1">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">{label}</p>
+                        <p className={`text-sm font-mono font-semibold text-slate-700 truncate transition-all ${secret && !showPw ? 'blur-sm' : ''}`}>
+                            {value || '—'}
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                        {secret && (
+                            <button
+                                onClick={() => setShowPw(v => !v)}
+                                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                            >
+                                {showPw ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                            </button>
+                        )}
+                        {value && (
+                            <button
+                                onClick={() => copy(key, value)}
+                                className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            >
+                                {copied === key ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                            </button>
+                        )}
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}
+
+// ─── Telemetry tab ───────────────────────────────────────────────────────────
+
+function TelemetryTab({ device }) {
+    const { telemetryLoading, loadTelemetry } = useDevice();
+    const { connected } = useSocket() ?? {};
+    const [rows, setRows] = useState([]);
+    const [liveRows, setLiveRows] = useState([]);
+    const [flashId, setFlashId] = useState(null);
+    const [page, setPage] = useState(0);
+    const [hasMore, setHasMore] = useState(true);
+    const loaderRef = useRef(null);
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const defaultFrom = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const [from, setFrom] = useState(defaultFrom);
+    const [to, setTo] = useState(todayStr);
+
+    useDeviceSocket(device?.id, useCallback((row) => {
+        setLiveRows(prev => [row, ...prev].slice(0, 200));
+        setFlashId(row.timestamp);
+        setTimeout(() => setFlashId(null), 800);
+    }, []));
+
+    const fetchPage = useCallback(async (pageNum, reset = false) => {
+        const result = await loadTelemetry({
+            deviceId: device.id,
+            from: `${from}T00:00:00`,
+            to: `${to}T23:59:59`,
+            skip: pageNum * PAGE_SIZE,
+            take: PAGE_SIZE,
+        });
+        const fetched = result?.payload ?? [];
+        if (reset) setRows(fetched);
+        else setRows(prev => [...prev, ...fetched]);
+        setHasMore(fetched.length >= PAGE_SIZE);
+    }, [device.id, from, to, loadTelemetry]);
+
+    useEffect(() => {
+        setPage(0); setRows([]); setHasMore(true);
+        fetchPage(0, true);
+    }, [device.id]);
+
+    useEffect(() => {
+        if (!hasMore || telemetryLoading) return;
+        const el = loaderRef.current;
+        if (!el) return;
+        const obs = new IntersectionObserver(([entry]) => {
+            if (entry.isIntersecting) {
+                const next = page + 1;
+                setPage(next);
+                fetchPage(next);
+            }
+        }, { threshold: 0.1 });
+        obs.observe(el);
+        return () => obs.disconnect();
+    }, [hasMore, telemetryLoading, page, fetchPage]);
+
+    const allRows = [...liveRows, ...rows];
+
+    const handleExcel = () => {
+        if (!allRows.length) return;
+        const data = allRows.map(row => {
+            const out = {};
+            TELEMETRY_COLUMNS.forEach(({ key, label }) => {
+                out[label] = key === 'timestamp'
+                    ? (row[key] ? new Date(row[key]).toLocaleString('en-GB') : '')
+                    : (row[key] != null ? row[key] : '');
+            });
+            return out;
+        });
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Telemetry');
+        XLSX.writeFile(wb, `telemetry_${device.imeinumber}_${from}_${to}.xlsx`);
+    };
+
+    return (
+        <div className="space-y-4">
+            {/* Controls */}
+            <div className="flex flex-wrap items-center gap-3 bg-white rounded-xl border border-slate-200 p-3">
+                <div className="flex items-center gap-2">
+                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">From</label>
+                    <input type="date" value={from} onChange={e => setFrom(e.target.value)}
+                        className="text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-400 bg-slate-50" />
+                </div>
+                <div className="flex items-center gap-2">
+                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">To</label>
+                    <input type="date" value={to} onChange={e => setTo(e.target.value)}
+                        className="text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-400 bg-slate-50" />
+                </div>
+                <button onClick={() => { setPage(0); setRows([]); setHasMore(true); fetchPage(0, true); }}
+                    disabled={telemetryLoading}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white text-xs font-semibold rounded-lg hover:bg-slate-700 disabled:opacity-40 transition-colors">
+                    <RefreshCw className={`w-3.5 h-3.5 ${telemetryLoading ? 'animate-spin' : ''}`} /> Load
+                </button>
+                {liveRows.length > 0 && (
+                    <span className="flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                        <Radio className="w-2.5 h-2.5" /> {liveRows.length} live
+                    </span>
+                )}
+                <button onClick={handleExcel} disabled={!allRows.length}
+                    className="ml-auto flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white text-xs font-semibold rounded-lg hover:bg-emerald-500 disabled:opacity-40 transition-colors">
+                    <Download className="w-3.5 h-3.5" /> Excel
+                </button>
+            </div>
+
+            {/* Table */}
+            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                {allRows.length === 0 && !telemetryLoading ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-slate-400 gap-2">
+                        <Activity className="w-8 h-8 opacity-30" />
+                        <p className="text-sm font-medium">No telemetry data for this range</p>
+                    </div>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left whitespace-nowrap">
+                            <thead className="bg-slate-50 border-b border-slate-200 text-[10px] uppercase tracking-wider text-slate-500">
+                                <tr>
+                                    {TELEMETRY_COLUMNS.map(({ label }) => (
+                                        <th key={label} className="px-3 py-2.5 font-bold">{label}</th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {allRows.map((row, i) => (
+                                    <tr key={`${row.timestamp}-${i}`} className={`transition-colors ${row.timestamp === flashId ? 'bg-blue-50/60' : 'hover:bg-slate-50/40'}`}>
+                                        {TELEMETRY_COLUMNS.map(({ key, format }) => (
+                                            <td key={key} className="px-3 py-2 font-mono text-slate-600 text-xs whitespace-nowrap">
+                                                {format(row[key])}
+                                            </td>
+                                        ))}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                        {hasMore && (
+                            <div ref={loaderRef} className="flex justify-center py-4">
+                                {telemetryLoading && (
+                                    <RefreshCw className="w-4 h-4 text-slate-400 animate-spin" />
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
+// ─── SCADA / Live View tab ──────────────────────────────────────────────────
+
+function SCADATab({ device, liveRow }) {
+    const t = liveRow ?? device.telemetry?.[0];
+    const pumpCount = getPumpCount(device.pumpModel);
+    const maxPressure = device.config?.mxp ?? 8;
+    const isFault = (t?.flt ?? 0) > 0;
+    const runningCount = Array.from({ length: pumpCount }, (_, i) => t?.[`p${i + 1}c`] ?? 0).filter(c => c > 0.1).length;
+    const [operationalMode, setOperationalMode] = useState('auto');
+    const { sendCommand, commandSending } = useDevice();
+
+    const handleTogglePump = (pump) => {
+        sendCommand({
+            deviceId: device.id,
+            payload: { type: 'PUMP', pump: pump.n, action: pump.isRunning ? 0 : 1 },
+        });
+    };
+
+    const pumps = Array.from({ length: pumpCount }, (_, i) => {
+        const n = i + 1;
+        const current = t?.[`p${n}c`] ?? 0;
+        const runtime = t?.[`p${n}r`] ?? 0;
+        return {
+            n,
+            label: `Pump ${String(n).padStart(2, '0')}`,
+            isRunning: current > 0.1 || runtime > 0,
+            isFault,
+            activeCurrent: current,
+            activeFrequency: t?.vfd ?? 0,
+            speed: t?.vfd ? (t.vfd / 50) * 100 : 0,
+        };
+    });
+
+    return (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-5">
+
+            {/* ── Header bar ── */}
+            <div className="flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-3">
+                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 uppercase tracking-wider">
+                        {device.pumpModel ?? 'Unknown Model'}
+                    </span>
+                    <span className="text-[11px] text-slate-400 font-medium">
+                        {pumpCount} pump{pumpCount > 1 ? 's' : ''} configured
+                    </span>
+                </div>
+                <div className="flex items-center gap-3 flex-wrap">
+                    {/* Mode toggle */}
+                    <div className="flex items-center bg-slate-100 rounded-lg p-0.5 gap-0.5 text-[11px] font-bold">
+                        <button
+                            onClick={() => setOperationalMode('auto')}
+                            className={`px-3 py-1 rounded-md transition-all ${
+                                operationalMode === 'auto'
+                                    ? 'bg-white text-slate-800 shadow-sm'
+                                    : 'text-slate-500 hover:text-slate-700'
+                            }`}
+                        >AUTO</button>
+                        <button
+                            onClick={() => setOperationalMode('manual')}
+                            className={`px-3 py-1 rounded-md transition-all ${
+                                operationalMode === 'manual'
+                                    ? 'bg-amber-500 text-white shadow-sm'
+                                    : 'text-slate-500 hover:text-slate-700'
+                            }`}
+                        >MANUAL</button>
+                    </div>
+                    <div className="flex items-center gap-2 text-[11px] font-semibold">
+                        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block" />
+                            {runningCount} running
+                        </span>
+                        {isFault && (
+                            <span className="px-2.5 py-1 rounded-full bg-red-50 text-red-700 border border-red-200 animate-pulse">
+                                ⚠ Fault active
+                            </span>
+                        )}
+                        {!t && (
+                            <span className="px-2.5 py-1 rounded-full bg-slate-50 text-slate-400 border border-slate-200">
+                                No live data
+                            </span>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* ── Main SCADA canvas ── */}
+            {/*
+                [Tank] | ─────────────────────── [Pump 01]
+                       | ──────────────────────────────────────── [Pump 02]
+                       | ──────────────────────────────────────────────────────── [Pump 03]
+            */}
+        {/* ── Main SCADA canvas (Absolute Horizontal Layout) ── */}
+<div className="w-full overflow-x-auto pb-4">
+    <div className="relative min-w-[1000px] min-h-[500px] bg-slate-50/30 rounded-xl border border-slate-200/60 shadow-inner">
+        
+        {/* ── 1. LEFT: Pressure Vessel ── */}
+        <div className="absolute z-30 flex flex-col items-center w-40" style={{ left: '16px', top: '24px' }}>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 text-center">
+                Pressure<br />Vessel
+            </p>
+            <Tank
+                pressure={t?.pressure ?? 0}
+                maxPressure={maxPressure}
+                capacity={device.config?.wut ?? 500}
+                label="Pressure Cylinder"
+                isFault={isFault}
+            />
+        </div>
+
+        {/* ── 2. TANK OUTPUT (Horizontal Stub) ── */}
+        <div className="absolute z-10" style={{ left: '120px', top: '160px' }}>
+            <Pipe length={60} active={runningCount > 0} />
+        </div>
+
+        {/* Junction: Tank output connecting to Main Manifold */}
+        <div 
+            className={`absolute z-20 w-10 h-10 -ml-1 -mt-1 rounded border-2 shadow-sm transition-colors duration-500 ${
+                runningCount > 0 ? 'bg-slate-400 border-slate-500' : 'bg-slate-300 border-slate-400/50'
+            }`} 
+            style={{ left: '164px', top: '160px' }} 
+        />
+
+        {/* ── 3. MAIN VERTICAL MANIFOLD ── */}
+        {/* Length calculated exactly to stop at the bottom-most pump branch */}
+        <div className="absolute z-10" style={{ left: '164px', top: '160px' }}>
+            <Pipe 
+                vertical 
+                length={112 + (pumps.length - 1) * 60} 
+                active={runningCount > 0} 
+            />
+        </div>
+
+        {/* ── 4. RIGHT: Horizontal Pumps & Absolute Piping ── */}
+        {pumps.map((pump, idx) => {
+            const isFlowing = pump.isRunning && !pump.isFault;
+            
+            // MATH FOR PERFECT ALIGNMENT:
+            const pumpLeft = 280 + (idx * 220);         // Spacing each pump 220px apart
+            const pipeLeft = pumpLeft + 72 - 16;        // Exact center of the 144px pump (w-36), minus half pipe width (16)
+            const branchTop = 240 + (idx * 60);         // Stagger horizontal pipes down by 60px each
+            const horizLength = pipeLeft - 164 + 32;    // Distance from manifold to vertical pipe
+            const vertLength = branchTop - 180 + 32;    // Distance from bottom of pump down to branch
+            
+            return (
+                <React.Fragment key={pump.n}>
+                    {/* T-Junction: Manifold to Horizontal Branch */}
+                    <div 
+                        className={`absolute z-20 w-10 h-10 -ml-1 -mt-1 rounded border-2 shadow-sm transition-colors duration-500 ${
+                            isFlowing ? 'bg-slate-400 border-slate-500' : 'bg-slate-300 border-slate-400/50'
+                        }`} 
+                        style={{ left: '164px', top: `${branchTop}px` }} 
+                    />
+
+                    {/* Horizontal Branch (Routing under pumps) */}
+                    <div className="absolute z-10" style={{ left: '164px', top: `${branchTop}px` }}>
+                        <Pipe length={horizLength} active={isFlowing} />
+                    </div>
+
+                    {/* Elbow Junction: Horizontal turning UP to Vertical */}
+                    <div 
+                        className={`absolute z-20 w-10 h-10 -ml-1 -mt-1 rounded border-2 shadow-sm transition-colors duration-500 ${
+                            isFlowing ? 'bg-slate-400 border-slate-500' : 'bg-slate-300 border-slate-400/50'
+                        }`} 
+                        style={{ left: `${pipeLeft}px`, top: `${branchTop}px` }} 
+                    />
+
+                    {/* Vertical Branch (Going UP into the pump) */}
+                    {/* Starts at 180px so it perfectly hides BEHIND the pump (which is z-30) */}
+                    <div className="absolute z-10" style={{ left: `${pipeLeft}px`, top: '180px' }}>
+                        <Pipe vertical length={vertLength} active={isFlowing} />
+                    </div>
+
+                    {/* Pump Component (Aligned in a straight row at the top) */}
+                    <div className="absolute z-30" style={{ left: `${pumpLeft}px`, top: '24px' }}>
+                        <Pump
+                            idx={pump.n}
+                            label={pump.label}
+                            isRunning={pump.isRunning}
+                            isFault={pump.isFault}
+                            speed={pump.speed}
+                            activeCurrent={pump.activeCurrent}
+                            activeFrequency={pump.activeFrequency}
+                            operationalMode={operationalMode}
+                            togglePump={() => handleTogglePump(pump)}
+                        />
+                    </div>
+                </React.Fragment>
+            );
+        })}
+    </div>
+</div>
+
+            {/* ── Bottom: Runtime summary ── */}
+            <div className="border-t border-slate-100 pt-4">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Pump Runtimes</p>
+                <div className="flex flex-wrap gap-4">
+                    {pumps.map((pump) => (
+                        <div key={pump.n}
+                            className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs ${
+                                pump.isRunning && !pump.isFault
+                                    ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                                    : pump.isFault
+                                        ? 'bg-red-50 border-red-200 text-red-700'
+                                        : 'bg-slate-50 border-slate-200 text-slate-500'
+                            }`}>
+                            <span className={`w-2 h-2 rounded-full ${pump.isRunning && !pump.isFault ? 'bg-emerald-500 animate-pulse' : pump.isFault ? 'bg-red-500 animate-pulse' : 'bg-slate-300'}`} />
+                            <span className="font-bold">{pump.label}</span>
+                            <span className="font-mono">{t?.[`p${pump.n}r`] ?? 0} hrs</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ─── Overview tab ────────────────────────────────────────────────────────────
+
+function OverviewTab({ device, liveRow }) {
+    const t = liveRow ?? device.telemetry?.[0];
+
+    return (
+        <div className="space-y-5">
+            {/* Live stats grid */}
+            <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Live Readings</p>
+                <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+                    <LiveStat label="Ph1 Current" value={t?.p1c?.toFixed(2)} unit="A" color="bg-amber-50 border-amber-100 text-amber-700" />
+                    <LiveStat label="Ph2 Current" value={t?.p2c?.toFixed(2)} unit="A" color="bg-amber-50 border-amber-100 text-amber-700" />
+                    <LiveStat label="Ph3 Current" value={t?.p3c?.toFixed(2)} unit="A" color="bg-amber-50 border-amber-100 text-amber-700" />
+                    <LiveStat label="Ph1 Voltage" value={t?.p1f?.toFixed(1)} unit="V" color="bg-blue-50 border-blue-100 text-blue-700" />
+                    <LiveStat label="Ph2 Voltage" value={t?.p2f?.toFixed(1)} unit="V" color="bg-blue-50 border-blue-100 text-blue-700" />
+                    <LiveStat label="Ph3 Voltage" value={t?.p3f?.toFixed(1)} unit="V" color="bg-blue-50 border-blue-100 text-blue-700" />
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
+                    <LiveStat label="Pressure" value={t?.pressure?.toFixed(2)} unit="bar" color="bg-violet-50 border-violet-100 text-violet-700" />
+                    <LiveStat label="VFD" value={t?.vfd?.toFixed(1)} unit="Hz" color="bg-violet-50 border-violet-100 text-violet-700" />
+                    <LiveStat label="Fault" value={t?.flt ?? '0'} color="bg-rose-50 border-rose-100 text-rose-700" />
+                    <LiveStat label="Status" value={t?.stm ?? '—'} color="bg-slate-50 border-slate-100 text-slate-700" />
+                </div>
+            </div>
+
+            {/* Pump runtimes */}
+            <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Pump Runtimes</p>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                    {[1,2,3,4,5].map(n => (
+                        <LiveStat key={n} label={`Pump ${n}`} value={t?.[`p${n}r`] ?? '—'} unit="hrs" color="bg-slate-50 border-slate-100 text-slate-700" />
+                    ))}
+                </div>
+            </div>
+
+            {/* Device info */}
+            <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Device Info</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <InfoCard label="Model" value={device.pumpModel?.replace('MODEL_', '').replace('P', '+') + ' Pump'} icon={Cpu} color="text-blue-500" />
+                    <InfoCard label="Customer" value={device.customer?.name} icon={Layers} color="text-violet-500" />
+                    <InfoCard label="Location" value={device.latitude ? `${device.latitude}, ${device.longitude}` : 'Not set'} icon={MapPin} color="text-rose-500" />
+                    <InfoCard label="Last Seen" value={device.lastSeen ? new Date(device.lastSeen).toLocaleString('en-GB') : '—'} icon={Wifi} color="text-emerald-500" />
+                    <InfoCard label="Created" value={device.createdAt ? new Date(device.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'} icon={Calendar} color="text-slate-500" />
+                    <InfoCard label="Last Status" value={device.lastStatus} icon={Signal} color="text-amber-500" />
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ─── Main Page ───────────────────────────────────────────────────────────────
+
+export default function DeviceDetailPage() {
+    const { id } = useParams();
+    const navigate = useNavigate();
+    const dispatch = useDispatch();
+    const { device, loading } = useSelector(s => s.devices);
+    const { connected } = useSocket() ?? {};
+    const [activeTab, setActiveTab] = useState('overview');
+    const [liveRow, setLiveRow] = useState(null);
+    const [showCmd, setShowCmd] = useState(false);
+    const [showConfig, setShowConfig] = useState(false);
+
+    useEffect(() => {
+        dispatch(fetchDeviceById(id));
+    }, [id, dispatch]);
+
+    useDeviceSocket(id, useCallback((row) => {
+        setLiveRow(row);
+    }, []));
+
+    const isOnline = device?.lastStatus === 'ONLINE' || !!liveRow;
+
+    if (loading && !device) {
+        return (
+            <div className="flex items-center justify-center min-h-[60vh] text-slate-400">
+                <RefreshCw className="w-6 h-6 animate-spin mr-2" /> Loading device…
+            </div>
+        );
+    }
+
+    if (!device) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] text-slate-400 gap-3">
+                <Cpu className="w-10 h-10 opacity-30" />
+                <p className="font-medium">Device not found</p>
+                <button onClick={() => navigate('/devices')} className="text-sm text-blue-600 hover:underline">Back to devices</button>
+            </div>
+        );
+    }
+
+    return (
+        <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans">
+            <div className="max-w-7xl mx-auto space-y-5">
+
+                {/* ── Page Header ── */}
+                <div className="flex items-start md:items-center justify-between gap-4 flex-wrap">
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => navigate('/devices')}
+                            className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 transition-colors"
+                        >
+                            <ArrowLeft className="w-4 h-4" />
+                        </button>
+                        <nav className="flex items-center gap-1 text-xs text-slate-400 font-medium">
+                            <span className="hover:text-slate-600 cursor-pointer" onClick={() => navigate('/devices')}>Devices</span>
+                            <ChevronRight className="w-3 h-3" />
+                            <span className="text-slate-700 font-bold font-mono">{device.imeinumber}</span>
+                        </nav>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <StatusDot active={isOnline} />
+                        {connected ? (
+                            <span className="flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                <Radio className="w-2.5 h-2.5" /> Live
+                            </span>
+                        ) : (
+                            <span className="flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold bg-slate-50 text-slate-400 border border-slate-200">
+                                <WifiOff className="w-2.5 h-2.5" /> Disconnected
+                            </span>
+                        )}
+                        <button
+                            onClick={() => setShowCmd(true)}
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-violet-600 hover:bg-violet-700 text-white transition-colors"
+                        >
+                            <Terminal className="w-3.5 h-3.5" /> Commands
+                        </button>
+                        <button
+                            onClick={() => setShowConfig(true)}
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors"
+                        >
+                            <Settings className="w-3.5 h-3.5" /> Config
+                        </button>
+                    </div>
+                </div>
+
+                {/* ── Device Title Bar ── */}
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm px-6 py-4 flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20 shrink-0">
+                        <Cpu className="w-6 h-6 text-white" />
+                    </div>
+                    <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <h1 className="text-lg font-bold text-slate-800 font-mono">{device.imeinumber}</h1>
+                            {device.code && (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200">
+                                    {device.code}
+                                </span>
+                            )}
+                            {device.pumpModel && (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-600 border border-blue-200">
+                                    {device.pumpModel}
+                                </span>
+                            )}
+                        </div>
+                        <p className="text-xs text-slate-400 mt-0.5">
+                            ID: <span className="font-mono">{device.id}</span>
+                            {device.customer?.name && <span> · {device.customer.name}</span>}
+                        </p>
+                    </div>
+                </div>
+
+                {/* ── Tabs ── */}
+                <div className="flex gap-1 bg-white rounded-xl border border-slate-200 p-1 shadow-sm overflow-x-auto">
+                    {TABS.map(({ id: tid, label, icon: Icon }) => (
+                        <button
+                            key={tid}
+                            onClick={() => setActiveTab(tid)}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
+                                activeTab === tid
+                                    ? 'bg-blue-600 text-white shadow-sm'
+                                    : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+                            }`}
+                        >
+                            <Icon className="w-3.5 h-3.5" />
+                            {label}
+                        </button>
+                    ))}
+                </div>
+
+                {/* ── Tab Content ── */}
+                <AnimatePresence mode="wait">
+                    <motion.div
+                        key={activeTab}
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        transition={{ duration: 0.15 }}
+                    >
+                        {activeTab === 'overview'  && <OverviewTab device={device} liveRow={liveRow} />}
+                        {activeTab === 'scada'     && <SCADATab device={device} liveRow={liveRow} />}
+                        {activeTab === 'telemetry' && <TelemetryTab device={device} />}
+                        {activeTab === 'commands'  && (
+                            <div className="bg-white rounded-xl border border-slate-200 p-4 flex items-center justify-center gap-3 py-12 flex-col text-slate-400">
+                                <Terminal className="w-8 h-8 opacity-30" />
+                                <p className="text-sm font-medium">Click <strong>Commands</strong> button above to open the command console.</p>
+                            </div>
+                        )}
+                        {activeTab === 'config' && (
+                            <div className="bg-white rounded-xl border border-slate-200 p-4 flex items-center justify-center gap-3 py-12 flex-col text-slate-400">
+                                <Settings className="w-8 h-8 opacity-30" />
+                                <p className="text-sm font-medium">Click <strong>Config</strong> button above to open device configuration.</p>
+                            </div>
+                        )}
+                        {activeTab === 'mqtt' && <MqttTab device={device} />}
+                    </motion.div>
+                </AnimatePresence>
+            </div>
+
+            {/* Modals */}
+            <AnimatePresence>
+                {showCmd && <CommandModal device={device} onClose={() => setShowCmd(false)} />}
+                {showConfig && <DeviceConfigModal device={device} onClose={() => setShowConfig(false)} />}
+            </AnimatePresence>
+        </div>
+    );
+}

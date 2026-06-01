@@ -1,0 +1,70 @@
+// src/constants/deviceConstants.js
+
+export const FAULT_DESCRIPTIONS = [
+    'No Fault', 'Voltage Low', 'High Voltage', 'VFD Trip', 'Low Pressure Cutoff',
+    'High Pressure Alarm', 'Pump Max Hour Reached', 'Water Sump Level Low', 'PT Fault',
+    'Emergency Stop', 'Phase Reversal Fault', 'Pump 1 – VFD Dry Run', 'Pump 1 – VFD Overload',
+    'Pump 1 – Max Starts Reached', 'Pump 1 – DOL Overload', 'Pump 1 – DOL Dry Run',
+    'Pump 2 – VFD Dry Run', 'Pump 2 – VFD Overload', 'Pump 2 – Max Starts Reached',
+    'Pump 2 – DOL Overload', 'Pump 2 – DOL Dry Run', 'Pump 3 – VFD Dry Run',
+    'Pump 3 – VFD Overload', 'Pump 3 – Max Starts Reached', 'Pump 3 – DOL Overload',
+    'Pump 3 – DOL Dry Run', 'Pump 4 – VFD Dry Run', 'Pump 4 – VFD Overload',
+    'Pump 4 – Max Starts Reached', 'Pump 4 – DOL Overload', 'Pump 4 – DOL Dry Run',
+    'Pump 5 – VFD Dry Run', 'Pump 5 – VFD Overload', 'Pump 5 – Max Starts Reached',
+    'Pump 5 – DOL Overload', 'Pump 5 – DOL Dry Run',
+];
+
+export const PUMP_STATUS = {
+    0: { label: 'VFD', color: 'text-cyan-600', bg: 'bg-cyan-50 border-cyan-200', dot: 'bg-cyan-500' },
+    1: { label: 'DOL', color: 'text-green-600', bg: 'bg-green-50 border-green-200', dot: 'bg-green-500' },
+    2: { label: 'Stop', color: 'text-slate-500', bg: 'bg-slate-50 border-slate-200', dot: 'bg-slate-400' },
+    3: { label: 'Service', color: 'text-amber-600', bg: 'bg-amber-50 border-amber-200', dot: 'bg-amber-500' },
+};
+
+export const CONFIG_FIELDS = [
+    { key: 'mxp', label: 'Max Pressure', unit: 'bar', code: 'MXP' },
+    { key: 'mnp', label: 'Min Pressure', unit: 'bar', code: 'MNP' },
+    { key: 'tfs', label: 'Transducer Full Scale', unit: 'bar', code: 'TFS' },
+    { key: 'stp', label: 'Set Pressure', unit: 'bar', code: 'STP' },
+    { key: 'dfp', label: 'Differential Pressure', unit: 'bar', code: 'DFP' },
+    { key: 'wut', label: 'Warm Up Time', unit: 'hrs', code: 'WUT' },
+    { key: 'lpc', label: 'Low Pressure Cutoff Delay', unit: 'mins', code: 'LPC' },
+    { key: 'msh', label: 'Max Starts / hr', unit: '', code: 'MSH' },
+    { key: 'hvg', label: 'High Voltage', unit: 'V', code: 'HVG' },
+    { key: 'lvg', label: 'Low Voltage', unit: 'V', code: 'LVG' },
+    { key: 'vcd', label: 'Voltage Cutoff Delay', unit: 'secs', code: 'VCD' },
+    { key: 'olc', label: 'Overload Current', unit: 'A', code: 'OLC' },
+    { key: 'ocd', label: 'Overload Cutoff Delay', unit: 'secs', code: 'OCD' },
+    { key: 'drc', label: 'Dry Run Current', unit: 'A', code: 'DRC' },
+    { key: 'drd', label: 'Dry Run Delay', unit: 'secs', code: 'DRD' },
+    { key: 'swf', label: 'Switching Frequency', unit: 'Hz', code: 'SWF' },
+    { key: 'swt', label: 'Switching Time', unit: 'secs', code: 'SWT' },
+    { key: 'slf', label: 'Sleep Frequency', unit: 'Hz', code: 'SLF' },
+    { key: 'slt', label: 'Sleep Time', unit: 'secs', code: 'SLT' },
+    { key: 'pof', label: 'PID Overwrite Frequency', unit: 'Hz', code: 'POF' },
+    { key: 'pgn', label: 'Proportional Gain', unit: '', code: 'PGN' },
+    { key: 'ign', label: 'Integral Gain', unit: '', code: 'IGN' },
+    { key: 'dgn', label: 'Derivative Gain', unit: '', code: 'DGN' },
+    { key: 'stm', label: 'Scan Time', unit: 'ms', code: 'STM' },
+];
+
+export const TELEMETRY_COLUMNS = [
+    { key: 'timestamp', label: 'Timestamp',       format: (v) => v ? new Date(v).toLocaleString('en-GB') : '—' },
+    { key: 'prs',       label: 'Pressure (bar)',  format: (v) => v != null ? Number(v).toFixed(2) : '—' },
+    { key: 'vfr',       label: 'VFD (Hz)',         format: (v) => v != null ? String(v) : '—' },
+    { key: 'iv1',       label: 'Phase Voltage 1 (V)', format: (v) => v != null ? Number(v).toFixed(1) : '—' },
+    { key: 'iv2',       label: 'Phase Voltage 2 (V)', format: (v) => v != null ? Number(v).toFixed(1) : '—' },
+    { key: 'iv3',       label: 'Phase Voltage 3 (V)', format: (v) => v != null ? Number(v).toFixed(1) : '—' },
+    { key: 'ic1',       label: 'Motor Current 1 (A)', format: (v) => v != null ? Number(v).toFixed(2) : '—' },
+    { key: 'ic2',       label: 'Motor Current 2 (A)', format: (v) => v != null ? Number(v).toFixed(2) : '—' },
+    { key: 'ic3',       label: 'Motor Current 3 (A)', format: (v) => v != null ? Number(v).toFixed(2) : '—' },
+    { key: 'ic4',       label: 'Motor Current 4 (A)', format: (v) => v != null ? Number(v).toFixed(2) : '—' },
+    { key: 'ic5',       label: 'Motor Current 5 (A)', format: (v) => v != null ? Number(v).toFixed(2) : '—' },
+    { key: 'flt',       label: 'Fault',           format: (v) => v != null ? `${v} – ${FAULT_DESCRIPTIONS[v] ?? 'Unknown'}` : '—' },
+    { key: 'p1s',       label: 'P1 Status',        format: (v) => v != null ? ['VFD','DOL','Stop','Service'][v] ?? v : '—' },
+    { key: 'p2s',       label: 'P2 Status',        format: (v) => v != null ? ['VFD','DOL','Stop','Service'][v] ?? v : '—' },
+    { key: 'p3s',       label: 'P3 Status',        format: (v) => v != null ? ['VFD','DOL','Stop','Service'][v] ?? v : '—' },
+    { key: 'p1r',       label: 'P1 Run Mins',      format: (v) => v != null ? v : '—' },
+    { key: 'p2r',       label: 'P2 Run Mins',      format: (v) => v != null ? v : '—' },
+    { key: 'p3r',       label: 'P3 Run Mins',      format: (v) => v != null ? v : '—' },
+];
