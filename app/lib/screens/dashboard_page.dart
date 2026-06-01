@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'dart:math' as math;
 import '../models/api_device.dart';
 import '../models/app_user.dart';
 import '../services/api_service.dart';
 import '../services/app_state.dart';
 import '../services/socket_service.dart';
-import '../widgets/stat_card.dart';
 import '../widgets/import_devices_sheet.dart';
 import 'device_list_page.dart';
 import 'user_device_page.dart';
@@ -62,82 +62,446 @@ class _DashboardPageState extends State<DashboardPage> {
     await context.read<AppState>().logout();
   }
 
-  Widget _buildOverview(AppState state) {
-    final devices = state.devices;
-    final onlineCount = devices.where((d) => d.isActive).length;
+  // ── Farmer dashboard (primary view used by AppShell) ─────────────────────
+
+  static const _primaryGreen = Color(0xFF37B34A);
+  static const _darkText = Color(0xFF1E2A1F);
+  static const _greyText = Color(0xFF8A958A);
+
+  Widget _buildFarmerDashboard(AppState state) {
     final user = state.user;
+    final devices = state.devices;
     final hour = DateTime.now().hour;
     final greeting = hour < 12
-        ? 'Good morning'
+        ? 'Good Morning,'
         : hour < 17
-        ? 'Good afternoon'
-        : 'Good evening';
+        ? 'Good Afternoon,'
+        : 'Good Evening,';
+    final isAdmin = user?.isAdmin ?? false;
 
     return RefreshIndicator(
       onRefresh: state.loadDevices,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 22, 16, 28),
-        children: [
-          Text(
-            greeting,
-            style: const TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Top bar ───────────────────────────────────
+            _topBar(user),
+            const SizedBox(height: 16),
+
+            Text(
+              greeting,
+              style: const TextStyle(
+                fontSize: 14,
+                color: _greyText,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    user?.name ?? 'Dashboard',
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: _darkText,
+                      letterSpacing: -0.4,
+                    ),
+                  ),
+                ),
+                _RoleBadge(role: user?.role ?? UserRole.user),
+              ],
+            ),
+            const SizedBox(height: 18),
+
+            // ── Weather / Farm scene card ──────────────────
+            _weatherCard(),
+            const SizedBox(height: 20),
+
+            // ── Today's Overview ──────────────────────────
+            _sectionHeader("Today's Overview"),
+            const SizedBox(height: 12),
+            _buildOverviewCards(state, isAdmin),
+            const SizedBox(height: 22),
+
+            // ── Quick Actions ─────────────────────────────
+            _sectionHeader('Quick Actions'),
+            const SizedBox(height: 12),
+            _buildQuickActions(state, isAdmin),
+            const SizedBox(height: 22),
+
+            // ── Recent / My Devices ───────────────────────
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _sectionHeader(isAdmin ? 'Recent Devices' : 'My Devices'),
+                TextButton(
+                  onPressed: () {},
+                  child: const Text(
+                    'See All',
+                    style: TextStyle(
+                      color: _primaryGreen,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+
+            if (state.devicesLoading)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(32),
+                  child: CircularProgressIndicator(color: _primaryGreen),
+                ),
+              )
+            else if (state.devicesError != null)
+              _ErrorTile(
+                message: state.devicesError!,
+                onRetry: state.loadDevices,
+              )
+            else if (devices.isEmpty)
+              _EmptyDevices(isAdmin: isAdmin)
+            else
+              ...devices.take(5).map((d) => _DeviceFarmTile(device: d)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _topBar(AppUser? user) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        const Icon(Icons.water_drop_rounded, color: _primaryGreen, size: 26),
+        Row(
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                const Icon(
+                  Icons.notifications_none_rounded,
+                  size: 26,
+                  color: _darkText,
+                ),
+                Positioned(
+                  top: -2,
+                  right: -2,
+                  child: Container(
+                    width: 9,
+                    height: 9,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFEF4444),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(width: 13),
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFFE2F3D5),
+                border: Border.all(color: Colors.white, width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.12),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Text(
+                  user?.name?.isNotEmpty == true
+                      ? user!.name![0].toUpperCase()
+                      : '🌿',
+                  style: const TextStyle(fontSize: 16),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _weatherCard() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
           ),
-          const SizedBox(height: 4),
-          Text(
-            user?.name ?? 'System Overview',
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF1A1F36),
-              letterSpacing: -0.4,
+        ],
+      ),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 8),
+            child: Row(
+              children: [
+                const Text('🌤️', style: TextStyle(fontSize: 32)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text(
+                        '28°C',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: _darkText,
+                        ),
+                      ),
+                      Text(
+                        'Partly Cloudy',
+                        style: TextStyle(
+                          color: _greyText,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                _weatherInfo('Humidity', '60%'),
+                const SizedBox(width: 14),
+                _weatherInfo('Wind', '12 km/h'),
+              ],
             ),
           ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: StatCard(
-                  label: 'Devices',
-                  value: '${devices.length}',
-                  icon: Icons.devices_rounded,
-                  color: _primary,
-                ),
+          SizedBox(
+            height: 105,
+            width: double.infinity,
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(22),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: StatCard(
-                  label: 'Active',
-                  value: '$onlineCount',
-                  icon: Icons.wifi_rounded,
-                  color: const Color(0xFF10B981),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: StatCard(
-                  label: 'Offline',
-                  value: '${devices.length - onlineCount}',
-                  icon: Icons.wifi_off_rounded,
-                  color: const Color(0xFF9CA3AF),
-                ),
-              ),
-            ],
+              child: const AnimatedFarmScene(),
+            ),
           ),
-          const SizedBox(height: 28),
-          const _SectionHeader(title: 'Recent Devices'),
-          const SizedBox(height: 10),
-          if (state.devicesLoading)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.all(32),
-                child: CircularProgressIndicator(),
-              ),
-            )
-          else if (state.devicesError != null)
-            _ErrorTile(message: state.devicesError!, onRetry: state.loadDevices)
-          else
-            ...devices.take(8).map((d) => _DeviceSummaryTile(device: d)),
         ],
+      ),
+    );
+  }
+
+  static Widget _weatherInfo(String title, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: _greyText,
+            fontSize: 10,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: _darkText,
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildOverviewCards(AppState state, bool isAdmin) {
+    final devices = state.devices;
+    final online = devices.where((d) => d.isActive).length;
+    final offline = devices.length - online;
+    final faults = devices.where((d) {
+      final sts = (d.telemetryLogs.firstOrNull?.sts as num?)?.toInt() ?? 0;
+      return d.isActive && sts != 0;
+    }).length;
+
+    final List<_OverviewCardData> cards = isAdmin
+        ? [
+            _OverviewCardData(
+              icon: Icons.devices_rounded,
+              title: 'Total Devices',
+              value: '${devices.length}',
+              subtitle: 'Registered',
+              iconBg: const Color(0xFFE8F5E9),
+              iconColor: _primaryGreen,
+            ),
+            _OverviewCardData(
+              icon: Icons.wifi_rounded,
+              title: 'Active Now',
+              value: '$online',
+              subtitle: 'Online',
+              iconBg: const Color(0xFFE3F2FD),
+              iconColor: const Color(0xFF1976D2),
+            ),
+            _OverviewCardData(
+              icon: Icons.people_rounded,
+              title: 'Users',
+              value: state.users.isNotEmpty ? '${state.users.length}' : '–',
+              subtitle: 'Managed',
+              iconBg: const Color(0xFFF3E5F5),
+              iconColor: const Color(0xFF7B1FA2),
+            ),
+            _OverviewCardData(
+              icon: Icons.warning_amber_rounded,
+              title: 'Faults',
+              value: '$faults',
+              subtitle: 'Need attention',
+              iconBg: const Color(0xFFFFF3E0),
+              iconColor: const Color(0xFFF57C00),
+            ),
+          ]
+        : [
+            _OverviewCardData(
+              icon: Icons.devices_other_rounded,
+              title: 'My Devices',
+              value: '${devices.length}',
+              subtitle: 'Assigned',
+              iconBg: const Color(0xFFE8F5E9),
+              iconColor: _primaryGreen,
+            ),
+            _OverviewCardData(
+              icon: Icons.power_settings_new_rounded,
+              title: 'Running',
+              value: '$online',
+              subtitle: 'Active motors',
+              iconBg: const Color(0xFFE3F2FD),
+              iconColor: const Color(0xFF1976D2),
+            ),
+            _OverviewCardData(
+              icon: Icons.wifi_off_rounded,
+              title: 'Offline',
+              value: '$offline',
+              subtitle: 'Not connected',
+              iconBg: const Color(0xFFFCE4EC),
+              iconColor: const Color(0xFFD32F2F),
+            ),
+            _OverviewCardData(
+              icon: Icons.report_problem_outlined,
+              title: 'Faults',
+              value: '$faults',
+              subtitle: 'Review needed',
+              iconBg: const Color(0xFFFFF3E0),
+              iconColor: const Color(0xFFF57C00),
+            ),
+          ];
+
+    return Row(
+      children: List.generate(cards.length, (i) {
+        final c = cards[i];
+        return Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(right: i < cards.length - 1 ? 8 : 0),
+            child: _OverviewCard(
+              icon: c.icon,
+              title: c.title,
+              value: c.value,
+              subtitle: c.subtitle,
+              iconBg: c.iconBg,
+              iconColor: c.iconColor,
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildQuickActions(AppState state, bool isAdmin) {
+    final List<_ActionData> actions = isAdmin
+        ? [
+            _ActionData(
+              icon: Icons.upload_file_rounded,
+              label: 'Import\nDevices',
+              onTap: () => ImportDevicesSheet.show(
+                context,
+                token: state.token ?? '',
+                onSuccess: state.loadDevices,
+              ),
+            ),
+            _ActionData(
+              icon: Icons.people_outline_rounded,
+              label: 'Manage\nUsers',
+              onTap: () {},
+            ),
+            _ActionData(
+              icon: Icons.send_rounded,
+              label: 'Send\nCommand',
+              onTap: () {},
+            ),
+            _ActionData(
+              icon: Icons.bar_chart_rounded,
+              label: 'Reports',
+              onTap: () {},
+            ),
+          ]
+        : [
+            _ActionData(
+              icon: Icons.devices_outlined,
+              label: 'My\nDevices',
+              onTap: () {},
+            ),
+            _ActionData(
+              icon: Icons.notifications_active_outlined,
+              label: 'View\nAlerts',
+              onTap: () {},
+            ),
+            _ActionData(
+              icon: Icons.monitor_heart_outlined,
+              label: 'Telemetry',
+              onTap: () {},
+            ),
+            _ActionData(
+              icon: Icons.schedule_rounded,
+              label: 'Schedule',
+              onTap: () {},
+            ),
+          ];
+
+    return Row(
+      children: List.generate(actions.length, (i) {
+        final a = actions[i];
+        return Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(right: i < actions.length - 1 ? 8 : 0),
+            child: _ActionCard(icon: a.icon, label: a.label, onTap: a.onTap),
+          ),
+        );
+      }),
+    );
+  }
+
+  static Widget _sectionHeader(String title) {
+    return Text(
+      title,
+      style: const TextStyle(
+        color: _darkText,
+        fontSize: 15,
+        fontWeight: FontWeight.w800,
       ),
     );
   }
@@ -418,7 +782,7 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget build(BuildContext context) {
     if (!widget.useLegacyShell) {
       return Consumer<AppState>(
-        builder: (context, state, _) => _buildOverview(state),
+        builder: (context, state, _) => _buildFarmerDashboard(state),
       );
     }
 
@@ -432,7 +796,7 @@ class _DashboardPageState extends State<DashboardPage> {
             state.user?.role == UserRole.superadmin;
         final titles = ['Overview', 'Devices', if (isAdmin) 'Users'];
         final pages = [
-          _buildOverview(state),
+          _buildFarmerDashboard(state),
           const DeviceListPage(),
           if (isAdmin) const UsersPage(),
         ];
@@ -502,24 +866,6 @@ class _DashboardPageState extends State<DashboardPage> {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  const _SectionHeader({required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      title,
-      style: const TextStyle(
-        fontSize: 17,
-        fontWeight: FontWeight.w700,
-        color: Color(0xFF1A1F36),
-        letterSpacing: -0.2,
-      ),
-    );
-  }
-}
 
 class _UserChip extends StatelessWidget {
   final AppUser user;
@@ -1567,4 +1913,711 @@ class _ErrorTile extends StatelessWidget {
       ),
     );
   }
+}
+
+// ── Role badge ────────────────────────────────────────────────────────────────
+
+class _RoleBadge extends StatelessWidget {
+  final UserRole role;
+  const _RoleBadge({required this.role});
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, fg, bg) = switch (role) {
+      UserRole.superadmin => (
+        'Super Admin',
+        const Color(0xFFBE123C),
+        const Color(0xFFFFF1F2),
+      ),
+      UserRole.admin => (
+        'Admin',
+        const Color(0xFF6D28D9),
+        const Color(0xFFF5F3FF),
+      ),
+      UserRole.user => (
+        'Farmer',
+        const Color(0xFF15803D),
+        const Color(0xFFF0FDF4),
+      ),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: fg.withOpacity(0.25)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          color: fg,
+          letterSpacing: 0.3,
+        ),
+      ),
+    );
+  }
+}
+
+// ── Empty devices placeholder ─────────────────────────────────────────────────
+
+class _EmptyDevices extends StatelessWidget {
+  final bool isAdmin;
+  const _EmptyDevices({required this.isAdmin});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 32),
+        child: Column(
+          children: [
+            Icon(
+              Icons.devices_other_rounded,
+              size: 52,
+              color: Colors.grey.shade300,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              isAdmin ? 'No devices yet' : 'No devices assigned',
+              style: const TextStyle(
+                fontSize: 14,
+                color: Color(0xFF94A3B8),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              isAdmin
+                  ? 'Import devices to get started.'
+                  : 'Contact your administrator to add devices.',
+              style: const TextStyle(fontSize: 12, color: Color(0xFFCBD5E1)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Farm-style device tile ────────────────────────────────────────────────────
+
+class _DeviceFarmTile extends StatelessWidget {
+  final ApiDevice device;
+  const _DeviceFarmTile({required this.device});
+
+  @override
+  Widget build(BuildContext context) {
+    final latest = device.telemetryLogs.firstOrNull;
+    final isRunning =
+        latest != null &&
+        ((latest.ic1 ?? 0) > 0.1 ||
+            (latest.ic2 ?? 0) > 0.1 ||
+            (latest.ic3 ?? 0) > 0.1);
+    final faultSts = (latest?.sts as num?)?.toInt() ?? 0;
+    final hasFault = faultSts != 0;
+
+    final (statusLabel, statusColor, statusBg) = !device.isActive
+        ? ('Offline', const Color(0xFF9CA3AF), const Color(0xFFF8FAFC))
+        : hasFault
+        ? ('Fault', const Color(0xFFEF4444), const Color(0xFFFFF5F5))
+        : isRunning
+        ? ('Running', const Color(0xFF37B34A), const Color(0xFFF0FDF4))
+        : ('Idle', const Color(0xFFF59E0B), const Color(0xFFFFFBEB));
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(13),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.045),
+            blurRadius: 12,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Icon
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: statusBg,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.developer_board_rounded,
+              size: 22,
+              color: statusColor,
+            ),
+          ),
+          const SizedBox(width: 12),
+
+          // Name + IMEI
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  device.name ?? device.imeinumber,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1E2A1F),
+                  ),
+                ),
+                if (device.name != null)
+                  Text(
+                    device.imeinumber,
+                    style: const TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 10,
+                      color: Color(0xFF9CA3AF),
+                    ),
+                  ),
+                if (latest != null) ...[
+                  const SizedBox(height: 3),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.bolt_rounded,
+                        size: 12,
+                        color: Color(0xFF94A3B8),
+                      ),
+                      Text(
+                        latest.iv1 != null
+                            ? '${latest.iv1!.toStringAsFixed(0)} V'
+                            : '—',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Icon(
+                        Icons.water_drop_outlined,
+                        size: 12,
+                        color: Color(0xFF94A3B8),
+                      ),
+                      Text(
+                        latest.flc != null ? '${latest.flc}' : '—',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+
+          // Status badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+            decoration: BoxDecoration(
+              color: statusBg,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: statusColor.withOpacity(0.25)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: statusColor,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  statusLabel,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: statusColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Data holders ──────────────────────────────────────────────────────────────
+
+class _OverviewCardData {
+  final IconData icon;
+  final String title;
+  final String value;
+  final String subtitle;
+  final Color iconBg;
+  final Color iconColor;
+  const _OverviewCardData({
+    required this.icon,
+    required this.title,
+    required this.value,
+    required this.subtitle,
+    required this.iconBg,
+    required this.iconColor,
+  });
+}
+
+class _ActionData {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  const _ActionData({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+}
+
+// ── Overview card ─────────────────────────────────────────────────────────────
+
+class _OverviewCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String value;
+  final String subtitle;
+  final Color iconBg;
+  final Color iconColor;
+
+  const _OverviewCard({
+    required this.icon,
+    required this.title,
+    required this.value,
+    required this.subtitle,
+    required this.iconBg,
+    required this.iconColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 125,
+      padding: const EdgeInsets.all(11),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.045),
+            blurRadius: 14,
+            offset: const Offset(0, 7),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(color: iconBg, shape: BoxShape.circle),
+            child: Icon(icon, color: iconColor, size: 17),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Color(0xFF8A958A),
+              fontSize: 10.5,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Color(0xFF1E2A1F),
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Color(0xFF9FA89F),
+              fontSize: 9,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Action card ───────────────────────────────────────────────────────────────
+
+class _ActionCard extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _ActionCard({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 82,
+        padding: const EdgeInsets.symmetric(horizontal: 5),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(17),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.045),
+              blurRadius: 14,
+              offset: const Offset(0, 7),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: const Color(0xFF37B34A), size: 22),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Color(0xFF1E2A1F),
+                fontSize: 10.5,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Animated farm scene ───────────────────────────────────────────────────────
+
+class AnimatedFarmScene extends StatefulWidget {
+  const AnimatedFarmScene({super.key});
+
+  @override
+  State<AnimatedFarmScene> createState() => _AnimatedFarmSceneState();
+}
+
+class _AnimatedFarmSceneState extends State<AnimatedFarmScene>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 30),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return CustomPaint(
+          painter: FarmPainter(animationValue: _controller.value),
+          child: const SizedBox.expand(),
+        );
+      },
+    );
+  }
+}
+
+// ── Farm painter ──────────────────────────────────────────────────────────────
+
+class FarmPainter extends CustomPainter {
+  final double animationValue;
+
+  FarmPainter({required this.animationValue});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final skyPaint = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Color(0xFFEFFBE9), Color(0xFFCFF0BA)],
+      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), skyPaint);
+
+    final mountainPaint = Paint()..color = const Color(0xFFB9E0A2);
+    final path = Path()
+      ..moveTo(0, size.height * 0.55)
+      ..quadraticBezierTo(
+        size.width * 0.25,
+        size.height * 0.15,
+        size.width * 0.52,
+        size.height * 0.48,
+      )
+      ..quadraticBezierTo(
+        size.width * 0.78,
+        size.height * 0.70,
+        size.width,
+        size.height * 0.42,
+      )
+      ..lineTo(size.width, size.height)
+      ..lineTo(0, size.height)
+      ..close();
+    canvas.drawPath(path, mountainPaint);
+
+    final fieldPaint = Paint()..color = const Color(0xFF89D866);
+    final fieldPath = Path()
+      ..moveTo(0, size.height * 0.70)
+      ..quadraticBezierTo(
+        size.width * 0.40,
+        size.height * 0.55,
+        size.width,
+        size.height * 0.72,
+      )
+      ..lineTo(size.width, size.height)
+      ..lineTo(0, size.height)
+      ..close();
+    canvas.drawPath(fieldPath, fieldPaint);
+
+    final linePaint = Paint()
+      ..color = Colors.white.withOpacity(0.45)
+      ..strokeWidth = 1;
+    for (int i = 0; i < 8; i++) {
+      final y = size.height * 0.78 + i * 7;
+      canvas.drawLine(Offset(0, y), Offset(size.width, y - 30), linePaint);
+    }
+
+    final roadPaint = Paint()..color = const Color(0xFFD7E9B8);
+    final road = Path()
+      ..moveTo(size.width * 0.28, size.height)
+      ..quadraticBezierTo(
+        size.width * 0.48,
+        size.height * 0.72,
+        size.width * 0.65,
+        size.height,
+      )
+      ..close();
+    canvas.drawPath(road, roadPaint);
+
+    _drawTree(canvas, Offset(size.width * 0.12, size.height * 0.55), 17);
+    _drawTree(canvas, Offset(size.width * 0.88, size.height * 0.58), 15);
+    _drawTree(canvas, Offset(size.width * 0.95, size.height * 0.62), 13);
+    _drawHouse(canvas, Offset(size.width * 0.70, size.height * 0.52), size);
+
+    final progress = (1 - math.cos(animationValue * math.pi * 2)) / 2;
+    final leftLimit = size.width * 0.10;
+    final rightLimit = size.width * 0.78;
+    final tractorX = leftLimit + (rightLimit - leftLimit) * progress;
+    final tractorY = size.height * 0.64 + math.sin(progress * math.pi) * 8;
+    final movingRight = math.sin(animationValue * math.pi * 2) > 0;
+    final tractorPos = Offset(tractorX, tractorY);
+
+    _drawDust(canvas, tractorPos, animationValue, movingRight);
+    _drawTractor(canvas, tractorPos, animationValue, movingRight);
+  }
+
+  void _drawTree(Canvas canvas, Offset base, double height) {
+    canvas.drawRect(
+      Rect.fromLTWH(base.dx - 1.5, base.dy, 3, height),
+      Paint()..color = const Color(0xFF8A5A2B),
+    );
+    canvas.drawCircle(
+      Offset(base.dx, base.dy - 4),
+      10,
+      Paint()..color = const Color(0xFF38B54A),
+    );
+  }
+
+  void _drawHouse(Canvas canvas, Offset pos, Size size) {
+    final w = size.width * 0.13;
+    final h = size.height * 0.18;
+    canvas.drawRect(
+      Rect.fromLTWH(pos.dx, pos.dy, w, h),
+      Paint()..color = const Color(0xFFF6F3DC),
+    );
+    final roof = Path()
+      ..moveTo(pos.dx - 4, pos.dy)
+      ..lineTo(pos.dx + w / 2, pos.dy - 15)
+      ..lineTo(pos.dx + w + 4, pos.dy)
+      ..close();
+    canvas.drawPath(roof, Paint()..color = const Color(0xFF4CB653));
+    canvas.drawRect(
+      Rect.fromLTWH(pos.dx + w * 0.43, pos.dy + h * 0.42, 8, h * 0.58),
+      Paint()..color = const Color(0xFF8A5A2B),
+    );
+  }
+
+  void _drawDust(Canvas canvas, Offset pos, double t, bool movingRight) {
+    for (int i = 0; i < 4; i++) {
+      final wave = ((t * 6) + i) % 1.0;
+      final dx = movingRight
+          ? pos.dx - 8 - (wave * 18)
+          : pos.dx + 44 + (wave * 18);
+      final dy = pos.dy + 18 + (i % 2) * 3;
+      final radius = 3 + wave * 5;
+      canvas.drawCircle(
+        Offset(dx, dy),
+        radius,
+        Paint()..color = const Color(0xFFC9B27D).withOpacity(0.25 * (1 - wave)),
+      );
+    }
+  }
+
+  void _drawTractor(Canvas canvas, Offset pos, double t, bool movingRight) {
+    canvas.save();
+    if (movingRight) {
+      canvas.translate(pos.dx + 42, 0);
+      canvas.scale(-1, 1);
+      _drawTractorBody(canvas, Offset(0, pos.dy), t, movingRight);
+    } else {
+      _drawTractorBody(canvas, pos, t, movingRight);
+    }
+    canvas.restore();
+  }
+
+  void _drawTractorBody(Canvas canvas, Offset pos, double t, bool movingRight) {
+    final bounce = math.sin(t * math.pi * 12) * 1.2;
+    final base = pos + Offset(0, bounce);
+
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(base.dx, base.dy, 34, 14),
+        const Radius.circular(3),
+      ),
+      Paint()..color = const Color(0xFF2E9C38),
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(base.dx + 20, base.dy - 14, 17, 16),
+        const Radius.circular(3),
+      ),
+      Paint()..color = const Color(0xFF247A2E),
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(base.dx + 4, base.dy + 3, 13, 7),
+        const Radius.circular(2),
+      ),
+      Paint()..color = const Color(0xFFF7C948),
+    );
+    canvas.drawLine(
+      Offset(base.dx + 4, base.dy),
+      Offset(base.dx + 4, base.dy - 11),
+      Paint()
+        ..color = const Color(0xFF1E1E1E)
+        ..strokeWidth = 2
+        ..strokeCap = StrokeCap.round,
+    );
+
+    final smallWheel = Offset(base.dx + 8, base.dy + 17);
+    final bigWheel = Offset(base.dx + 32, base.dy + 17);
+    final black = Paint()..color = const Color(0xFF242424);
+    final wheelInner = Paint()..color = const Color(0xFFEFEFEF);
+
+    canvas.drawCircle(smallWheel, 8, black);
+    canvas.drawCircle(bigWheel, 10, black);
+    canvas.drawCircle(smallWheel, 3, wheelInner);
+    canvas.drawCircle(bigWheel, 4, wheelInner);
+    _drawWheelSpokes(canvas, smallWheel, 6, t, movingRight);
+    _drawWheelSpokes(canvas, bigWheel, 8, t, movingRight);
+
+    canvas.drawCircle(
+      Offset(base.dx + 1, base.dy + 5),
+      2,
+      Paint()..color = const Color(0xFFFFF59D),
+    );
+  }
+
+  void _drawWheelSpokes(
+    Canvas canvas,
+    Offset center,
+    double radius,
+    double t,
+    bool movingRight,
+  ) {
+    final spokePaint = Paint()
+      ..color = Colors.white.withOpacity(0.65)
+      ..strokeWidth = 1;
+    final rotation = movingRight ? t * math.pi * 8 : -t * math.pi * 8;
+    for (int i = 0; i < 4; i++) {
+      final angle = rotation + (i * math.pi / 2);
+      canvas.drawLine(
+        center,
+        Offset(
+          center.dx + math.cos(angle) * radius,
+          center.dy + math.sin(angle) * radius,
+        ),
+        spokePaint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant FarmPainter oldDelegate) =>
+      oldDelegate.animationValue != animationValue;
+}
+
+// ── Paddy painter (crop card thumbnail) ──────────────────────────────────────
+
+class PaddyPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final bg = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Color(0xFFA9E063), Color(0xFF4CAD34)],
+      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), bg);
+
+    final grassPaint = Paint()
+      ..color = const Color(0xFFE5F58A)
+      ..strokeWidth = 1.4;
+    for (double x = 0; x < size.width; x += 4) {
+      canvas.drawLine(
+        Offset(x, size.height),
+        Offset(x + 5, size.height * 0.25),
+        grassPaint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
