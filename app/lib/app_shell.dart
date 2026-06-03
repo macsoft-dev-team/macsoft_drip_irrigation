@@ -76,11 +76,8 @@ class _AppShellState extends State<AppShell> {
           currentIndex: safeIndex,
           navItems: const [
             AppNavItem(icon: Icons.home_rounded, label: 'Dashboard'),
-            AppNavItem(
-              icon: Icons.settings_input_component_rounded,
-              label: 'Systems',
-            ),
-            AppNavItem(icon: Icons.water_drop_outlined, label: 'Valves'),
+            AppNavItem(icon: Icons.settings_outlined, label: 'Systems'),
+            AppNavItem(icon: Icons.groups_outlined, label: 'Users'),
             AppNavItem(icon: Icons.calendar_month_outlined, label: 'Schedules'),
             AppNavItem(icon: Icons.menu_rounded, label: 'More'),
           ],
