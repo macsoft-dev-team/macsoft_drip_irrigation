@@ -4,6 +4,7 @@ import authReducer from "../reducers/authSlice";
 import deviceReducer from "../reducers/deviceSlice";
 import usersReducer from "../reducers/usersSlice";
 import customersReducer from "../reducers/customersSlice";
+import irrigationReducer from "../reducers/irrigationSlice";
 
 const store = configureStore({
     reducer: {
@@ -11,6 +12,7 @@ const store = configureStore({
         devices: deviceReducer,
         users: usersReducer,
         customers: customersReducer,
+        irrigation: irrigationReducer,
     },
 });
     

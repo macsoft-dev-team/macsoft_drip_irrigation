@@ -23,6 +23,7 @@ class AppUser {
   final String? email;
   final String? phone;
   final UserRole role;
+  final String? customerId;
 
   const AppUser({
     required this.id,
@@ -30,6 +31,7 @@ class AppUser {
     this.email,
     this.phone,
     required this.role,
+    this.customerId,
   });
 
   factory AppUser.fromTokenPayload(Map<String, dynamic> payload) {
@@ -41,6 +43,7 @@ class AppUser {
       role: _parseRole(
         payload['role'] as String? ?? payload['Role'] as String?,
       ),
+      customerId: payload['customerId']?.toString(),
     );
   }
 
@@ -51,6 +54,7 @@ class AppUser {
       email: j['email'] as String?,
       phone: j['phone'] as String?,
       role: _parseRole(j['role'] as String?),
+      customerId: j['customerId']?.toString(),
     );
   }
 
@@ -60,6 +64,7 @@ class AppUser {
     'email': email,
     'phone': phone,
     'role': role.name.toUpperCase(),
+    'customerId': customerId,
   };
 
   // ── RBAC helpers ──────────────────────────────────────────

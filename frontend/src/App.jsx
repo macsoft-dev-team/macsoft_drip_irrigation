@@ -6,7 +6,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { setStoreForInterceptor } from './configs/api';
 import store from './store';
 
-import { DeviceDashboard, LoginPage, UsersPage, AddDevice, DeviceDetailPage, CustomersPage } from './pages';
+import { DeviceDashboard, LoginPage, UsersPage, AddDevice, DeviceDetailPage, CustomersPage, IrrigationPage } from './pages';
 import { MainLayout, ProtectedRoute } from './components';
 import { SocketProvider } from './contexts/SocketContext';
 import { logout } from './reducers/authSlice';
@@ -75,6 +75,14 @@ function AppRoutes() {
                         element={
                             <ProtectedRoute allowedRoles={[ROLES.MACSOFT_ADMIN]}>
                                 <CustomersPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/irrigation"
+                        element={
+                            <ProtectedRoute allowedRoles={ALL_ROLES}>
+                                <IrrigationPage />
                             </ProtectedRoute>
                         }
                     />

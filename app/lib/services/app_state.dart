@@ -1,6 +1,9 @@
 import 'package:flutter/foundation.dart';
 import '../models/app_user.dart';
 import '../models/api_device.dart';
+import '../models/field.dart';
+import '../models/zone.dart';
+import '../models/valve.dart';
 import 'auth_service.dart';
 import 'api_service.dart';
 
@@ -24,6 +27,11 @@ class AppState extends ChangeNotifier {
   List<ApiDevice> devices = [];
   bool devicesLoading = false;
   String? devicesError;
+
+  // ── Fields & Irrigation state ──────────────────────────────────────────────
+  List<Field> fields = [];
+  bool fieldsLoading = false;
+  String? fieldsError;
 
   // ── Users state ────────────────────────────────────────────────────────────
   List<AppUser> users = [];
@@ -127,5 +135,175 @@ class AppState extends ChangeNotifier {
     }
     usersLoading = false;
     notifyListeners();
+  }
+
+  // ── Fields & Irrigation ─────────────────────────────────────────────────────
+
+  Future<void> loadFields() async {
+    if (api == null) return;
+    fieldsLoading = true;
+    fieldsError = null;
+    notifyListeners();
+    try {
+      final cId = (user?.role == UserRole.superadmin) ? null : user?.customerId;
+      fields = await api!.getFields(customerId: cId);
+    } catch (e) {
+      fieldsError = e.toString().replaceFirst('Exception: ', '');
+    }
+    fieldsLoading = false;
+    notifyListeners();
+  }
+
+  Future<bool> createField(String name, String customerId) async {
+    if (api == null) return false;
+    try {
+      final newField = await api!.createField(name: name, customerId: customerId);
+      fields.add(newField);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> updateField(String id, String name) async {
+    if (api == null) return false;
+    try {
+      final updated = await api!.updateField(id: id, name: name);
+      final idx = fields.indexWhere((f) => f.id == id);
+      if (idx != -1) {
+        fields[idx] = updated;
+        notifyListeners();
+      }
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> deleteField(String id) async {
+    if (api == null) return false;
+    try {
+      await api!.deleteField(id);
+      fields.removeWhere((f) => f.id == id);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> createZone(String name, String fieldId) async {
+    if (api == null) return false;
+    try {
+      final newZone = await api!.createZone(name: name, fieldId: fieldId);
+      final fieldIdx = fields.indexWhere((f) => f.id == fieldId);
+      if (fieldIdx != -1) {
+        final currentZones = List<Zone>.from(fields[fieldIdx].zones)..add(newZone);
+        fields[fieldIdx] = fields[fieldIdx].copyWith(zones: currentZones);
+        notifyListeners();
+      }
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> updateZone(String id, String name, String fieldId) async {
+    if (api == null) return false;
+    try {
+      final updated = await api!.updateZone(id: id, name: name);
+      final fieldIdx = fields.indexWhere((f) => f.id == fieldId);
+      if (fieldIdx != -1) {
+        final currentZones = fields[fieldIdx].zones.map((z) => z.id == id ? updated : z).toList();
+        fields[fieldIdx] = fields[fieldIdx].copyWith(zones: currentZones);
+        notifyListeners();
+      }
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> deleteZone(String id, String fieldId) async {
+    if (api == null) return false;
+    try {
+      await api!.deleteZone(id);
+      final fieldIdx = fields.indexWhere((f) => f.id == fieldId);
+      if (fieldIdx != -1) {
+        final currentZones = List<Zone>.from(fields[fieldIdx].zones)..removeWhere((z) => z.id == id);
+        fields[fieldIdx] = fields[fieldIdx].copyWith(zones: currentZones);
+        notifyListeners();
+      }
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> createValve(String name, String zoneId, String fieldId) async {
+    if (api == null) return false;
+    try {
+      final newValve = await api!.createValve(name: name, zoneId: zoneId);
+      final fieldIdx = fields.indexWhere((f) => f.id == fieldId);
+      if (fieldIdx != -1) {
+        final currentZones = fields[fieldIdx].zones.map((z) {
+          if (z.id == zoneId) {
+            final currentValves = List<Valve>.from(z.valves)..add(newValve);
+            return z.copyWith(valves: currentValves);
+          }
+          return z;
+        }).toList();
+        fields[fieldIdx] = fields[fieldIdx].copyWith(zones: currentZones);
+        notifyListeners();
+      }
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> updateValve(String id, String name, String zoneId, String fieldId) async {
+    if (api == null) return false;
+    try {
+      final updated = await api!.updateValve(id: id, name: name);
+      final fieldIdx = fields.indexWhere((f) => f.id == fieldId);
+      if (fieldIdx != -1) {
+        final currentZones = fields[fieldIdx].zones.map((z) {
+          if (z.id == zoneId) {
+            final currentValves = z.valves.map((v) => v.id == id ? updated : v).toList();
+            return z.copyWith(valves: currentValves);
+          }
+          return z;
+        }).toList();
+        fields[fieldIdx] = fields[fieldIdx].copyWith(zones: currentZones);
+        notifyListeners();
+      }
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> deleteValve(String id, String zoneId, String fieldId) async {
+    if (api == null) return false;
+    try {
+      await api!.deleteValve(id);
+      final fieldIdx = fields.indexWhere((f) => f.id == fieldId);
+      if (fieldIdx != -1) {
+        final currentZones = fields[fieldIdx].zones.map((z) {
+          if (z.id == zoneId) {
+            final currentValves = List<Valve>.from(z.valves)..removeWhere((v) => v.id == id);
+            return z.copyWith(valves: currentValves);
+          }
+          return z;
+        }).toList();
+        fields[fieldIdx] = fields[fieldIdx].copyWith(zones: currentZones);
+        notifyListeners();
+      }
+      return true;
+    } catch (e) {
+      return false;
+    }
   }
 }

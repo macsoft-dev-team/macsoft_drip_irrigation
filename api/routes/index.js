@@ -4,6 +4,9 @@ const authRouter = require('./auth');
 const usersRouter = require('./users');
 const devicesRouter = require('./devices');
 const customersRouter = require('./customers');
+const fieldsRouter = require('./fields');
+const zonesRouter = require('./zones');
+const valvesRouter = require('./valves');
 
 router.get('/', (req, res) => {
     res.json({ message: 'Welcome to the WRMS API' });
@@ -13,5 +16,8 @@ router.use('/auth', authRouter);
 router.use('/users', usersRouter);
 router.use('/devices', devicesRouter);
 router.use('/customers', customersRouter);
+router.use('/fields', fieldsRouter);
+router.use('/zones', zonesRouter);
+router.use('/valves', valvesRouter);
 
 module.exports = router;

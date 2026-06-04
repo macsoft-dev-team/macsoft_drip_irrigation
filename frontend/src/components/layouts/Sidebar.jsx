@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, Building2, X, ShieldCheck, Shield, User } from 'lucide-react';
+import { LayoutDashboard, Users, Building2, X, ShieldCheck, Shield, User, Grid } from 'lucide-react';
 import { useRole, ROLES } from '../../hooks/useRole';
 
 const ROLE_BADGE = {
@@ -82,6 +82,12 @@ export default function Sidebar({ isMobileOpen, setIsMobileOpen, user }) {
                     label: 'Device Registry',
                     path: '/devices',
                     icon: LayoutDashboard,                 
+                },
+                {
+                    id: 'irrigation',
+                    label: 'Irrigation Layout',
+                    path: '/irrigation',
+                    icon: Grid,
                 },
                 ...(canManageUsers()
                     ? [{

@@ -11,6 +11,7 @@ import 'screens/alerts_page.dart';
 import 'screens/dashboard_page.dart';
 import 'screens/device_list_page.dart';
 import 'screens/users_page.dart';
+import 'screens/irrigation_page.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -63,6 +64,7 @@ class _AppShellState extends State<AppShell> {
         // DripFlow nav: Dashboard | Systems | Valves | Schedules | More
         final pages = [
           const DashboardPage(),
+          const IrrigationPage(),
           const DeviceListPage(),
           isAdmin ? const UsersPage() : const AlertsPage(alerts: []),
           const _SchedulesPage(),
@@ -76,6 +78,7 @@ class _AppShellState extends State<AppShell> {
           currentIndex: safeIndex,
           navItems: const [
             AppNavItem(icon: Icons.home_rounded, label: 'Dashboard'),
+            AppNavItem(icon: Icons.grid_on_rounded, label: 'Irrigation'),
             AppNavItem(icon: Icons.settings_outlined, label: 'Systems'),
             AppNavItem(icon: Icons.groups_outlined, label: 'Users'),
             AppNavItem(icon: Icons.calendar_month_outlined, label: 'Schedules'),
