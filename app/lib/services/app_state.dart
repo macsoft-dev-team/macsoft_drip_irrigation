@@ -145,8 +145,8 @@ class AppState extends ChangeNotifier {
     fieldsError = null;
     notifyListeners();
     try {
-      final cId = (user?.role == UserRole.superadmin) ? null : user?.customerId;
-      fields = await api!.getFields(customerId: cId);
+      final cId = (user?.isSuperAdmin ?? false) ? null : user?.tenantId;
+      fields = await api!.getFields(tenantId: cId);
     } catch (e) {
       fieldsError = e.toString().replaceFirst('Exception: ', '');
     }

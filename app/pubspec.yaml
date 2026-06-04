@@ -78,6 +78,7 @@ flutter:
   assets:
     - assets/logo.png
     - assets/bg_leaves.png
+    - assets/solenoid_valve.png
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 

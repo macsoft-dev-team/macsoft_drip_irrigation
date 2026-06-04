@@ -250,8 +250,9 @@ class ApiService {
   }
 
   // ── Fields ─────────────────────────────────────────────────────────────────
-  Future<List<Field>> getFields({String? customerId, int skip = 0, int take = 100}) async {
-    final query = customerId != null ? 'customerId=$customerId&skip=$skip&take=$take' : 'skip=$skip&take=$take';
+  Future<List<Field>> getFields({String? tenantId, String? customerId, int skip = 0, int take = 100}) async {
+    final activeTenantId = tenantId ?? customerId;
+    final query = activeTenantId != null ? 'tenantId=$activeTenantId&skip=$skip&take=$take' : 'skip=$skip&take=$take';
     final res = await http.get(
       Uri.parse('$_baseUrl/fields?$query'),
       headers: _headers,
@@ -262,11 +263,12 @@ class ApiService {
     return list.map((e) => Field.fromJson(e as Map<String, dynamic>)).toList();
   }
 
-  Future<Field> createField({required String name, required String customerId}) async {
+  Future<Field> createField({required String name, String? tenantId, String? customerId}) async {
+    final activeTenantId = tenantId ?? customerId;
     final res = await http.post(
       Uri.parse('$_baseUrl/fields'),
       headers: _headers,
-      body: jsonEncode({'name': name, 'customerId': customerId}),
+      body: jsonEncode({'name': name, 'tenantId': activeTenantId}),
     );
     _check(res);
     return Field.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
@@ -374,11 +376,11 @@ class ApiService {
 
   Future<List<Map<String, dynamic>>> getCustomers() async {
     final res = await http.get(
-      Uri.parse('$_baseUrl/customers?take=200'),
+      Uri.parse('$_baseUrl/tenants?take=200'),
       headers: _headers,
     );
     _check(res);
     final body = jsonDecode(res.body) as Map<String, dynamic>;
-    return List<Map<String, dynamic>>.from(body['customers'] ?? []);
+    return List<Map<String, dynamic>>.from(body['tenants'] ?? []);
   }
 }

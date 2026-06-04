@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/api_device.dart';
-import '../models/app_user.dart';
 import '../services/app_state.dart';
 import 'telemetry_page.dart';
 import 'command_page.dart';
@@ -45,9 +44,7 @@ class _DeviceListPageState extends State<DeviceListPage> {
   Widget build(BuildContext context) {
     return Consumer<AppState>(
       builder: (_, state, __) {
-        final isAdmin =
-            state.user?.role == UserRole.admin ||
-            state.user?.role == UserRole.superadmin;
+        final isAdmin = state.user?.isAdmin ?? false;
         final filtered = _filter(state.devices);
 
         return Column(

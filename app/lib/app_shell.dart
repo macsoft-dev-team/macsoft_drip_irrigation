@@ -32,6 +32,7 @@ class _AppShellState extends State<AppShell> {
   Future<void> _boot() async {
     final state = context.read<AppState>();
     await state.loadDevices();
+    await state.loadFields();
     if (state.token != null) {
       SocketService.instance.connect(state.token!);
       SocketService.instance.addListener(_onTelemetry);
@@ -57,9 +58,7 @@ class _AppShellState extends State<AppShell> {
   Widget build(BuildContext context) {
     return Consumer<AppState>(
       builder: (context, state, _) {
-        final isAdmin =
-            state.user?.role == UserRole.admin ||
-            state.user?.role == UserRole.superadmin;
+        final isAdmin = state.user?.isAdmin ?? false;
 
         // DripFlow nav: Dashboard | Systems | Valves | Schedules | More
         final pages = [

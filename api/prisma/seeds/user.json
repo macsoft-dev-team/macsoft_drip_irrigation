@@ -3,14 +3,14 @@
     "id": "1",
     "name": "Macsoft Admin",
     "email": "admin@macsoft.com",
-    "role": "MACSOFT_ADMIN",
+    "role": "SYSTEM_ADMIN",
     "phone": "+1111111111"
   },
   {
     "id": "2",
     "name": "Macsoft User",
     "email": "user@macsoft.com",
-    "role": "MACSOFT_USER",
+    "role": "SYSTEM_ADMIN",
     "phone": "+1222222222"
   },
   {
@@ -31,7 +31,7 @@
     "id": "5",
     "name": "End User",
     "email": "enduser@example.com",
-    "role": "END_USER",
+    "role": "CUSTOMER",
     "phone": "+1555555555"
   }
 ]

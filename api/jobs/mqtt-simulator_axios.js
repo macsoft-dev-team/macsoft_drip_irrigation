@@ -91,7 +91,7 @@ async function getDevices(token) {
 
   // Response shape: { success, data: { devices: [...], totalCount } }
   const list = res.data?.data?.devices || [];
-  return list.map(d => String(d.imeinumber));
+  return list.map(d => String(d.deviceUid || d.imeinumber));
 }
 
 // ================= START =================

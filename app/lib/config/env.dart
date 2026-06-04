@@ -13,11 +13,11 @@ class Env {
 
   static const String apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://192.168.1.61:3077/api',
+    defaultValue: 'http://192.168.1.61:5001/api',
   );
 
   static const String wsBaseUrl = String.fromEnvironment(
     'WS_BASE_URL',
-    defaultValue: 'ws://192.168.1.61:3077',
+    defaultValue: 'ws://192.168.1.61:5001',
   );
 }

@@ -73,11 +73,11 @@ function generatePayload() {
 // ================= LOAD DEVICES FROM DB =================
 async function getDevices() {
   const devices = await prisma.device.findMany({
-    select: { imeinumber: true },
+    select: { deviceUid: true },
     take: 50 // limit for simulation
   });
 
-  return devices.map(d => String(d.imeinumber));
+  return devices.map(d => String(d.deviceUid));
 }
 
 // ================= START =================

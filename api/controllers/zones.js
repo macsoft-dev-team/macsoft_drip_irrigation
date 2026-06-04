@@ -3,10 +3,10 @@ const zoneService = require('../services/zones');
 const getZones = async (req, res) => {
     try {
         const { skip, take, filter, fieldId } = req.query;
-        const isMacsoftAdmin = req.user.role === 'MACSOFT_ADMIN';
-        const customerId = isMacsoftAdmin ? (req.query.customerId || null) : req.user.customerId;
+        const isSystemAdmin = req.user.role === 'SYSTEM_ADMIN';
+        const tenantId = isSystemAdmin ? (req.query.tenantId || null) : req.user.tenantId;
 
-        const { zones, count } = await zoneService.getZones(customerId, fieldId, skip, take, filter);
+        const { zones, count } = await zoneService.getZones(tenantId, fieldId, skip, take, filter);
         res.status(200).json({
             zones,
             totalPages: Math.ceil(count / (parseInt(take) || 100)),
@@ -21,9 +21,9 @@ const getZones = async (req, res) => {
 
 const getZoneById = async (req, res) => {
     try {
-        const isMacsoftAdmin = req.user.role === 'MACSOFT_ADMIN';
-        const customerId = isMacsoftAdmin ? null : req.user.customerId;
-        const zone = await zoneService.getZoneById(req.params.id, customerId);
+        const isSystemAdmin = req.user.role === 'SYSTEM_ADMIN';
+        const tenantId = isSystemAdmin ? null : req.user.tenantId;
+        const zone = await zoneService.getZoneById(req.params.id, tenantId);
         res.status(200).json(zone);
     } catch (error) {
         if (error.message === 'Zone not found') return res.status(404).json({ error: error.message });
@@ -34,9 +34,9 @@ const getZoneById = async (req, res) => {
 
 const createZone = async (req, res) => {
     try {
-        const isMacsoftAdmin = req.user.role === 'MACSOFT_ADMIN';
-        const customerId = isMacsoftAdmin ? null : req.user.customerId;
-        const zone = await zoneService.createZone(req.body, customerId);
+        const isSystemAdmin = req.user.role === 'SYSTEM_ADMIN';
+        const tenantId = isSystemAdmin ? null : req.user.tenantId;
+        const zone = await zoneService.createZone(req.body, tenantId);
         res.status(201).json(zone);
     } catch (error) {
         if (error.message.includes('not found') || error.message.includes('denied')) {
@@ -49,9 +49,9 @@ const createZone = async (req, res) => {
 
 const updateZone = async (req, res) => {
     try {
-        const isMacsoftAdmin = req.user.role === 'MACSOFT_ADMIN';
-        const customerId = isMacsoftAdmin ? null : req.user.customerId;
-        const zone = await zoneService.updateZone(req.params.id, req.body, customerId);
+        const isSystemAdmin = req.user.role === 'SYSTEM_ADMIN';
+        const tenantId = isSystemAdmin ? null : req.user.tenantId;
+        const zone = await zoneService.updateZone(req.params.id, req.body, tenantId);
         res.status(200).json(zone);
     } catch (error) {
         if (error.message === 'Zone not found') return res.status(404).json({ error: error.message });
@@ -62,9 +62,9 @@ const updateZone = async (req, res) => {
 
 const deleteZone = async (req, res) => {
     try {
-        const isMacsoftAdmin = req.user.role === 'MACSOFT_ADMIN';
-        const customerId = isMacsoftAdmin ? null : req.user.customerId;
-        await zoneService.deleteZone(req.params.id, customerId);
+        const isSystemAdmin = req.user.role === 'SYSTEM_ADMIN';
+        const tenantId = isSystemAdmin ? null : req.user.tenantId;
+        await zoneService.deleteZone(req.params.id, tenantId);
         res.status(204).send();
     } catch (error) {
         if (error.message === 'Zone not found') return res.status(404).json({ error: error.message });

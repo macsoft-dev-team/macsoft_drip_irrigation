@@ -1,12 +1,12 @@
 const { prisma } = require('../prisma/client');
 
-const getFields = async (customerId, skip, take, filter) => {
+const getFields = async (tenantId, skip, take, filter) => {
     const params = {};
-    if (skip) params.skip = (parseInt(skip) - 1) * parseInt(take) || 0;
+    if (skip) params.skip = Math.max(0, (parseInt(skip) - 1) * (parseInt(take) || 10));
     if (take) params.take = parseInt(take);
 
     const where = {};
-    if (customerId) where.customerId = customerId;
+    if (tenantId) where.tenantId = tenantId;
     if (filter) {
         where.name = { contains: filter, mode: 'insensitive' };
     }
@@ -28,9 +28,9 @@ const getFields = async (customerId, skip, take, filter) => {
     return { fields, count };
 };
 
-const getFieldById = async (id, customerId) => {
+const getFieldById = async (id, tenantId) => {
     const where = { id };
-    if (customerId) where.customerId = customerId;
+    if (tenantId) where.tenantId = tenantId;
     const field = await prisma.field.findFirst({
         where,
         include: {
@@ -46,9 +46,9 @@ const getFieldById = async (id, customerId) => {
 };
 
 const createField = async (data) => {
-    const { name, customerId } = data;
+    const { name, tenantId } = data;
     return prisma.field.create({
-        data: { name, customerId },
+        data: { name, tenantId },
         include: {
             zones: {
                 include: {
@@ -59,10 +59,10 @@ const createField = async (data) => {
     });
 };
 
-const updateField = async (id, data, customerId) => {
+const updateField = async (id, data, tenantId) => {
     const { name } = data;
     const where = { id };
-    if (customerId) where.customerId = customerId;
+    if (tenantId) where.tenantId = tenantId;
     
     const existing = await prisma.field.findFirst({ where });
     if (!existing) throw new Error('Field not found');
@@ -80,9 +80,9 @@ const updateField = async (id, data, customerId) => {
     });
 };
 
-const deleteField = async (id, customerId) => {
+const deleteField = async (id, tenantId) => {
     const where = { id };
-    if (customerId) where.customerId = customerId;
+    if (tenantId) where.tenantId = tenantId;
 
     const existing = await prisma.field.findFirst({ where });
     if (!existing) throw new Error('Field not found');

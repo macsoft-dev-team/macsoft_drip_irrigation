@@ -19,7 +19,7 @@ function generateMqttDetails(imei) {
     };
 } 
 
-async function uploadDevices({ imeiList, customerId, batchSize }) {
+async function uploadDevices({ imeiList, tenantId, batchSize }) {
     const uniqueImeis = [...new Set(imeiList)];
 
     let created = 0;
@@ -30,12 +30,12 @@ async function uploadDevices({ imeiList, customerId, batchSize }) {
 
         const existing = await prisma.device.findMany({
             where: {
-                imeinumber: { in: batch },
+                deviceUid: { in: batch },
             },
-            select: { imeinumber: true },
+            select: { deviceUid: true },
         });
 
-        const existingSet = new Set(existing.map((d) => d.imeinumber));
+        const existingSet = new Set(existing.map((d) => d.deviceUid));
 
         const newImeis = batch.filter((i) => !existingSet.has(i));
 
@@ -44,13 +44,18 @@ async function uploadDevices({ imeiList, customerId, batchSize }) {
             continue;
         }
 
-        const data = newImeis.map((imei) => ({
-            imeinumber: imei,
-            code: imei.slice(-6),
-            pumpModel: 'MODEL_1P1',
-            customerId: customerId || undefined,
-            ...generateMqttDetails(imei),
-        }));
+        const data = newImeis.map((imei) => {
+            const mqtt = generateMqttDetails(imei);
+            return {
+                deviceUid: imei,
+                tenantId: tenantId,
+                type: 'CONTROLLER',
+                secretKey: mqtt.mqttPassword,
+                mqttUsername: mqtt.mqttUsername,
+                mqttPasswordHash: mqtt.mqttPassword,
+                provisioningStatus: 'PENDING',
+            };
+        });
         
         const result = await prisma.device.createMany({
             data,
@@ -69,22 +74,72 @@ async function uploadDevices({ imeiList, customerId, batchSize }) {
     };
 }
 
+function mapTelemetryRow(row) {
+    if (!row) return row;
+    const p = row.payload || {};
+    return {
+        ...row,
+        time: row.time,
+        // Voltages
+        iv1: row.iv1 !== undefined ? row.iv1 : (p.IV1 != null ? Number(p.IV1) : null),
+        iv2: row.iv2 !== undefined ? row.iv2 : (p.IV2 != null ? Number(p.IV2) : null),
+        iv3: row.iv3 !== undefined ? row.iv3 : (p.IV3 != null ? Number(p.IV3) : null),
+        // Currents
+        ic1: row.ic1 !== undefined ? row.ic1 : (p.IC1 != null ? Number(p.IC1) : null),
+        ic2: row.ic2 !== undefined ? row.ic2 : (p.IC2 != null ? Number(p.IC2) : null),
+        ic3: row.ic3 !== undefined ? row.ic3 : (p.IC3 != null ? Number(p.IC3) : null),
+        // Faults / Status
+        flc: row.flc !== undefined ? row.flc : (p.FLT ?? p.FLC ?? null),
+        sts: row.sts !== undefined ? row.sts : (p.STS ?? p.STM ?? null),
+        // Other fields
+        p1s: p.P1S ?? null,
+        p2s: p.P2S ?? null,
+        p3s: p.P3S ?? null,
+        p4s: p.P4S ?? null,
+        p5s: p.P5S ?? null,
+        p1r: p.P1R ?? null,
+        p2r: p.P2R ?? null,
+        p3r: p.P3R ?? null,
+        p4r: p.P4R ?? null,
+        p5r: p.P5R ?? null,
+        s1h: p.S1H ?? null,
+        s2h: p.S2H ?? null,
+        s3h: p.S3H ?? null,
+        s4h: p.S4H ?? null,
+        s5h: p.S5H ?? null,
+        // Signal strength
+        rsi: row.rsi !== undefined ? row.rsi : (row.signalStrength ?? p.signalStrength ?? p.signal ?? null),
+    };
+}
+
+function mapDevice(d) {
+    if (!d) return d;
+    d.imeinumber = d.deviceUid;
+    d.isActive = d.provisioningStatus === 'ACTIVE';
+    d.config = d.config || null;
+    d.state = d.state || null;
+    if (d.telemetry) {
+        d.telemetryLogs = d.telemetry.map(mapTelemetryRow);
+    }
+    return d;
+}
+
 const getDeviceById = async (id) => {
-    return prisma.device.findUnique({
+    const device = await prisma.device.findUnique({
         where: { id },
         include: {
-            telemetry: { take: 1, orderBy: { timestamp: 'desc' } },
-            config: true,
-            state: true,
-            customer: { select: { id: true, name: true } },
+            telemetry: { take: 1, orderBy: { time: 'desc' } },
+            status: true,
+            tenant: { select: { id: true, name: true } },
         },
     });
+    return mapDevice(device);
 };
 
 const createDevice = async (data) => {
     try {
         const createdDevice = await prisma.device.create({ data });
-        return createdDevice;
+        return mapDevice(createdDevice);
     } catch (error) {
         console.error('Error creating device:', error);
         throw error;
@@ -93,36 +148,35 @@ const createDevice = async (data) => {
 
 const updateDevice = async (id, data) => {
     try {
-        const { name, customerId, ...rest } = data;
+        const { name, tenantId, ...rest } = data;
         const updatedDevice = await prisma.device.update({
             where: { id },
             data: {
                 ...rest,
                 name: name !== undefined ? (name || null) : undefined,
-                customerId: customerId !== undefined ? (customerId || null) : undefined,
+                tenantId: tenantId !== undefined ? (tenantId || null) : undefined,
             },
             include: {
-                customer: { select: { id: true, name: true } },
+                tenant: { select: { id: true, name: true } },
             },
         });
-        return updatedDevice;
+        return mapDevice(updatedDevice);
     } catch (error) {
         console.error('Error updating device:', error);
         throw error;
     }
 };
 
-const getDevices = async ({ skip = 0, take = 10, filter = '', customerId }) => {
+const getDevices = async ({ skip = 0, take = 10, filter = '', tenantId }) => {
     try {
-        const baseWhere = customerId ? { customerId } : {};
+        const baseWhere = tenantId ? { tenantId } : {};
 
         const whereClause = filter
             ? {
                 ...baseWhere,
                 OR: [
-                    { imeinumber: { contains: filter } },
+                    { deviceUid: { contains: filter } },
                     { mqttUsername: { contains: filter } },
-                    { mqttClientId: { contains: filter } },
                 ],
             }
             : baseWhere;
@@ -135,12 +189,14 @@ const getDevices = async ({ skip = 0, take = 10, filter = '', customerId }) => {
             include: {
                 telemetry: {
                     take: 1,
-                    orderBy: { timestamp: 'desc' },
+                    orderBy: { time: 'desc' },
                 },
-                config: true,
-                customer: { select: { id: true, name: true } },
+                status: true,
+                tenant: { select: { id: true, name: true } },
             },
         });
+
+        devices.forEach(d => mapDevice(d));
 
         const totalCount = await prisma.device.count({ where: whereClause });
 
@@ -155,17 +211,17 @@ const getDeviceTelemetry = async ({ deviceId, from, to, take = 50, skip = 0 }) =
     try {
         const where = { deviceId };
         if (from || to) {
-            where.timestamp = {};
-            if (from) where.timestamp.gte = new Date(from);
-            if (to) where.timestamp.lte = new Date(to);
+            where.time = {};
+            if (from) where.time.gte = new Date(from);
+            if (to) where.time.lte = new Date(to);
         }
-        const rows = await prisma.deviceTelemetry.findMany({
+        const rows = await prisma.telemetry.findMany({
             where,
-            orderBy: { timestamp: 'desc' },
+            orderBy: { time: 'desc' },
             take: parseInt(take),
             skip: parseInt(skip),
         });
-        return rows;
+        return rows.map(mapTelemetryRow);
     } catch (error) {
         console.error('Error retrieving telemetry:', error);
         throw error;
@@ -202,14 +258,7 @@ const mqttToDb = (cfg) => ({
 
 const upsertDeviceConfig = async (deviceId, mqttCfg) => {
     const data = mqttToDb(mqttCfg);
-    // Remove undefined keys so Prisma doesn't null-out fields not in payload
-    Object.keys(data).forEach((k) => data[k] === undefined && delete data[k]);
-
-    return prisma.deviceConfig.upsert({
-        where:  { deviceId },
-        update: data,
-        create: { deviceId, ...data },
-    });
+    return { deviceId, ...data };
 };
 
 module.exports = {

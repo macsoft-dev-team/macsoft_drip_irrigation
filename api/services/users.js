@@ -1,10 +1,10 @@
 const {prisma} = require('../prisma/client');
 const bcrypt = require("bcrypt");
 
-const getUsers = async (skip, take, filter, role, excludeRoles = [], customerId) => {
+const getUsers = async (skip, take, filter, role, excludeRoles = [], tenantId) => {
     try {
         const params = {};
-        if (skip) params.skip = (parseInt(skip) - 1) * parseInt(take) || 0;
+        if (skip) params.skip = Math.max(0, (parseInt(skip) - 1) * (parseInt(take) || 10));
         if (take) params.take = parseInt(take);
 
         const where = {};
@@ -13,18 +13,21 @@ const getUsers = async (skip, take, filter, role, excludeRoles = [], customerId)
         } else if (excludeRoles.length) {
             where.role = { notIn: excludeRoles };
         }
-        if (customerId) where.customerId = customerId;
+        if (tenantId) where.tenantId = tenantId;
         if (filter) {
             where.OR = [
                 { name: { contains: filter, mode: 'insensitive' } },
                 { email: { contains: filter, mode: 'insensitive' } },
-                { phone: { contains: filter, mode: 'insensitive' } },
             ];
         }
         if (Object.keys(where).length) params.where = where;
 
         const count = await prisma.user.count({ where: params.where || {} });
-        const users = await prisma.user.findMany({ ...params, include: { customer: { select: { id: true, name: true } } } });
+        const users = await prisma.user.findMany({
+            ...params,
+            where: params.where || {},
+            include: { tenant: { select: { id: true, name: true } } }
+        });
         return { users, count };
     } catch (error) {
         console.error("Error fetching users:", error);
@@ -32,10 +35,12 @@ const getUsers = async (skip, take, filter, role, excludeRoles = [], customerId)
     }
 };
 
-const getUserById = async (id) => {
+const getUserById = async (id, tenantId) => {
     try {
-        const user = await prisma.user.findUnique({
-            where: { id },
+        const where = { id };
+        if (tenantId) where.tenantId = tenantId;
+        const user = await prisma.user.findFirst({
+            where,
         });
         if (!user) {
             throw new Error("User not found");
@@ -49,18 +54,28 @@ const getUserById = async (id) => {
 
 const createUser = async (data) => {
     try {
-        const { name, email, phone, password, role, customerId } = data;
+        const { name, email, password, role, tenantId } = data;
+
+        if (tenantId) {
+            const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
+            if (!tenant) throw new Error('Tenant not found');
+            
+            const resolvedRole = role || 'CUSTOMER';
+            if (!tenant.useSubRoles && (resolvedRole === 'CUSTOMER_ADMIN' || resolvedRole === 'CUSTOMER_USER')) {
+                throw new Error('Tenant does not support sub-roles. Only CUSTOMER role is allowed.');
+            }
+        }
+
         const hashedPassword = await bcrypt.hash(password, 10);
         const newUser = await prisma.user.create({
             data: {
                 name,
                 email,
-                phone,
-                role: role || 'END_USER',
-                password: hashedPassword,
-                ...(customerId ? { customerId } : {}),
+                role: role || 'CUSTOMER',
+                passwordHash: hashedPassword,
+                tenantId,
             },
-            include: { customer: { select: { id: true, name: true } } },
+            include: { tenant: { select: { id: true, name: true } } },
         });
         return newUser;
     } catch (error) {
@@ -69,23 +84,38 @@ const createUser = async (data) => {
     }
 };
 
-const updateUser = async (id, data) => {
+const updateUser = async (id, data, tenantId) => {
     try {
-        const { name, email, role, phone, password, customerId } = data;
+        const { name, email, role, password, tenantId: newTenantId } = data;
+
+        const where = { id };
+        if (tenantId) where.tenantId = tenantId;
+        const existing = await prisma.user.findFirst({ where });
+        if (!existing) throw new Error('User not found');
+
+        const targetTenantId = newTenantId || existing.tenantId;
+        const targetRole = role || existing.role;
+
+        const tenant = await prisma.tenant.findUnique({ where: { id: targetTenantId } });
+        if (!tenant) throw new Error('Tenant not found');
+        if (!tenant.useSubRoles && (targetRole === 'CUSTOMER_ADMIN' || targetRole === 'CUSTOMER_USER')) {
+            throw new Error('Tenant does not support sub-roles. Only CUSTOMER role is allowed.');
+        }
+
         const hashedPassword = password
             ? await bcrypt.hash(password, 10)
             : undefined;
+
         const updatedUser = await prisma.user.update({
             where: { id },
             data: {
                 name,
                 email,
                 role,
-                phone,
-                ...(customerId !== undefined ? { customerId } : {}),
-                ...(hashedPassword !== undefined && { password: hashedPassword }),
+                ...(newTenantId !== undefined && { tenantId: newTenantId }),
+                ...(hashedPassword !== undefined && { passwordHash: hashedPassword }),
             },
-            include: { customer: { select: { id: true, name: true } } },
+            include: { tenant: { select: { id: true, name: true } } },
         });
         return updatedUser;
     } catch (error) {

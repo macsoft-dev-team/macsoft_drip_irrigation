@@ -108,8 +108,8 @@ class _UsersPageState extends State<UsersPage> {
   Widget build(BuildContext context) {
     return Consumer<AppState>(
       builder: (_, state, __) {
-        final isSuperAdmin = state.user?.role == UserRole.superadmin;
-        final isAdmin = isSuperAdmin || state.user?.role == UserRole.admin;
+        final isSuperAdmin = state.user?.isSuperAdmin ?? false;
+        final isAdmin = state.user?.isAdmin ?? false;
         if (!isAdmin) {
           return const Center(
             child: Text(
@@ -261,9 +261,10 @@ class _UserTile extends StatelessWidget {
   });
 
   static const _roleMeta = {
-    UserRole.superadmin: ('SUPERADMIN', Color(0xFFFFF1F2), Color(0xFFE11D48)),
-    UserRole.admin: ('ADMIN', Color(0xFFF5F3FF), Color(0xFF7C3AED)),
-    UserRole.user: ('USER', Color(0xFFF8FAFC), Color(0xFF6B7280)),
+    UserRole.systemAdmin: ('SYSTEM_ADMIN', Color(0xFFFFF1F2), Color(0xFFE11D48)),
+    UserRole.customerAdmin: ('CUSTOMER_ADMIN', Color(0xFFF5F3FF), Color(0xFF7C3AED)),
+    UserRole.customerUser: ('CUSTOMER_USER', Color(0xFFEFF6FF), Color(0xFF1D4ED8)),
+    UserRole.customer: ('CUSTOMER', Color(0xFFF8FAFC), Color(0xFF6B7280)),
   };
 
   @override
@@ -390,7 +391,7 @@ class _UserFormState extends State<_UserForm> {
   final _emailCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _pwCtrl = TextEditingController();
-  UserRole _role = UserRole.user;
+  UserRole _role = UserRole.customer;
   bool _saving = false;
   String? _error;
 
@@ -455,7 +456,7 @@ class _UserFormState extends State<_UserForm> {
   Widget build(BuildContext context) {
     final isEdit = widget.user != null;
     final appState = context.watch<AppState>();
-    final isSuperAdmin = appState.user?.role == UserRole.superadmin;
+    final isSuperAdmin = appState.user?.isSuperAdmin ?? false;
 
     return Padding(
       padding: EdgeInsets.only(
@@ -519,17 +520,21 @@ class _UserFormState extends State<_UserForm> {
                 decoration: const InputDecoration(labelText: 'Role'),
                 items: [
                   const DropdownMenuItem(
-                    value: UserRole.user,
-                    child: Text('USER'),
+                    value: UserRole.customer,
+                    child: Text('CUSTOMER'),
                   ),
                   const DropdownMenuItem(
-                    value: UserRole.admin,
-                    child: Text('ADMIN'),
+                    value: UserRole.customerUser,
+                    child: Text('CUSTOMER_USER'),
+                  ),
+                  const DropdownMenuItem(
+                    value: UserRole.customerAdmin,
+                    child: Text('CUSTOMER_ADMIN'),
                   ),
                   if (isSuperAdmin)
                     const DropdownMenuItem(
-                      value: UserRole.superadmin,
-                      child: Text('SUPERADMIN'),
+                      value: UserRole.systemAdmin,
+                      child: Text('SYSTEM_ADMIN'),
                     ),
                 ],
                 onChanged: (v) {

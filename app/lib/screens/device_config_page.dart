@@ -319,8 +319,7 @@ class _DeviceConfigPageState extends State<DeviceConfigPage>
   // ── Device Info tab ───────────────────────────────────────────────────────
   Widget _buildInfoTab() {
     final user = context.watch<AppState>().user;
-    final isAdmin =
-        user?.role == UserRole.admin || user?.role == UserRole.superadmin;
+    final isAdmin = user?.isAdmin ?? false;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Container(

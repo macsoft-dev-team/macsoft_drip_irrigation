@@ -26,14 +26,12 @@ const deviceCache = new Map();
 
 async function loadDevices() {
     const devices = await prisma.device.findMany({
-        select: { id: true, imeinumber: true }
+        select: { id: true, deviceUid: true, tenantId: true }
     });
 
     deviceCache.clear();
-    // map imeinumber → UUID so we can use the correct FK when inserting telemetry
-    devices.forEach(d => deviceCache.set(String(d.imeinumber), d.id));
-
-/*     console.log(`Loaded ${deviceCache.size} devices into cache`); */
+    // map deviceUid → { id, tenantId } so we can use the correct FK when inserting telemetry
+    devices.forEach(d => deviceCache.set(String(d.deviceUid), { id: d.id, tenantId: d.tenantId }));
 }
 
 // refresh cache every 60 sec
@@ -44,15 +42,10 @@ const queue = [];
 
 // ================= MQTT CONNECT =================
 client.on("connect", async () => {
-/*     console.log("MQTT Connected");
- */
     await loadDevices();
-
     client.subscribe("device/+/data");
     client.subscribe("device/+/cmd/res");
-
-/*     console.log("Subscribed to topics");
- */});
+});
 
 // ================= MESSAGE HANDLER =================
 client.on("message", async (topic, message) => {
@@ -61,75 +54,33 @@ client.on("message", async (topic, message) => {
         const imei = parts[1];
 
         // validate device and resolve UUID
-        let deviceId = deviceCache.get(imei);
-        if (!deviceId) {
+        let cachedDevice = deviceCache.get(imei);
+        if (!cachedDevice) {
             // Cache miss — do an immediate DB lookup in case this is a newly provisioned device
             const found = await prisma.device.findUnique({
-                where: { imeinumber: imei },
-                select: { id: true },
+                where: { deviceUid: imei },
+                select: { id: true, tenantId: true },
             });
             if (!found) {
-              //  console.warn(`Unknown device IMEI: ${imei}`);
                 return;
             }
-            deviceId = found.id;
-            deviceCache.set(imei, deviceId);
-/*             console.log(`New device discovered and cached: ${imei} → ${deviceId}`);
- */        }
+            cachedDevice = { id: found.id, tenantId: found.tenantId };
+            deviceCache.set(imei, cachedDevice);
+        }
 
+        const { id: deviceId, tenantId } = cachedDevice;
         const payload = JSON.parse(message.toString());
 
         queue.push({
-            deviceId, // UUID — satisfies DeviceTelemetry_deviceId_fkey
-            timestamp: new Date(),
-
-            // System pressure from transducer (bar)
-            pressure: toFloat(payload.PRS ?? null),
-
-            // VFD output frequency (Hz)
-            vfd: toFloat(payload.VFD ?? null),
-
-            // Fault & status
-            flt: toInt(payload.FLT ?? payload.FLC ?? null),
-            stm: toInt(payload.STS ?? payload.STM ?? null),
-
-            // Pump status (0=VFD, 1=DOL, 2=STOP, 3=SERVICE)
-            p1s: toInt(payload.P1S ?? null),
-            p2s: toInt(payload.P2S ?? null),
-            p3s: toInt(payload.P3S ?? null),
-            p4s: toInt(payload.P4S ?? null),
-            p5s: toInt(payload.P5S ?? null),
-
-            // Runtime minutes per pump
-            p1r: toInt(payload.P1R ?? null),
-            p2r: toInt(payload.P2R ?? null),
-            p3r: toInt(payload.P3R ?? null),
-            p4r: toInt(payload.P4R ?? null),
-            p5r: toInt(payload.P5R ?? null),
-
-            // Starts per hour per pump
-            s1h: toInt(payload.S1H ?? null),
-            s2h: toInt(payload.S2H ?? null),
-            s3h: toInt(payload.S3H ?? null),
-            s4h: toInt(payload.S4H ?? null),
-            s5h: toInt(payload.S5H ?? null),
-
-            // Current per pump (A)
-            p1c: toFloat(payload.IC1 ?? null),
-            p2c: toFloat(payload.IC2 ?? null),
-            p3c: toFloat(payload.IC3 ?? null),
-            p4c: toFloat(payload.IC4 ?? null),
-            p5c: toFloat(payload.IC5 ?? null),
-
-            // Voltage per pump (V) — or per phase
-            p1f: toFloat(payload.IV1 ?? null),
-            p2f: toFloat(payload.IV2 ?? null),
-            p3f: toFloat(payload.IV3 ?? null),
-            p4f: toFloat(payload.IV4 ?? null),
-            p5f: toFloat(payload.IV5 ?? null),
-
-            // Full raw payload for audit / future fields
-            rawPayload: payload,
+            time: new Date(),
+            tenantId,
+            deviceId,
+            moistureLevel: toFloat(payload.moistureLevel ?? payload.moisture ?? null),
+            batteryLevel: toInt(payload.batteryLevel ?? payload.battery ?? null),
+            signalStrength: toInt(payload.signalStrength ?? payload.signal ?? null),
+            temperature: toFloat(payload.temperature ?? payload.temp ?? null),
+            humidity: toFloat(payload.humidity ?? null),
+            payload: payload,
         });
 
         // prevent memory overflow
@@ -150,16 +101,48 @@ setInterval(async () => {
     const batch = queue.splice(0, BATCH_SIZE);
 
     try {
-        await prisma.deviceTelemetry.createMany({
+        await prisma.telemetry.createMany({
             data: batch,
             skipDuplicates: true,
         });
 
-        // Emit each row to subscribed WebSocket clients
-        batch.forEach((row) => socketService.emitTelemetry(row.deviceId, row));
+        // Emit each row to subscribed WebSocket clients with mapped properties for backwards compatibility
+        batch.forEach((row) => {
+            const mapped = {
+                ...row,
+                // Voltages
+                iv1: row.payload.IV1 != null ? Number(row.payload.IV1) : null,
+                iv2: row.payload.IV2 != null ? Number(row.payload.IV2) : null,
+                iv3: row.payload.IV3 != null ? Number(row.payload.IV3) : null,
+                // Currents
+                ic1: row.payload.IC1 != null ? Number(row.payload.IC1) : null,
+                ic2: row.payload.IC2 != null ? Number(row.payload.IC2) : null,
+                ic3: row.payload.IC3 != null ? Number(row.payload.IC3) : null,
+                // Faults / Status
+                flc: row.payload.FLT ?? row.payload.FLC ?? null,
+                sts: row.payload.STS ?? row.payload.STM ?? null,
+                // Other fields
+                p1s: row.payload.P1S ?? null,
+                p2s: row.payload.P2S ?? null,
+                p3s: row.payload.P3S ?? null,
+                p4s: row.payload.P4S ?? null,
+                p5s: row.payload.P5S ?? null,
+                p1r: row.payload.P1R ?? null,
+                p2r: row.payload.P2R ?? null,
+                p3r: row.payload.P3R ?? null,
+                p4r: row.payload.P4R ?? null,
+                p5r: row.payload.P5R ?? null,
+                s1h: row.payload.S1H ?? null,
+                s2h: row.payload.S2H ?? null,
+                s3h: row.payload.S3H ?? null,
+                s4h: row.payload.S4H ?? null,
+                s5h: row.payload.S5H ?? null,
+                // Signal strength
+                rsi: row.signalStrength ?? row.payload.signalStrength ?? row.payload.signal ?? null,
+            };
+            socketService.emitTelemetry(row.deviceId, mapped);
+        });
 
-/*         console.log(`Inserted batch: ${batch.length}`);
- */
     } catch (err) {
         console.error("DB insert error:", err.message);
 
@@ -177,16 +160,17 @@ client.on("message", async (topic, message) => {
         const parts = topic.split("/");
         const imei = parts[1];
         // Resolve IMEI → UUID via cache (same cache used by ingestion)
-        const deviceId = deviceCache.get(imei);
-        if (!deviceId) return;
+        const cachedDevice = deviceCache.get(imei);
+        if (!cachedDevice) return;
+        const deviceId = cachedDevice.id;
 
         const payload = JSON.parse(message.toString());
 
         await prisma.command.updateMany({
             where: { deviceId, status: "SENT" },
             data: {
-                status: payload.success ? "ACK" : "FAILED",
-                ackAt: new Date(),
+                status: payload.success ? "ACKNOWLEDGED" : "FAILED",
+                acknowledgedAt: new Date(),
             },
         });
 
@@ -195,11 +179,6 @@ client.on("message", async (topic, message) => {
     }
 });
 
-// ================= ERROR HANDLING =================
-/* client.on("error", (err) => {
-    console.error("MQTT Error:", err.message);
-});
- */
 process.on("SIGINT", async () => {
     console.log("Shutting down...");
     await prisma.$disconnect();

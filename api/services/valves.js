@@ -1,17 +1,17 @@
 const { prisma } = require('../prisma/client');
 
-const getValves = async (customerId, zoneId, skip, take, filter) => {
+const getValves = async (tenantId, zoneId, skip, take, filter) => {
     const params = {};
-    if (skip) params.skip = (parseInt(skip) - 1) * parseInt(take) || 0;
+    if (skip) params.skip = Math.max(0, (parseInt(skip) - 1) * (parseInt(take) || 10));
     if (take) params.take = parseInt(take);
 
     const where = {};
     if (zoneId) {
         where.zoneId = zoneId;
     }
-    if (customerId) {
+    if (tenantId) {
         where.zone = {
-            field: { customerId }
+            field: { tenantId }
         };
     }
     if (filter) {
@@ -28,11 +28,11 @@ const getValves = async (customerId, zoneId, skip, take, filter) => {
     return { valves, count };
 };
 
-const getValveById = async (id, customerId) => {
+const getValveById = async (id, tenantId) => {
     const where = { id };
-    if (customerId) {
+    if (tenantId) {
         where.zone = {
-            field: { customerId }
+            field: { tenantId }
         };
     }
     const valve = await prisma.valve.findFirst({ where });
@@ -40,14 +40,14 @@ const getValveById = async (id, customerId) => {
     return valve;
 };
 
-const createValve = async (data, customerId) => {
+const createValve = async (data, tenantId) => {
     const { name, zoneId } = data;
     
-    if (customerId) {
+    if (tenantId) {
         const zone = await prisma.zone.findFirst({
             where: {
                 id: zoneId,
-                field: { customerId }
+                field: { tenantId }
             }
         });
         if (!zone) throw new Error('Zone not found or access denied');
@@ -58,12 +58,12 @@ const createValve = async (data, customerId) => {
     });
 };
 
-const updateValve = async (id, data, customerId) => {
+const updateValve = async (id, data, tenantId) => {
     const { name } = data;
     const where = { id };
-    if (customerId) {
+    if (tenantId) {
         where.zone = {
-            field: { customerId }
+            field: { tenantId }
         };
     }
 
@@ -76,11 +76,11 @@ const updateValve = async (id, data, customerId) => {
     });
 };
 
-const deleteValve = async (id, customerId) => {
+const deleteValve = async (id, tenantId) => {
     const where = { id };
-    if (customerId) {
+    if (tenantId) {
         where.zone = {
-            field: { customerId }
+            field: { tenantId }
         };
     }
 

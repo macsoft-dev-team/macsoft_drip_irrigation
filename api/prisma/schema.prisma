@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client-js"
   output   = "../generated/prisma/client"
@@ -12,366 +7,399 @@ datasource db {
   provider = "postgresql"
 }
 
-// ================= ENUMS =================
+//
+// ENUMS
+//
 
-enum Role {
-  MACSOFT_ADMIN
-  MACSOFT_USER
+enum UserRole {
+  SYSTEM_ADMIN
   CUSTOMER_ADMIN
   CUSTOMER_USER
-  END_USER
+  CUSTOMER
 }
 
-enum DeviceStatus {
-  ONLINE
-  OFFLINE
-  FAULT
+enum DeviceType {
+  CONTROLLER
+  SENSOR
+  GATEWAY
+}
+
+enum DeviceProvisioningStatus {
+  PENDING
+  ACTIVE
+  DISABLED
 }
 
 enum CommandStatus {
   PENDING
   SENT
-  ACK
+  ACKNOWLEDGED
   FAILED
+  TIMEOUT
 }
 
-enum PumpModel {
-  MODEL_1P1
-  MODEL_2P1
-  MODEL_3P1
-  MODEL_4P1
+enum AlertSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
 }
 
-// ================= TENANT =================
+enum AlertType {
+  OFFLINE
+  LOW_BATTERY
+  LOW_SIGNAL
+  LEAK_DETECTED
+  DEVICE_ERROR
+}
 
-model Customer {
-  id    String  @id @default(cuid())
-  name  String?
-  email String  @unique
+//
+// TENANTS
+//
 
-  users   User[]
-  devices Device[]
-  fields  Field[]
+model Tenant {
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String
+  slug         String   @unique
+  plan         String   @default("starter")
+  useSubRoles  Boolean  @default(false)
+
+  isActive  Boolean  @default(true)
 
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+
+  users     User[]
+  farms     Farm[]
+  devices   Device[]
+  commands  Command[]
+  alerts    Alert[]
+  schedules Schedule[]
+  fields    Field[]
+
+  @@map("tenants")
 }
 
-// ================= USER =================
+//
+// USERS
+//
 
 model User {
-  id       String  @id @default(cuid())
-  email    String  @unique
-  name     String?
-  phone    String?
-  password String
-  role     Role    @default(END_USER)
+  id           String    @id @default(uuid()) @db.Uuid
 
-  customerId String?
-  customer   Customer? @relation(fields: [customerId], references: [id])
+  tenantId     String    @db.Uuid
+  tenant       Tenant    @relation(fields: [tenantId], references: [id])
 
-  createdAt              DateTime                @default(now())
-  updatedAt              DateTime                @updatedAt
-  notificationRecipients NotificationRecipient[]
+  name         String?
+  email        String    @unique
 
-  @@index([customerId])
+  passwordHash String
+
+  role         UserRole
+
+  isActive     Boolean   @default(true)
+
+  lastLoginAt  DateTime?
+
+  createdAt    DateTime  @default(now())
+
+  commands     Command[]
+  schedules    Schedule[]
+
+  @@index([tenantId])
+  @@map("users")
 }
 
-// ================= DEVICE =================
+//
+// FARMS
+//
+
+model Farm {
+  id         String    @id @default(uuid()) @db.Uuid
+
+  tenantId   String    @db.Uuid
+  tenant     Tenant    @relation(fields: [tenantId], references: [id])
+
+  name       String
+
+  address    String?
+
+  latitude   Float?
+  longitude  Float?
+
+  timezone   String    @default("Asia/Kolkata")
+
+  createdAt  DateTime  @default(now())
+
+  devices    Device[]
+
+  @@index([tenantId])
+  @@map("farms")
+}
+
+//
+// DEVICES
+//
 
 model Device {
-  id         String  @id @default(cuid())
-  imeinumber String  @unique
-  code       String  @unique
-  name       String?
+  id                  String   @id @default(uuid()) @db.Uuid
 
-  pumpModel PumpModel
+  tenantId            String   @db.Uuid
+  tenant              Tenant   @relation(fields: [tenantId], references: [id])
 
-  latitude  Float?
-  longitude Float?
+  farmId              String?  @db.Uuid
+  farm                Farm?    @relation(fields: [farmId], references: [id])
 
-  // MQTT
-  mqttClientId String? @unique
-  mqttUsername String?
-  mqttPassword String?
+  deviceUid           String   @unique
 
-  mqttTelemetryTopic String?
-  mqttCommandTopic   String?
-  mqttAckTopic       String?
+  name                String?
 
-  // Status
-  lastStatus DeviceStatus @default(OFFLINE)
-  lastSeen   DateTime?
+  type                DeviceType
 
-  customerId String?
-  customer   Customer? @relation(fields: [customerId], references: [id])
+  firmwareVersion     String?
+  hardwareVersion     String?
 
-  telemetry DeviceTelemetry[]
-  state     DeviceState?
-  config    DeviceConfig?
-  commands  Command[]
+  secretKey           String
 
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
-  deviceStatusTables DeviceStatusTable[]
-  dailySummaries     DailySummary[]
-  notifications      Notification[]
+  mqttUsername        String?
+  mqttPasswordHash    String?
 
-  @@index([customerId])
+  provisioningStatus  DeviceProvisioningStatus  @default(PENDING)
+
+  installedAt         DateTime?
+
+  lastSeenAt          DateTime?
+
+  createdAt           DateTime @default(now())
+
+  status              DeviceStatus?
+
+  telemetry           Telemetry[]
+  commands            Command[]
+  alerts              Alert[]
+  schedules           Schedule[]
+  events              DeviceEvent[]
+
+  @@index([tenantId])
+  @@index([farmId])
+  @@map("devices")
 }
 
-// ================= DEVICE STATE =================
+//
+// DEVICE STATUS
+// realtime current state
+//
 
-model DeviceState {
-  deviceId String @id
+model DeviceStatus {
+  deviceId          String   @id @db.Uuid
 
-  // System
-  amo Boolean?
-  mmo Boolean?
+  device            Device   @relation(fields: [deviceId], references: [id])
 
-  // VFD
-  p1v Boolean?
-  p2v Boolean?
-  p3v Boolean?
-  p4v Boolean?
-  p5v Boolean?
+  online            Boolean  @default(false)
 
-  // DOL
-  p1d Boolean?
-  p2d Boolean?
-  p3d Boolean?
-  p4d Boolean?
-  p5d Boolean?
+  pumpState         Boolean  @default(false)
 
-  // Service
-  s1m Boolean?
-  s2m Boolean?
-  s3m Boolean?
-  s4m Boolean?
-  s5m Boolean?
+  valveState        Boolean  @default(false)
 
-  // Latest electrical snapshot (fast UI)
-  p1c Float?
-  p2c Float?
-  p3c Float?
-  p4c Float?
-  p5c Float?
+  moistureLevel     Decimal? @db.Decimal(5, 2)
 
-  p1f Float?
-  p2f Float?
-  p3f Float?
-  p4f Float?
-  p5f Float?
+  batteryLevel      Int?
 
-  device Device @relation(fields: [deviceId], references: [id])
+  signalStrength    Int?
 
-  updatedAt DateTime @updatedAt
+  lastTelemetryAt   DateTime?
+
+  updatedAt         DateTime @updatedAt
+
+  @@map("device_status")
 }
 
-// ================= TELEMETRY (TIMESCALEDB) =================
+//
+// TELEMETRY
+// TimescaleDB hypertable
+//
 
-model DeviceTelemetry {
-  deviceId  String
-  timestamp DateTime @db.Timestamptz(6)
+model Telemetry {
+  time              DateTime
 
-  device Device @relation(fields: [deviceId], references: [id])
+  tenantId          String   @db.Uuid
 
-  // Common
-  pressure Float?
-  vfd      Float?
-  flt      Int?
-  stm      Int?
+  deviceId          String   @db.Uuid
+  device            Device   @relation(fields: [deviceId], references: [id])
 
-  // Runtime
-  p1r Int?
-  p2r Int?
-  p3r Int?
-  p4r Int?
-  p5r Int?
+  moistureLevel     Decimal? @db.Decimal(5, 2)
 
-  // Starts
-  s1h Int?
-  s2h Int?
-  s3h Int?
-  s4h Int?
-  s5h Int?
+  batteryLevel      Int?
 
-  // Status
-  p1s Int?
-  p2s Int?
-  p3s Int?
-  p4s Int?
-  p5s Int?
+  signalStrength    Int?
 
-  // Electrical
-  p1c Float?
-  p2c Float?
-  p3c Float?
-  p4c Float?
-  p5c Float?
+  temperature       Decimal? @db.Decimal(5, 2)
 
-  p1f Float?
-  p2f Float?
-  p3f Float?
-  p4f Float?
-  p5f Float?
+  humidity          Decimal? @db.Decimal(5, 2)
 
-  rawPayload Json?
+  payload           Json?
 
-  @@id([deviceId, timestamp])
-  @@index([timestamp])
+  @@id([deviceId, time])
+
+  @@index([deviceId, time(sort: Desc)])
+
+  @@map("telemetry")
 }
 
-// ================= CONFIG =================
-
-model DeviceConfig {
-  id       String @id @default(cuid())
-  deviceId String @unique
-
-  version Int @default(1)
-
-  mxp Int?
-  mnp Int?
-  tfs Int?
-  stp Int?
-  dfp Int?
-
-  wut Int?
-  lpc Int?
-  msh Int?
-
-  hvg Int?
-  lvg Int?
-  vcd Int?
-
-  olc Int?
-  ocd Int?
-  drc Int?
-  drd Int?
-
-  swf Int?
-  swt Int?
-  slf Int?
-  slt Int?
-
-  pof Int?
-  pgn Int?
-  ign Int?
-  dgn Int?
-
-  device Device @relation(fields: [deviceId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-// ================= COMMAND =================
+//
+// COMMANDS
+//
 
 model Command {
-  id       String @id @default(cuid())
-  deviceId String
+  id               String         @id @default(uuid()) @db.Uuid
 
-  commandCode String
-  value       Int?
+  tenantId         String         @db.Uuid
+  tenant           Tenant         @relation(fields: [tenantId], references: [id])
 
-  status CommandStatus @default(PENDING)
+  deviceId         String         @db.Uuid
+  device           Device         @relation(fields: [deviceId], references: [id])
 
-  sentAt DateTime?
-  ackAt  DateTime?
+  commandType      String
 
-  device Device @relation(fields: [deviceId], references: [id])
+  payload          Json?
 
-  createdAt DateTime @default(now())
+  status           CommandStatus  @default(PENDING)
 
+  retryCount       Int            @default(0)
+
+  sentById         String?        @db.Uuid
+  sentBy           User?          @relation(fields: [sentById], references: [id])
+
+  sentAt           DateTime       @default(now())
+
+  acknowledgedAt   DateTime?
+
+  @@index([tenantId])
   @@index([deviceId])
+  @@index([status])
+
+  @@map("commands")
 }
 
-// ================= CONNECTIVITY =================
+//
+// ALERTS
+//
 
-model DeviceStatusTable {
-  deviceId String @id
+model Alert {
+  id              String         @id @default(uuid()) @db.Uuid
 
-  lastSeen       DateTime
-  isOnline       Boolean
-  signalStrength Int?
+  tenantId        String         @db.Uuid
+  tenant          Tenant         @relation(fields: [tenantId], references: [id])
 
-  device Device @relation(fields: [deviceId], references: [id])
+  deviceId        String?        @db.Uuid
+  device          Device?        @relation(fields: [deviceId], references: [id])
 
-  updatedAt DateTime @updatedAt
+  type            AlertType
+
+  severity        AlertSeverity
+
+  title           String
+
+  message         String
+
+  metadata        Json?
+
+  resolved        Boolean        @default(false)
+
+  resolvedAt      DateTime?
+
+  createdAt       DateTime       @default(now())
+
+  @@index([tenantId])
+  @@index([deviceId])
+  @@index([resolved])
+
+  @@map("alerts")
 }
 
-// ================= OPTIONAL (AGGREGATION - RECOMMENDED) =================
+//
+// SCHEDULES
+//
 
-model DailySummary {
-  id       String   @id @default(cuid())
-  deviceId String
-  date     DateTime
+model Schedule {
+  id                String    @id @default(uuid()) @db.Uuid
 
-  avgPressure Float?
-  avgVfd      Float?
+  tenantId          String    @db.Uuid
+  tenant            Tenant    @relation(fields: [tenantId], references: [id])
 
-  totalRuntime Int?
-  totalStarts  Int?
+  deviceId          String    @db.Uuid
+  device            Device    @relation(fields: [deviceId], references: [id])
 
-  device Device @relation(fields: [deviceId], references: [id])
+  cronExpression    String
 
-  @@index([deviceId, date])
+  timezone          String    @default("Asia/Kolkata")
+
+  commandType       String
+
+  payload           Json?
+
+  enabled           Boolean   @default(true)
+
+  createdById       String?   @db.Uuid
+  createdBy         User?     @relation(fields: [createdById], references: [id])
+
+  createdAt         DateTime  @default(now())
+
+  @@index([tenantId])
+  @@index([deviceId])
+
+  @@map("schedules")
 }
 
-// ================= NOTIFICATION =================
+//
+// DEVICE EVENTS
+// TimescaleDB hypertable
+//
 
-model Notification {
-  id       String @id @default(uuid())
-  deviceId String
+model DeviceEvent {
+  time          DateTime
 
-  type    String
-  message String
+  tenantId      String   @db.Uuid
 
-  metadata Json?
+  deviceId      String   @db.Uuid
+  device        Device   @relation(fields: [deviceId], references: [id])
 
-  device Device @relation(fields: [deviceId], references: [id])
+  eventType     String
 
-  recipients NotificationRecipient[]
+  payload       Json?
 
-  createdAt DateTime @default(now())
+  @@id([deviceId, time])
+
+  @@index([deviceId, time(sort: Desc)])
+
+  @@map("device_events")
 }
 
-// ================= NOTIFICATION RECIPIENT =================
-
-model NotificationRecipient {
-  id             String @id @default(uuid())
-  notificationId String
-  userId         String
-
-  isRead Boolean @default(false)
-
-  notification Notification @relation(fields: [notificationId], references: [id])
-  user         User         @relation(fields: [userId], references: [id])
-
-  @@unique([notificationId, userId])
-}
-
-// ================= FIELD =================
+//
+// FIELDS
+//
 
 model Field {
-  id         String   @id @default(cuid())
+  id         String   @id @default(uuid()) @db.Uuid
   name       String
-  customerId String
-  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  tenantId   String   @db.Uuid
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   zones      Zone[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([customerId])
+  @@index([tenantId])
+  @@map("fields")
 }
 
-// ================= ZONE =================
+//
+// ZONES
+//
 
 model Zone {
-  id        String   @id @default(cuid())
+  id        String   @id @default(uuid()) @db.Uuid
   name      String
-  fieldId   String
+  fieldId   String   @db.Uuid
   field     Field    @relation(fields: [fieldId], references: [id], onDelete: Cascade)
   valves    Valve[]
 
@@ -379,18 +407,22 @@ model Zone {
   updatedAt DateTime @updatedAt
 
   @@index([fieldId])
+  @@map("zones")
 }
 
-// ================= VALVE =================
+//
+// VALVES
+//
 
 model Valve {
-  id        String   @id @default(cuid())
+  id        String   @id @default(uuid()) @db.Uuid
   name      String
-  zoneId    String
+  zoneId    String   @db.Uuid
   zone      Zone     @relation(fields: [zoneId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([zoneId])
+  @@map("valves")
 }

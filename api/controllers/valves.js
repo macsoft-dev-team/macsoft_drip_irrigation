@@ -3,10 +3,10 @@ const valveService = require('../services/valves');
 const getValves = async (req, res) => {
     try {
         const { skip, take, filter, zoneId } = req.query;
-        const isMacsoftAdmin = req.user.role === 'MACSOFT_ADMIN';
-        const customerId = isMacsoftAdmin ? (req.query.customerId || null) : req.user.customerId;
+        const isSystemAdmin = req.user.role === 'SYSTEM_ADMIN';
+        const tenantId = isSystemAdmin ? (req.query.tenantId || null) : req.user.tenantId;
 
-        const { valves, count } = await valveService.getValves(customerId, zoneId, skip, take, filter);
+        const { valves, count } = await valveService.getValves(tenantId, zoneId, skip, take, filter);
         res.status(200).json({
             valves,
             totalPages: Math.ceil(count / (parseInt(take) || 100)),
@@ -21,9 +21,9 @@ const getValves = async (req, res) => {
 
 const getValveById = async (req, res) => {
     try {
-        const isMacsoftAdmin = req.user.role === 'MACSOFT_ADMIN';
-        const customerId = isMacsoftAdmin ? null : req.user.customerId;
-        const valve = await valveService.getValveById(req.params.id, customerId);
+        const isSystemAdmin = req.user.role === 'SYSTEM_ADMIN';
+        const tenantId = isSystemAdmin ? null : req.user.tenantId;
+        const valve = await valveService.getValveById(req.params.id, tenantId);
         res.status(200).json(valve);
     } catch (error) {
         if (error.message === 'Valve not found') return res.status(404).json({ error: error.message });
@@ -34,9 +34,9 @@ const getValveById = async (req, res) => {
 
 const createValve = async (req, res) => {
     try {
-        const isMacsoftAdmin = req.user.role === 'MACSOFT_ADMIN';
-        const customerId = isMacsoftAdmin ? null : req.user.customerId;
-        const valve = await valveService.createValve(req.body, customerId);
+        const isSystemAdmin = req.user.role === 'SYSTEM_ADMIN';
+        const tenantId = isSystemAdmin ? null : req.user.tenantId;
+        const valve = await valveService.createValve(req.body, tenantId);
         res.status(201).json(valve);
     } catch (error) {
         if (error.message.includes('not found') || error.message.includes('denied')) {
@@ -49,9 +49,9 @@ const createValve = async (req, res) => {
 
 const updateValve = async (req, res) => {
     try {
-        const isMacsoftAdmin = req.user.role === 'MACSOFT_ADMIN';
-        const customerId = isMacsoftAdmin ? null : req.user.customerId;
-        const valve = await valveService.updateValve(req.params.id, req.body, customerId);
+        const isSystemAdmin = req.user.role === 'SYSTEM_ADMIN';
+        const tenantId = isSystemAdmin ? null : req.user.tenantId;
+        const valve = await valveService.updateValve(req.params.id, req.body, tenantId);
         res.status(200).json(valve);
     } catch (error) {
         if (error.message === 'Valve not found') return res.status(404).json({ error: error.message });
@@ -62,9 +62,9 @@ const updateValve = async (req, res) => {
 
 const deleteValve = async (req, res) => {
     try {
-        const isMacsoftAdmin = req.user.role === 'MACSOFT_ADMIN';
-        const customerId = isMacsoftAdmin ? null : req.user.customerId;
-        await valveService.deleteValve(req.params.id, customerId);
+        const isSystemAdmin = req.user.role === 'SYSTEM_ADMIN';
+        const tenantId = isSystemAdmin ? null : req.user.tenantId;
+        await valveService.deleteValve(req.params.id, tenantId);
         res.status(204).send();
     } catch (error) {
         if (error.message === 'Valve not found') return res.status(404).json({ error: error.message });

@@ -1,16 +1,16 @@
 const { prisma } = require('../prisma/client');
 
-const getZones = async (customerId, fieldId, skip, take, filter) => {
+const getZones = async (tenantId, fieldId, skip, take, filter) => {
     const params = {};
-    if (skip) params.skip = (parseInt(skip) - 1) * parseInt(take) || 0;
+    if (skip) params.skip = Math.max(0, (parseInt(skip) - 1) * (parseInt(take) || 10));
     if (take) params.take = parseInt(take);
 
     const where = {};
     if (fieldId) {
         where.fieldId = fieldId;
     }
-    if (customerId) {
-        where.field = { customerId };
+    if (tenantId) {
+        where.field = { tenantId };
     }
     if (filter) {
         where.name = { contains: filter, mode: 'insensitive' };
@@ -29,10 +29,10 @@ const getZones = async (customerId, fieldId, skip, take, filter) => {
     return { zones, count };
 };
 
-const getZoneById = async (id, customerId) => {
+const getZoneById = async (id, tenantId) => {
     const where = { id };
-    if (customerId) {
-        where.field = { customerId };
+    if (tenantId) {
+        where.field = { tenantId };
     }
     const zone = await prisma.zone.findFirst({
         where,
@@ -44,12 +44,12 @@ const getZoneById = async (id, customerId) => {
     return zone;
 };
 
-const createZone = async (data, customerId) => {
+const createZone = async (data, tenantId) => {
     const { name, fieldId } = data;
     
-    if (customerId) {
+    if (tenantId) {
         const field = await prisma.field.findFirst({
-            where: { id: fieldId, customerId }
+            where: { id: fieldId, tenantId }
         });
         if (!field) throw new Error('Field not found or access denied');
     }
@@ -62,11 +62,11 @@ const createZone = async (data, customerId) => {
     });
 };
 
-const updateZone = async (id, data, customerId) => {
+const updateZone = async (id, data, tenantId) => {
     const { name } = data;
     const where = { id };
-    if (customerId) {
-        where.field = { customerId };
+    if (tenantId) {
+        where.field = { tenantId };
     }
 
     const existing = await prisma.zone.findFirst({ where });
@@ -81,10 +81,10 @@ const updateZone = async (id, data, customerId) => {
     });
 };
 
-const deleteZone = async (id, customerId) => {
+const deleteZone = async (id, tenantId) => {
     const where = { id };
-    if (customerId) {
-        where.field = { customerId };
+    if (tenantId) {
+        where.field = { tenantId };
     }
 
     const existing = await prisma.zone.findFirst({ where });

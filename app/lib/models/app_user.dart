@@ -1,19 +1,22 @@
 // Roles matching the backend JWT payload
-enum UserRole { superadmin, admin, user }
+enum UserRole { systemAdmin, customerAdmin, customerUser, customer }
 
 UserRole _parseRole(String? raw) {
   switch ((raw ?? '').toUpperCase()) {
+    case 'SYSTEM_ADMIN':
     case 'MACSOFT_ADMIN':
     case 'MACSOFT_USER':
     case 'SUPERADMIN':
-      return UserRole.superadmin;
+      return UserRole.systemAdmin;
     case 'CUSTOMER_ADMIN':
     case 'ADMIN':
-      return UserRole.admin;
+      return UserRole.customerAdmin;
     case 'CUSTOMER_USER':
     case 'END_USER':
+      return UserRole.customerUser;
+    case 'CUSTOMER':
     default:
-      return UserRole.user;
+      return UserRole.customer;
   }
 }
 
@@ -23,7 +26,7 @@ class AppUser {
   final String? email;
   final String? phone;
   final UserRole role;
-  final String? customerId;
+  final String? tenantId;
 
   const AppUser({
     required this.id,
@@ -31,8 +34,11 @@ class AppUser {
     this.email,
     this.phone,
     required this.role,
-    this.customerId,
+    this.tenantId,
   });
+
+  // Getter for customerId to ensure backward compatibility
+  String? get customerId => tenantId;
 
   factory AppUser.fromTokenPayload(Map<String, dynamic> payload) {
     return AppUser(
@@ -43,7 +49,7 @@ class AppUser {
       role: _parseRole(
         payload['role'] as String? ?? payload['Role'] as String?,
       ),
-      customerId: payload['customerId']?.toString(),
+      tenantId: (payload['tenantId'] ?? payload['customerId'])?.toString(),
     );
   }
 
@@ -54,7 +60,7 @@ class AppUser {
       email: j['email'] as String?,
       phone: j['phone'] as String?,
       role: _parseRole(j['role'] as String?),
-      customerId: j['customerId']?.toString(),
+      tenantId: (j['tenantId'] ?? j['customerId'])?.toString(),
     );
   }
 
@@ -64,24 +70,27 @@ class AppUser {
     'email': email,
     'phone': phone,
     'role': role.name.toUpperCase(),
-    'customerId': customerId,
+    'tenantId': tenantId,
   };
 
   // ── RBAC helpers ──────────────────────────────────────────
-  bool get isSuperAdmin => role == UserRole.superadmin;
-  bool get isAdmin => role == UserRole.superadmin || role == UserRole.admin;
+  bool get isSuperAdmin => role == UserRole.systemAdmin;
+  bool get isAdmin => role == UserRole.systemAdmin || role == UserRole.customerAdmin;
   bool get canManageUsers => isAdmin;
   bool get canDeleteUsers => isSuperAdmin;
   bool get canManageDevices => isAdmin;
+  bool get canManageFields => role == UserRole.systemAdmin || role == UserRole.customerAdmin || role == UserRole.customerUser;
 
   String get roleLabel {
     switch (role) {
-      case UserRole.superadmin:
-        return 'Super Admin';
-      case UserRole.admin:
-        return 'Admin';
-      case UserRole.user:
-        return 'User';
+      case UserRole.systemAdmin:
+        return 'System Admin';
+      case UserRole.customerAdmin:
+        return 'Customer Admin';
+      case UserRole.customerUser:
+        return 'Customer User';
+      case UserRole.customer:
+        return 'Customer';
     }
   }
 }

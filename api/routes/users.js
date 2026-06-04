@@ -6,9 +6,9 @@ const { authenticate, authorize } = require('../controllers/auth');
 router.use(authenticate);
 
 /* GET users listing. */
-router.get('/', authorize(['MACSOFT_ADMIN', 'CUSTOMER_ADMIN']), users.getUsers);
-router.get('/:id', authorize(['MACSOFT_ADMIN', 'CUSTOMER_ADMIN']), users.getUserById);
-router.post('/', authorize(['MACSOFT_ADMIN', 'CUSTOMER_ADMIN']), users.createUser);
-router.put('/:id', authorize(['MACSOFT_ADMIN', 'CUSTOMER_ADMIN']), users.updateUser);
-router.delete('/:id', authorize(['MACSOFT_ADMIN']), users.deleteUser);
+router.get('/', authorize(['SYSTEM_ADMIN', 'CUSTOMER_ADMIN']), users.getUsers);
+router.get('/:id', authorize(['SYSTEM_ADMIN', 'CUSTOMER_ADMIN']), users.getUserById);
+router.post('/', authorize(['SYSTEM_ADMIN', 'CUSTOMER_ADMIN']), users.createUser);
+router.put('/:id', authorize(['SYSTEM_ADMIN', 'CUSTOMER_ADMIN']), users.updateUser);
+router.delete('/:id', authorize(['SYSTEM_ADMIN']), users.deleteUser);
 module.exports = router;

@@ -3,7 +3,7 @@ const router = express.Router();
 const deviceUpload = require("../controllers/devices");
 const { authenticate, authorize } = require("../controllers/auth");
 
-const MANAGE_ROLES = ['MACSOFT_ADMIN', 'MACSOFT_USER', 'CUSTOMER_ADMIN'];
+const MANAGE_ROLES = ['SYSTEM_ADMIN', 'CUSTOMER_ADMIN'];
 
 router.use(authenticate);
 

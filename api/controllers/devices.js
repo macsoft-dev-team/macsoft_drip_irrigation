@@ -2,7 +2,7 @@ const bcrypt = require("bcrypt");
 const devicesService = require("../services/devices");
 const commandsService = require("../services/commands");
 
-const MACSOFT_ROLES = ['MACSOFT_ADMIN', 'MACSOFT_USER'];
+const SYSTEM_ROLES = ['SYSTEM_ADMIN'];
 
 // Validates a 15-digit IMEI using the Luhn algorithm
 const isValidImei = (imei) => {
@@ -68,11 +68,11 @@ const uploadDevices = async (req, res) => {
             1000
         );
 
-        const customerId = req.user.customerId;
+        const tenantId = req.user.tenantId;
 
         const result = await devicesService.uploadDevices({
             imeiList: valid,
-            customerId,
+            tenantId,
             batchSize,
         });
 
@@ -89,6 +89,7 @@ const uploadDevices = async (req, res) => {
         });
     }
 };
+
 const createDevice = async (req, res) => {
     try {
         const { imeinumber, code, pumpModel, latitude, longitude,
@@ -103,24 +104,17 @@ const createDevice = async (req, res) => {
             return res.status(400).json({ error: "Invalid IMEI number" });
         }
 
-        // Customer roles always create devices under their own customer
-        const customerId = MACSOFT_ROLES.includes(req.user.role)
-            ? (req.user.customerId || undefined)
-            : req.user.customerId;
+        const isSystemAdmin = req.user.role === 'SYSTEM_ADMIN';
+        const tenantId = isSystemAdmin ? (req.body.tenantId || req.user.tenantId) : req.user.tenantId;
 
         const deviceData = {
-            imeinumber,
-            code: code || imeinumber.slice(-6),
-            pumpModel: pumpModel || 'MODEL_1P1',
-            latitude: latitude ? parseFloat(latitude) : undefined,
-            longitude: longitude ? parseFloat(longitude) : undefined,
-            mqttClientId: mqttClientId || `client_${imeinumber}`,
+            deviceUid: imeinumber,
+            tenantId,
+            type: 'CONTROLLER',
+            secretKey: mqttPassword || imeinumber,
             mqttUsername: mqttUsername || `user_${imeinumber}`,
-            mqttPassword: mqttPassword || bcrypt.hashSync(imeinumber, 10),
-            mqttTelemetryTopic: mqttTelemetryTopic || `device/${imeinumber}/data`,
-            mqttCommandTopic: mqttCommandTopic || `device/${imeinumber}/cmd`,
-            mqttAckTopic: mqttAckTopic || `device/${imeinumber}/cmd/res`,
-            customerId: customerId ?? undefined,
+            mqttPasswordHash: mqttPassword || bcrypt.hashSync(imeinumber, 10),
+            provisioningStatus: 'ACTIVE',
         };
 
         const createdDevice = await devicesService.createDevice(deviceData);
@@ -147,7 +141,7 @@ const createDevice = async (req, res) => {
         // Prisma foreign key constraint violation (P2003)
         if (error.code === 'P2003') {
             return res.status(400).json({
-                error: 'Invalid customer account. Please contact your administrator.',
+                error: 'Invalid tenant account. Please contact your administrator.',
             });
         }
 
@@ -156,21 +150,29 @@ const createDevice = async (req, res) => {
             message: error.message,
         });
     }
-}
+};
 
 const updateDevice = async (req, res) => {
     try {
         const deviceId = req.params.id;
         const updateData = { ...req.body };
 
-        // Only MACSOFT roles can reassign a device's customer
-        const MACSOFT_ROLES = ['MACSOFT_ADMIN', 'MACSOFT_USER'];
-        if (!MACSOFT_ROLES.includes(req.user?.role)) {
+        const isSystemAdmin = req.user?.role === 'SYSTEM_ADMIN';
+        if (!isSystemAdmin) {
+            delete updateData.tenantId;
             delete updateData.customerId;
         }
 
-        if (updateData.imeinumber && !isValidImei(updateData.imeinumber)) {
-            return res.status(400).json({ error: "Invalid IMEI number" });
+        if (updateData.imeinumber) {
+            if (!isValidImei(updateData.imeinumber)) {
+                return res.status(400).json({ error: "Invalid IMEI number" });
+            }
+            updateData.deviceUid = updateData.imeinumber;
+            delete updateData.imeinumber;
+        }
+        if (updateData.customerId) {
+            updateData.tenantId = updateData.customerId;
+            delete updateData.customerId;
         }
 
         const updatedDevice = await devicesService.updateDevice(deviceId, updateData);
@@ -191,7 +193,7 @@ const updateDevice = async (req, res) => {
             message: error.message,
         });
     }
-}
+};
 
 const getDeviceById = async (req, res) => {
     try {
@@ -208,9 +210,9 @@ const getDeviceById = async (req, res) => {
 const getDevices = async (req, res) => {
     try {
         const { skip, take, filter } = req.query;
-        const CUSTOMER_ROLES = ['CUSTOMER_ADMIN', 'CUSTOMER_USER', 'END_USER'];
-        const customerId = CUSTOMER_ROLES.includes(req.user?.role) ? req.user.customerId : undefined;
-        const devices = await devicesService.getDevices({ skip, take, filter, customerId });
+        const isSystemAdmin = req.user?.role === 'SYSTEM_ADMIN';
+        const tenantId = isSystemAdmin ? (req.query.tenantId || undefined) : req.user.tenantId;
+        const devices = await devicesService.getDevices({ skip, take, filter, tenantId });
         return res.status(200).json({
             success: true,
             message: "Devices retrieved successfully",
@@ -223,8 +225,7 @@ const getDevices = async (req, res) => {
             message: error.message,
         });
     }
-}
-
+};
 
 const getDeviceTelemetry = async (req, res) => {
     try {

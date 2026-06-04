@@ -5,10 +5,10 @@ const { authenticate, authorize } = require('../controllers/auth');
 
 router.use(authenticate);
 
-router.get('/', authorize(['MACSOFT_ADMIN', 'CUSTOMER_ADMIN', 'CUSTOMER_USER', 'END_USER']), valves.getValves);
-router.get('/:id', authorize(['MACSOFT_ADMIN', 'CUSTOMER_ADMIN', 'CUSTOMER_USER', 'END_USER']), valves.getValveById);
-router.post('/', authorize(['MACSOFT_ADMIN', 'CUSTOMER_ADMIN']), valves.createValve);
-router.put('/:id', authorize(['MACSOFT_ADMIN', 'CUSTOMER_ADMIN']), valves.updateValve);
-router.delete('/:id', authorize(['MACSOFT_ADMIN', 'CUSTOMER_ADMIN']), valves.deleteValve);
+router.get('/', authorize(['SYSTEM_ADMIN', 'CUSTOMER_ADMIN', 'CUSTOMER_USER', 'CUSTOMER']), valves.getValves);
+router.get('/:id', authorize(['SYSTEM_ADMIN', 'CUSTOMER_ADMIN', 'CUSTOMER_USER', 'CUSTOMER']), valves.getValveById);
+router.post('/', authorize(['SYSTEM_ADMIN', 'CUSTOMER_ADMIN', 'CUSTOMER_USER']), valves.createValve);
+router.put('/:id', authorize(['SYSTEM_ADMIN', 'CUSTOMER_ADMIN', 'CUSTOMER_USER']), valves.updateValve);
+router.delete('/:id', authorize(['SYSTEM_ADMIN', 'CUSTOMER_ADMIN', 'CUSTOMER_USER']), valves.deleteValve);
 
 module.exports = router;

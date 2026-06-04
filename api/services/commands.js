@@ -5,7 +5,7 @@ const mqttService = require('./mqtt');
 async function sendCommand({ deviceId, payload }) {
     const device = await prisma.device.findUnique({
         where: { id: deviceId },
-        select: { mqttCommandTopic: true, imeinumber: true },
+        select: { tenantId: true, deviceUid: true },
     });
     if (!device) throw new Error('Device not found');
 
@@ -16,12 +16,18 @@ async function sendCommand({ deviceId, payload }) {
 
     // Persist with PENDING status first
     const command = await prisma.command.create({
-        data: { deviceId, commandCode, value: Number(rawValue), status: 'PENDING' },
+        data: { 
+            deviceId, 
+            tenantId: device.tenantId,
+            commandType: commandCode,
+            payload: payload,
+            status: 'PENDING' 
+        },
     });
 
     // Publish to device command topic
-    const topic = device.mqttCommandTopic || `device/${device.imeinumber}/cmd`;
-    const sent = mqttService.publish(topic, { ...payload, _cmdId: command.id ,imeinumber: device.imeinumber });
+    const topic = `device/${device.deviceUid}/cmd`;
+    const sent = mqttService.publish(topic, { ...payload, _cmdId: command.id ,deviceUid: device.deviceUid });
 
     // Update status to SENT or FAILED based on publish result
     const updated = await prisma.command.update({

@@ -113,7 +113,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     ),
                   ),
                 ),
-                _RoleBadge(role: user?.role ?? UserRole.user),
+                _RoleBadge(role: user?.role ?? UserRole.customer),
               ],
             ),
             const SizedBox(height: 18),
@@ -788,12 +788,10 @@ class _DashboardPageState extends State<DashboardPage> {
 
     return Consumer<AppState>(
       builder: (_, state, __) {
-        if (state.user?.role == UserRole.user) {
+        if (state.user?.role == UserRole.customer) {
           return _buildUserScaffold(state);
         }
-        final isAdmin =
-            state.user?.role == UserRole.admin ||
-            state.user?.role == UserRole.superadmin;
+        final isAdmin = state.user?.isAdmin ?? false;
         final titles = ['Overview', 'Devices', if (isAdmin) 'Users'];
         final pages = [
           _buildFarmerDashboard(state),
@@ -874,18 +872,23 @@ class _UserChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (roleLabel, roleColor, roleBg) = switch (user.role) {
-      UserRole.superadmin => (
-        'Super Admin',
+      UserRole.systemAdmin => (
+        'System Admin',
         const Color(0xFFBE123C),
         const Color(0xFFFFF1F2),
       ),
-      UserRole.admin => (
-        'Admin',
+      UserRole.customerAdmin => (
+        'Customer Admin',
         const Color(0xFF6D28D9),
         const Color(0xFFF5F3FF),
       ),
-      UserRole.user => (
-        'User',
+      UserRole.customerUser => (
+        'Customer User',
+        const Color(0xFF0369A1),
+        const Color(0xFFEFF6FF),
+      ),
+      UserRole.customer => (
+        'Customer',
         const Color(0xFF0369A1),
         const Color(0xFFEFF6FF),
       ),
@@ -1924,20 +1927,25 @@ class _RoleBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (label, fg, bg) = switch (role) {
-      UserRole.superadmin => (
-        'Super Admin',
+      UserRole.systemAdmin => (
+        'System Admin',
         const Color(0xFFBE123C),
         const Color(0xFFFFF1F2),
       ),
-      UserRole.admin => (
-        'Admin',
+      UserRole.customerAdmin => (
+        'Customer Admin',
         const Color(0xFF6D28D9),
         const Color(0xFFF5F3FF),
       ),
-      UserRole.user => (
-        'Farmer',
+      UserRole.customerUser => (
+        'Customer User',
         const Color(0xFF15803D),
         const Color(0xFFF0FDF4),
+      ),
+      UserRole.customer => (
+        'Customer',
+        const Color(0xFF6B7280),
+        const Color(0xFFF1F5F9),
       ),
     };
     return Container(

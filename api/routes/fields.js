@@ -5,10 +5,10 @@ const { authenticate, authorize } = require('../controllers/auth');
 
 router.use(authenticate);
 
-router.get('/', authorize(['MACSOFT_ADMIN', 'CUSTOMER_ADMIN', 'CUSTOMER_USER', 'END_USER']), fields.getFields);
-router.get('/:id', authorize(['MACSOFT_ADMIN', 'CUSTOMER_ADMIN', 'CUSTOMER_USER', 'END_USER']), fields.getFieldById);
-router.post('/', authorize(['MACSOFT_ADMIN', 'CUSTOMER_ADMIN']), fields.createField);
-router.put('/:id', authorize(['MACSOFT_ADMIN', 'CUSTOMER_ADMIN']), fields.updateField);
-router.delete('/:id', authorize(['MACSOFT_ADMIN', 'CUSTOMER_ADMIN']), fields.deleteField);
+router.get('/', authorize(['SYSTEM_ADMIN', 'CUSTOMER_ADMIN', 'CUSTOMER_USER', 'CUSTOMER']), fields.getFields);
+router.get('/:id', authorize(['SYSTEM_ADMIN', 'CUSTOMER_ADMIN', 'CUSTOMER_USER', 'CUSTOMER']), fields.getFieldById);
+router.post('/', authorize(['SYSTEM_ADMIN', 'CUSTOMER_ADMIN', 'CUSTOMER_USER']), fields.createField);
+router.put('/:id', authorize(['SYSTEM_ADMIN', 'CUSTOMER_ADMIN', 'CUSTOMER_USER']), fields.updateField);
+router.delete('/:id', authorize(['SYSTEM_ADMIN', 'CUSTOMER_ADMIN', 'CUSTOMER_USER']), fields.deleteField);
 
 module.exports = router;
