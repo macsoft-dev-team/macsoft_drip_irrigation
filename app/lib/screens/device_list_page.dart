@@ -542,13 +542,13 @@ class _DeviceRow extends StatelessWidget {
                 const SizedBox(height: 8),
               ],
 
-              // Voltage
+              // Schema Telemetry Metrics
               Text(
-                'Voltage (V)',
+                'Environment Metrics',
                 style: const TextStyle(
                   fontSize: 9,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF60A5FA),
+                  color: Color(0xFF10B981),
                   letterSpacing: 1.0,
                 ),
               ),
@@ -557,44 +557,49 @@ class _DeviceRow extends StatelessWidget {
                 children: [
                   Expanded(
                     child: _TeleStat(
-                      label: 'Ph 1',
-                      value: latest.iv1 != null
-                          ? latest.iv1!.toStringAsFixed(1)
+                      label: 'Moisture',
+                      value: latest.moistureLevel != null
+                          ? '${latest.moistureLevel!.toStringAsFixed(0)}%'
                           : '—',
-                      color: _TeleColor.blue,
+                      bg: const Color(0xFFF0FDF4),
+                      border: const Color(0xFFBBF7D0),
+                      fg: const Color(0xFF15803D),
                     ),
                   ),
                   const SizedBox(width: 4),
                   Expanded(
                     child: _TeleStat(
-                      label: 'Ph 2',
-                      value: latest.iv2 != null
-                          ? latest.iv2!.toStringAsFixed(1)
+                      label: 'Temp',
+                      value: latest.temperature != null
+                          ? '${latest.temperature!.toStringAsFixed(1)}°C'
                           : '—',
-                      color: _TeleColor.blue,
+                      bg: const Color(0xFFFFFBEB),
+                      border: const Color(0xFFFDE68A),
+                      fg: const Color(0xFFB45309),
                     ),
                   ),
                   const SizedBox(width: 4),
                   Expanded(
                     child: _TeleStat(
-                      label: 'Ph 3',
-                      value: latest.iv3 != null
-                          ? latest.iv3!.toStringAsFixed(1)
+                      label: 'Humidity',
+                      value: latest.humidity != null
+                          ? '${latest.humidity!.toStringAsFixed(0)}%'
                           : '—',
-                      color: _TeleColor.blue,
+                      bg: const Color(0xFFEFF6FF),
+                      border: const Color(0xFFBFDBFE),
+                      fg: const Color(0xFF1D4ED8),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 6),
 
-              // Current
               Text(
-                'Current (A)',
+                'System Status',
                 style: const TextStyle(
                   fontSize: 9,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFFFBBF24),
+                  color: Color(0xFF8B5CF6),
                   letterSpacing: 1.0,
                 ),
               ),
@@ -603,33 +608,29 @@ class _DeviceRow extends StatelessWidget {
                 children: [
                   Expanded(
                     child: _TeleStat(
-                      label: 'Ph 1',
-                      value: latest.ic1 != null
-                          ? latest.ic1!.toStringAsFixed(2)
+                      label: 'Battery',
+                      value: latest.batteryLevel != null
+                          ? '${latest.batteryLevel}%'
                           : '—',
-                      color: _TeleColor.amber,
+                      bg: const Color(0xFFFDF4FF),
+                      border: const Color(0xFFF5D0FE),
+                      fg: const Color(0xFFA21CAF),
                     ),
                   ),
                   const SizedBox(width: 4),
                   Expanded(
                     child: _TeleStat(
-                      label: 'Ph 2',
-                      value: latest.ic2 != null
-                          ? latest.ic2!.toStringAsFixed(2)
+                      label: 'Signal',
+                      value: latest.signalStrength != null
+                          ? '${latest.signalStrength}dBm'
                           : '—',
-                      color: _TeleColor.amber,
+                      bg: const Color(0xFFF5F3FF),
+                      border: const Color(0xFFDDD6FE),
+                      fg: const Color(0xFF6D28D9),
                     ),
                   ),
                   const SizedBox(width: 4),
-                  Expanded(
-                    child: _TeleStat(
-                      label: 'Ph 3',
-                      value: latest.ic3 != null
-                          ? latest.ic3!.toStringAsFixed(2)
-                          : '—',
-                      color: _TeleColor.amber,
-                    ),
-                  ),
+                  const Spacer(),
                 ],
               ),
               const SizedBox(height: 8),
@@ -724,7 +725,7 @@ class _DeviceRow extends StatelessWidget {
                 _ActionButton(
                   icon: Icons.bar_chart_rounded,
                   label: 'Telemetry',
-                  color: const Color(0xFF1565C0),
+                  color: const Color(0xFF2D7A3A),
                   onTap: onTelemetry,
                 ),
                 const SizedBox(width: 6),
@@ -853,7 +854,7 @@ class _FilterChip extends StatelessWidget {
   const _FilterChip({
     required this.label,
     required this.selected,
-    this.color = const Color(0xFF1565C0),
+    this.color = const Color(0xFF2D7A3A),
     required this.onTap,
   });
 
@@ -915,32 +916,22 @@ class _ModeBadge extends StatelessWidget {
 
 // ── Telemetry stat cell ───────────────────────────────────────────────────────
 
-enum _TeleColor { blue, amber }
-
 class _TeleStat extends StatelessWidget {
   final String label;
   final String value;
-  final _TeleColor color;
+  final Color bg;
+  final Color border;
+  final Color fg;
   const _TeleStat({
     required this.label,
     required this.value,
-    required this.color,
+    required this.bg,
+    required this.border,
+    required this.fg,
   });
 
   @override
   Widget build(BuildContext context) {
-    final (bg, border, fg) = switch (color) {
-      _TeleColor.blue => (
-        const Color(0xFFEFF6FF),
-        const Color(0xFFBFDBFE),
-        const Color(0xFF1D4ED8),
-      ),
-      _TeleColor.amber => (
-        const Color(0xFFFFFBEB),
-        const Color(0xFFFDE68A),
-        const Color(0xFFB45309),
-      ),
-    };
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
       decoration: BoxDecoration(

@@ -22,7 +22,7 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   int _selectedIndex = 0;
-  static const _primary = Color(0xFF1565C0);
+  static const _primary = Color(0xFF2D7A3A);
 
   // User device list — search & filter
   final _searchCtrl = TextEditingController();
@@ -356,8 +356,8 @@ class _DashboardPageState extends State<DashboardPage> {
               title: 'Active Now',
               value: '$online',
               subtitle: 'Online',
-              iconBg: const Color(0xFFE3F2FD),
-              iconColor: const Color(0xFF1976D2),
+              iconBg: const Color(0xFFE8F5E9),
+              iconColor: _primary,
             ),
             _OverviewCardData(
               icon: Icons.people_rounded,
@@ -390,8 +390,8 @@ class _DashboardPageState extends State<DashboardPage> {
               title: 'Running',
               value: '$online',
               subtitle: 'Active motors',
-              iconBg: const Color(0xFFE3F2FD),
-              iconColor: const Color(0xFF1976D2),
+              iconBg: const Color(0xFFE8F5E9),
+              iconColor: _primary,
             ),
             _OverviewCardData(
               icon: Icons.wifi_off_rounded,
@@ -571,7 +571,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   children: [
                     _SummaryPill(
                       label: '$online Online',
-                      dot: const Color(0xFF3B82F6),
+                      dot: const Color(0xFF10B981),
                       pulse: true,
                     ),
                     const SizedBox(width: 8),
@@ -630,7 +630,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: const BorderSide(
-                        color: Color(0xFF93C5FD),
+                        color: _primary,
                         width: 1.5,
                       ),
                     ),
@@ -659,7 +659,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: const BorderSide(
-                        color: Color(0xFF93C5FD),
+                        color: _primary,
                         width: 1.5,
                       ),
                     ),
@@ -736,12 +736,12 @@ class _DashboardPageState extends State<DashboardPage> {
                               _searchCtrl.clear();
                               _statusFilter = 'all';
                             }),
-                            child: const Text(
+                            child: Text(
                               'Clear filters',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,
-                                color: Color(0xFF3B82F6),
+                                color: _primary,
                               ),
                             ),
                           ),
@@ -884,13 +884,13 @@ class _UserChip extends StatelessWidget {
       ),
       UserRole.customerUser => (
         'Customer User',
-        const Color(0xFF0369A1),
-        const Color(0xFFEFF6FF),
+        const Color(0xFF0D9488),
+        const Color(0xFFF0FDFA),
       ),
       UserRole.customer => (
         'Customer',
-        const Color(0xFF0369A1),
-        const Color(0xFFEFF6FF),
+        const Color(0xFF0D9488),
+        const Color(0xFFF0FDFA),
       ),
     };
     return Container(
@@ -1126,44 +1126,39 @@ class _DeviceSummaryTileState extends State<_DeviceSummaryTile> {
             Row(
               children: [
                 _MiniStat(
-                  label: 'V1',
-                  value: latest.iv1 != null
-                      ? '${latest.iv1!.toStringAsFixed(0)}V'
+                  label: 'Moist',
+                  value: latest.moistureLevel != null
+                      ? '${latest.moistureLevel!.toStringAsFixed(0)}%'
                       : '—',
+                  color: const Color(0xFF10B981),
                 ),
                 _MiniStat(
-                  label: 'V2',
-                  value: latest.iv2 != null
-                      ? '${latest.iv2!.toStringAsFixed(0)}V'
-                      : '—',
-                ),
-                _MiniStat(
-                  label: 'V3',
-                  value: latest.iv3 != null
-                      ? '${latest.iv3!.toStringAsFixed(0)}V'
-                      : '—',
-                ),
-                const SizedBox(width: 8),
-                _MiniStat(
-                  label: 'A1',
-                  value: latest.ic1 != null
-                      ? '${latest.ic1!.toStringAsFixed(1)}A'
+                  label: 'Temp',
+                  value: latest.temperature != null
+                      ? '${latest.temperature!.toStringAsFixed(1)}°C'
                       : '—',
                   color: const Color(0xFFD97706),
                 ),
                 _MiniStat(
-                  label: 'A2',
-                  value: latest.ic2 != null
-                      ? '${latest.ic2!.toStringAsFixed(1)}A'
+                  label: 'Hum',
+                  value: latest.humidity != null
+                      ? '${latest.humidity!.toStringAsFixed(0)}%'
                       : '—',
-                  color: const Color(0xFFD97706),
+                  color: const Color(0xFF3B82F6),
                 ),
                 _MiniStat(
-                  label: 'A3',
-                  value: latest.ic3 != null
-                      ? '${latest.ic3!.toStringAsFixed(1)}A'
+                  label: 'Batt',
+                  value: latest.batteryLevel != null
+                      ? '${latest.batteryLevel}%'
                       : '—',
-                  color: const Color(0xFFD97706),
+                  color: const Color(0xFF8B5CF6),
+                ),
+                _MiniStat(
+                  label: 'Sig',
+                  value: latest.signalStrength != null
+                      ? '${latest.signalStrength}dBm'
+                      : '—',
+                  color: const Color(0xFF6366F1),
                 ),
                 const Spacer(),
                 if (lastHb != null)
@@ -1426,7 +1421,7 @@ class _MiniStat extends StatelessWidget {
   const _MiniStat({
     required this.label,
     required this.value,
-    this.color = const Color(0xFF1565C0),
+    this.color = const Color(0xFF2D7A3A),
   });
 
   @override
@@ -1687,49 +1682,113 @@ class _UserDeviceTile extends StatelessWidget {
                   ],
                   const SizedBox(height: 5),
 
-                  // Mini stats: IV1 | FLC | time
+                  // Mini stats: Moist | Temp | Humid | Batt | Sig
                   latest != null
-                      ? Row(
-                          children: [
-                            Icon(
-                              Icons.bolt_rounded,
-                              size: 12,
-                              color: theme.badgeFg.withOpacity(0.7),
-                            ),
-                            const SizedBox(width: 2),
-                            Text(
-                              latest.iv1 != null
-                                  ? '${latest.iv1!.toStringAsFixed(0)} V'
-                                  : '—',
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: Color(0xFF64748B),
+                      ? SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              // Moisture
+                              const Icon(
+                                Icons.water_drop_rounded,
+                                size: 12,
+                                color: Color(0xFF10B981),
                               ),
-                            ),
-                            const SizedBox(width: 10),
-                            const Icon(
-                              Icons.water_drop_outlined,
-                              size: 12,
-                              color: Color(0xFF94A3B8),
-                            ),
-                            const SizedBox(width: 2),
-                            Text(
-                              latest.flc != null ? '${latest.flc} LPM' : '—',
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: Color(0xFF64748B),
+                              const SizedBox(width: 2),
+                              Text(
+                                latest.moistureLevel != null
+                                    ? '${latest.moistureLevel!.toStringAsFixed(0)}%'
+                                    : '—',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: Color(0xFF64748B),
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 10),
-                            Text(
-                              _fmtTime(latest.time),
-                              style: const TextStyle(
-                                fontFamily: 'monospace',
-                                fontSize: 10,
+                              const SizedBox(width: 10),
+                              // Temperature
+                              const Icon(
+                                Icons.thermostat_rounded,
+                                size: 12,
+                                color: Color(0xFFD97706),
+                              ),
+                              const SizedBox(width: 2),
+                              Text(
+                                latest.temperature != null
+                                    ? '${latest.temperature!.toStringAsFixed(1)}°C'
+                                    : '—',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: Color(0xFF64748B),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              // Humidity
+                              const Icon(
+                                Icons.cloud_queue_rounded,
+                                size: 12,
+                                color: Color(0xFF3B82F6),
+                              ),
+                              const SizedBox(width: 2),
+                              Text(
+                                latest.humidity != null
+                                    ? '${latest.humidity!.toStringAsFixed(0)}%'
+                                    : '—',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: Color(0xFF64748B),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              // Battery
+                              const Icon(
+                                Icons.battery_std_rounded,
+                                size: 12,
+                                color: Color(0xFF8B5CF6),
+                              ),
+                              const SizedBox(width: 2),
+                              Text(
+                                latest.batteryLevel != null
+                                    ? '${latest.batteryLevel}%'
+                                    : '—',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: Color(0xFF64748B),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              // Signal
+                              const Icon(
+                                Icons.signal_cellular_alt_rounded,
+                                size: 12,
+                                color: Color(0xFF6366F1),
+                              ),
+                              const SizedBox(width: 2),
+                              Text(
+                                latest.signalStrength != null
+                                    ? '${latest.signalStrength}dBm'
+                                    : '—',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: Color(0xFF64748B),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              const Icon(
+                                Icons.access_time_rounded,
+                                size: 12,
                                 color: Color(0xFF94A3B8),
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: 2),
+                              Text(
+                                _fmtTime(latest.time),
+                                style: const TextStyle(
+                                  fontFamily: 'monospace',
+                                  fontSize: 10,
+                                  color: Color(0xFF94A3B8),
+                                ),
+                              ),
+                            ],
+                          ),
                         )
                       : const Text(
                           'No telemetry yet',
@@ -1754,12 +1813,12 @@ class _UserDeviceTile extends StatelessWidget {
 // Card color theme enum (mirrors STATUS_STYLES in MyDevicesPage.jsx)
 enum _CardTheme {
   blue(
-    bg: Color(0xFFF0F9FF),
-    border: Color(0xFFBFDBFE),
-    badgeBg: Color(0xFFEFF6FF),
-    badgeFg: Color(0xFF1D4ED8),
-    dot: Color(0xFF3B82F6),
-    chevron: Color(0xFF93C5FD),
+    bg: Color(0xFFF0FDF4),
+    border: Color(0xFFBBF7D0),
+    badgeBg: Color(0xFFDCFCE7),
+    badgeFg: Color(0xFF15803D),
+    dot: Color(0xFF10B981),
+    chevron: Color(0xFF86EFAC),
   ),
   yellow(
     bg: Color(0xFFFFFBEB),
@@ -2090,36 +2149,81 @@ class _DeviceFarmTile extends StatelessWidget {
                   ),
                 if (latest != null) ...[
                   const SizedBox(height: 3),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.bolt_rounded,
-                        size: 12,
-                        color: Color(0xFF94A3B8),
-                      ),
-                      Text(
-                        latest.iv1 != null
-                            ? '${latest.iv1!.toStringAsFixed(0)} V'
-                            : '—',
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: Color(0xFF64748B),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        // Moisture
+                        const Icon(
+                          Icons.water_drop_rounded,
+                          size: 11,
+                          color: Color(0xFF10B981),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      const Icon(
-                        Icons.water_drop_outlined,
-                        size: 12,
-                        color: Color(0xFF94A3B8),
-                      ),
-                      Text(
-                        latest.flc != null ? '${latest.flc}' : '—',
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: Color(0xFF64748B),
+                        const SizedBox(width: 2),
+                        Text(
+                          latest.moistureLevel != null
+                              ? '${latest.moistureLevel!.toStringAsFixed(0)}%'
+                              : '—',
+                          style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 8),
+                        // Temp
+                        const Icon(
+                          Icons.thermostat_rounded,
+                          size: 11,
+                          color: Color(0xFFD97706),
+                        ),
+                        const SizedBox(width: 2),
+                        Text(
+                          latest.temperature != null
+                              ? '${latest.temperature!.toStringAsFixed(1)}°C'
+                              : '—',
+                          style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
+                        ),
+                        const SizedBox(width: 8),
+                        // Humidity
+                        const Icon(
+                          Icons.cloud_queue_rounded,
+                          size: 11,
+                          color: Color(0xFF3B82F6),
+                        ),
+                        const SizedBox(width: 2),
+                        Text(
+                          latest.humidity != null
+                              ? '${latest.humidity!.toStringAsFixed(0)}%'
+                              : '—',
+                          style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
+                        ),
+                        const SizedBox(width: 8),
+                        // Battery
+                        const Icon(
+                          Icons.battery_std_rounded,
+                          size: 11,
+                          color: Color(0xFF8B5CF6),
+                        ),
+                        const SizedBox(width: 2),
+                        Text(
+                          latest.batteryLevel != null
+                              ? '${latest.batteryLevel}%'
+                              : '—',
+                          style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
+                        ),
+                        const SizedBox(width: 8),
+                        // Signal
+                        const Icon(
+                          Icons.signal_cellular_alt_rounded,
+                          size: 11,
+                          color: Color(0xFF6366F1),
+                        ),
+                        const SizedBox(width: 2),
+                        Text(
+                          latest.signalStrength != null
+                              ? '${latest.signalStrength}dBm'
+                              : '—',
+                          style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ],

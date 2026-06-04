@@ -64,7 +64,7 @@ class ImportDevicesSheet extends StatefulWidget {
 }
 
 class _ImportDevicesSheetState extends State<ImportDevicesSheet> {
-  static const _primary = Color(0xFF1565C0);
+  static const _primary = Color(0xFF2D7A3A);
   static const _success = Color(0xFF10B981);
   static const _danger = Color(0xFFEF4444);
 
@@ -336,7 +336,7 @@ class _ImportDevicesSheetState extends State<ImportDevicesSheet> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFEFF6FF),
+                        color: const Color(0xFFE8F5E9),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(
@@ -487,9 +487,9 @@ class _ImportDevicesSheetState extends State<ImportDevicesSheet> {
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: const Color(0xFFEFF6FF),
+            color: const Color(0xFFE8F5E9),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFBFDBFE)),
+            border: Border.all(color: const Color(0xFFC8E6C9)),
           ),
           child: Row(
             children: [
@@ -498,7 +498,7 @@ class _ImportDevicesSheetState extends State<ImportDevicesSheet> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFBFDBFE)),
+                  border: Border.all(color: const Color(0xFFC8E6C9)),
                 ),
                 child: _isProcessing
                     ? const SizedBox(

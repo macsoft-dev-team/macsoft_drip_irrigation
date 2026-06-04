@@ -92,6 +92,11 @@ class TelemetryRow {
   final dynamic flc, sts, amm, phm, ohr, shr, chr;
   final double? rsi; // signal strength
   final Map<String, dynamic>? payload; // raw JSON as received from device
+  final double? moistureLevel;
+  final int? batteryLevel;
+  final int? signalStrength;
+  final double? temperature;
+  final double? humidity;
 
   const TelemetryRow({
     this.time,
@@ -110,6 +115,11 @@ class TelemetryRow {
     this.chr,
     this.rsi,
     this.payload,
+    this.moistureLevel,
+    this.batteryLevel,
+    this.signalStrength,
+    this.temperature,
+    this.humidity,
   });
 
   factory TelemetryRow.fromJson(Map<String, dynamic> j) {
@@ -134,6 +144,11 @@ class TelemetryRow {
       chr: j['chr'],
       rsi: _toDouble(j['rsi']),
       payload: j['payload'] as Map<String, dynamic>?,
+      moistureLevel: _toDouble(j['moistureLevel']),
+      batteryLevel: j['batteryLevel'] != null ? (j['batteryLevel'] as num).toInt() : null,
+      signalStrength: j['signalStrength'] != null ? (j['signalStrength'] as num).toInt() : null,
+      temperature: _toDouble(j['temperature']),
+      humidity: _toDouble(j['humidity']),
     );
   }
 

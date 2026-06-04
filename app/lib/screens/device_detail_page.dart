@@ -53,7 +53,7 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
           SliverAppBar(
             expandedHeight: 170,
             pinned: true,
-            backgroundColor: const Color(0xFF1565C0),
+            backgroundColor: const Color(0xFF2D7A3A),
             foregroundColor: Colors.white,
             flexibleSpace: FlexibleSpaceBar(
               titlePadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -107,7 +107,7 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
               background: Container(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF1E88E5), Color(0xFF1565C0)],
+                    colors: [Color(0xFF2D7A3A), Color(0xFF1B4332)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -194,7 +194,7 @@ class _DeviceDetailPageState extends State<DeviceDetailPage> {
                         icon: _device.mode == 'AUTO'
                             ? Icons.tune_rounded
                             : Icons.auto_mode_rounded,
-                        color: const Color(0xFF1565C0),
+                        color: const Color(0xFF2D7A3A),
                         onPressed: _device.isOnline ? _toggleMode : null,
                       ),
                     ),

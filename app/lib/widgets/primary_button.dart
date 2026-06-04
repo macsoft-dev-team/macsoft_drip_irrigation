@@ -23,7 +23,7 @@ class PrimaryButton extends StatelessWidget {
           gradient: disabled
               ? null
               : const LinearGradient(
-                  colors: [Color(0xFF1E88E5), Color(0xFF1565C0)],
+                  colors: [Color(0xFF2D7A3A), Color(0xFF1B4332)],
                 ),
           color: disabled ? const Color(0xFFE5E7EB) : null,
           borderRadius: BorderRadius.circular(14),
@@ -31,7 +31,7 @@ class PrimaryButton extends StatelessWidget {
               ? null
               : [
                   BoxShadow(
-                    color: const Color(0xFF1565C0).withOpacity(0.4),
+                    color: const Color(0xFF2D7A3A).withOpacity(0.4),
                     blurRadius: 14,
                     offset: const Offset(0, 5),
                   ),

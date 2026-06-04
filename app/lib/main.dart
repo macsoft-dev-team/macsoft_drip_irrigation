@@ -28,7 +28,7 @@ void main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  static const _primary = Color(0xFF1565C0);
+  static const _primary = Color(0xFF2D7A3A);
 
   @override
   Widget build(BuildContext context) {
@@ -80,7 +80,7 @@ class MyApp extends StatelessWidget {
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: Colors.white,
         elevation: 0,
-        indicatorColor: const Color(0xFF1565C0).withValues(alpha: 0.12),
+        indicatorColor: const Color(0xFF2D7A3A).withValues(alpha: 0.12),
         labelTextStyle: WidgetStateProperty.all(
           const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
         ),

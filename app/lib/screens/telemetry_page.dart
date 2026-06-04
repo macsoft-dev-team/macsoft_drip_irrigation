@@ -166,7 +166,7 @@ class _TelemetryPageState extends State<TelemetryPage> {
           Text('Telemetry', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
         ]),
         actions: [
-          IconButton(icon: const Icon(Icons.download_rounded, color: Color(0xFF1565C0)), tooltip: 'Export Excel', onPressed: _export),
+          IconButton(icon: const Icon(Icons.download_rounded, color: Color(0xFF2D7A3A)), tooltip: 'Export Excel', onPressed: _export),
         ],
       ),
       body: Column(children: [
@@ -180,7 +180,7 @@ class _TelemetryPageState extends State<TelemetryPage> {
             _DateBtn(label: 'To', date: _dtDisplay.format(_to), onTap: () => _pickDate(false)),
             const SizedBox(width: 10),
             IconButton(
-              icon: const Icon(Icons.refresh_rounded, color: Color(0xFF1565C0)),
+              icon: const Icon(Icons.refresh_rounded, color: Color(0xFF2D7A3A)),
               onPressed: () => _loadTelemetry(reset: true),
             ),
           ]),

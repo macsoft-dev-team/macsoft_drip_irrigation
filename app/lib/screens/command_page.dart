@@ -156,7 +156,7 @@ class _CommandPageState extends State<CommandPage> {
               child: FilledButton.icon(
                 icon: _sending ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Icon(Icons.send_rounded, size: 16),
                 label: Text(_sending ? 'Sending…' : 'Send Command'),
-                style: FilledButton.styleFrom(backgroundColor: const Color(0xFF1565C0), padding: const EdgeInsets.symmetric(vertical: 14)),
+                style: FilledButton.styleFrom(backgroundColor: const Color(0xFF2D7A3A), padding: const EdgeInsets.symmetric(vertical: 14)),
                 onPressed: _sending ? null : _send,
               ),
             ),
@@ -229,7 +229,7 @@ class _CommandTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final (bg, text, label) = switch (cmd.status) {
       'ACK' => (const Color(0xFFECFDF5), const Color(0xFF10B981), 'ACK'),
-      'SENT' => (const Color(0xFFEFF6FF), const Color(0xFF1565C0), 'SENT'),
+      'SENT' => (const Color(0xFFE8F5E9), const Color(0xFF2D7A3A), 'SENT'),
       'FAILED' => (const Color(0xFFFEF2F2), const Color(0xFFEF4444), 'FAILED'),
       _ => (const Color(0xFFF8FAFC), const Color(0xFF6B7280), 'PENDING'),
     };

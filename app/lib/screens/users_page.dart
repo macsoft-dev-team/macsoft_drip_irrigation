@@ -155,7 +155,7 @@ class _UsersPageState extends State<UsersPage> {
                     icon: const Icon(Icons.person_add_rounded, size: 16),
                     label: const Text('Add'),
                     style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF1565C0),
+                      backgroundColor: const Color(0xFF2D7A3A),
                       padding: const EdgeInsets.symmetric(
                         horizontal: 14,
                         vertical: 12,
@@ -557,7 +557,7 @@ class _UserFormState extends State<_UserForm> {
                 child: FilledButton(
                   onPressed: _saving ? null : _submit,
                   style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF1565C0),
+                    backgroundColor: const Color(0xFF2D7A3A),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                   child: _saving

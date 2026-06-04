@@ -21,6 +21,7 @@ class _IrrigationPageState extends State<IrrigationPage> with SingleTickerProvid
   // Local valve states to simulate interactive open/close toggles in high-fidelity
   final Map<String, bool> _valveStates = {};
   bool _masterValveOpen = true;
+  bool _irrigationRunning = false;
 
   List<Map<String, dynamic>> _customers = [];
   bool _loadingCustomers = false;
@@ -789,10 +790,8 @@ class _IrrigationPageState extends State<IrrigationPage> with SingleTickerProvid
               Expanded(
                 child: Container(
                   margin: const EdgeInsets.only(bottom: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: const [
+                  decoration: const BoxDecoration(
+                    boxShadow: [
                       BoxShadow(
                         color: Color(0x06000000),
                         blurRadius: 8,
@@ -800,82 +799,85 @@ class _IrrigationPageState extends State<IrrigationPage> with SingleTickerProvid
                       ),
                     ],
                   ),
-                  child: Column(
-                    children: [
-                      // Zone Row Item
-                      ListTile(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                        title: Text(
-                          zone.name,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1E2A1F)),
-                        ),
-                        subtitle: Text(
-                          '${zone.valves.length} Valves',
-                          style: const TextStyle(color: Color(0xFF8A958A), fontSize: 11),
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // Open/Closed general status indicator
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: zone.valves.any((v) => _valveStates[v.id] ?? true)
-                                    ? const Color(0xFFF0FDF4)
-                                    : const Color(0xFFF1F5F9),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                zone.valves.any((v) => _valveStates[v.id] ?? true) ? 'Open' : 'Closed',
-                                style: TextStyle(
+                  child: Material(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    clipBehavior: Clip.antiAlias,
+                    child: Column(
+                      children: [
+                        // Zone Row Item
+                        ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          title: Text(
+                            zone.name,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1E2A1F)),
+                          ),
+                          subtitle: Text(
+                            '${zone.valves.length} Valves',
+                            style: const TextStyle(color: Color(0xFF8A958A), fontSize: 11),
+                          ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // Open/Closed general status indicator
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
                                   color: zone.valves.any((v) => _valveStates[v.id] ?? true)
-                                      ? const Color(0xFF10B981)
-                                      : const Color(0xFF64748B),
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 9,
+                                      ? const Color(0xFFF0FDF4)
+                                      : const Color(0xFFF1F5F9),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  zone.valves.any((v) => _valveStates[v.id] ?? true) ? 'Open' : 'Closed',
+                                  style: TextStyle(
+                                    color: zone.valves.any((v) => _valveStates[v.id] ?? true)
+                                        ? const Color(0xFF10B981)
+                                        : const Color(0xFF64748B),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 9,
+                                  ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            if (!isCustomer) ...[
-                              PopupMenuButton<String>(
-                                icon: const Icon(Icons.more_vert_rounded, size: 20, color: Color(0xFF8A958A)),
-                                onSelected: (val) {
-                                  if (val == 'edit') {
-                                    _showZoneFormSheet(context, field, zone: zone);
-                                  } else if (val == 'delete') {
-                                    _confirmDeleteZone(context, field, zone);
-                                  } else if (val == 'add_valve') {
-                                    _showValveFormSheet(context, field, zone);
-                                  }
-                                },
-                                itemBuilder: (context) => [
-                                  const PopupMenuItem(value: 'add_valve', child: Text('Add Valve')),
-                                  const PopupMenuItem(value: 'edit', child: Text('Edit Zone Name')),
-                                  const PopupMenuItem(value: 'delete', child: Text('Delete Zone', style: TextStyle(color: Colors.red))),
-                                ],
+                              const SizedBox(width: 8),
+                              if (!isCustomer) ...[
+                                PopupMenuButton<String>(
+                                  icon: const Icon(Icons.more_vert_rounded, size: 20, color: Color(0xFF8A958A)),
+                                  onSelected: (val) {
+                                    if (val == 'edit') {
+                                      _showZoneFormSheet(context, field, zone: zone);
+                                    } else if (val == 'delete') {
+                                      _confirmDeleteZone(context, field, zone);
+                                    } else if (val == 'add_valve') {
+                                      _showValveFormSheet(context, field, zone);
+                                    }
+                                  },
+                                  itemBuilder: (context) => [
+                                    const PopupMenuItem(value: 'add_valve', child: Text('Add Valve')),
+                                    const PopupMenuItem(value: 'edit', child: Text('Edit Zone Name')),
+                                    const PopupMenuItem(value: 'delete', child: Text('Delete Zone', style: TextStyle(color: Colors.red))),
+                                  ],
+                                ),
+                              ],
+                              Icon(
+                                isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                                color: const Color(0xFF8A958A),
+                                size: 20,
                               ),
                             ],
-                            Icon(
-                              isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
-                              color: const Color(0xFF8A958A),
-                              size: 20,
-                            ),
-                          ],
+                          ),
+                          onTap: () {
+                            setState(() {
+                              _expandedZones[zone.id] = !isExpanded;
+                            });
+                          },
                         ),
-                        onTap: () {
-                          setState(() {
-                            _expandedZones[zone.id] = !isExpanded;
-                          });
-                        },
-                      ),
-
-                      // Nest Valves if Expanded
-                      if (isExpanded) ...[
-                        const Divider(height: 1, color: Color(0xFFF1F5F9)),
-                        _buildValveNestedList(context, field, zone, isCustomer),
+                        if (isExpanded) ...[
+                          const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                          _buildValveNestedList(context, field, zone, isCustomer),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -1152,7 +1154,7 @@ class _IrrigationPageState extends State<IrrigationPage> with SingleTickerProvid
           _buildSparklineCard(
             'Water Used',
             '680 L',
-            '▲ 12% vs yesterday',
+            '12% vs yesterday',
             const Color(0xFF10B981),
             const Color(0xFFECFDF5),
             const [120, 240, 190, 380, 290, 480, 680],
@@ -1162,7 +1164,7 @@ class _IrrigationPageState extends State<IrrigationPage> with SingleTickerProvid
           _buildSparklineCard(
             'Irrigation Time',
             '2h 35m',
-            '▲ 8% vs yesterday',
+            '8% vs yesterday',
             const Color(0xFF3B82F6),
             const Color(0xFFEFF6FF),
             const [60, 95, 110, 150, 130, 145, 155],
@@ -1172,7 +1174,7 @@ class _IrrigationPageState extends State<IrrigationPage> with SingleTickerProvid
           _buildSparklineCard(
             'System Efficiency',
             '75%',
-            '▲ 5% vs yesterday',
+            '5% vs yesterday',
             const Color(0xFF8B5CF6),
             const Color(0xFFFAF5FF),
             const [70, 72, 71, 74, 73, 75, 75],
@@ -1246,15 +1248,27 @@ class _IrrigationPageState extends State<IrrigationPage> with SingleTickerProvid
             ),
           ),
           const SizedBox(height: 2),
-          Text(
-            comparison,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: trendColor,
-              fontSize: 9,
-              fontWeight: FontWeight.w700,
-            ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.arrow_drop_up_rounded,
+                color: trendColor,
+                size: 14,
+              ),
+              Flexible(
+                child: Text(
+                  comparison,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: trendColor,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           SizedBox(
@@ -1289,16 +1303,32 @@ class _IrrigationPageState extends State<IrrigationPage> with SingleTickerProvid
           children: [
             Expanded(
               child: FilledButton.icon(
-                icon: const Icon(Icons.play_arrow_rounded, size: 20),
-                label: const Text('Manual Irrigation', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                icon: Icon(
+                  _irrigationRunning ? Icons.stop_rounded : Icons.play_arrow_rounded,
+                  size: 20,
+                ),
+                label: Text(
+                  _irrigationRunning ? 'Stop Irrigation' : 'Manual Irrigation',
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
                 style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF0F5132), // Dark green background
+                  backgroundColor: _irrigationRunning ? const Color(0xFFDC2626) : const Color(0xFF0F5132),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 onPressed: () {
+                  setState(() {
+                    _irrigationRunning = !_irrigationRunning;
+                  });
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Triggering Manual Irrigation...')),
+                    SnackBar(
+                      content: Text(
+                        _irrigationRunning
+                            ? 'Triggering Manual Irrigation...'
+                            : 'Stopping Manual Irrigation...',
+                      ),
+                      duration: const Duration(seconds: 1),
+                    ),
                   );
                 },
               ),
