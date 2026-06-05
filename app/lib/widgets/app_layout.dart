@@ -44,15 +44,7 @@ class AppLayout extends StatelessWidget {
             color: Colors.white,
             child: Row(
               children: [
-                // Hamburger
-                GestureDetector(
-                  onTap: onAddTap,
-                  child: const Icon(
-                    Icons.menu_rounded,
-                    size: 26,
-                    color: Color(0xFF1E2A1F),
-                  ),
-                ),
+                
                 const SizedBox(width: 12),
                 // Logo + brand
                 Row(
