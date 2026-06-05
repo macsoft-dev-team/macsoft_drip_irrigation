@@ -57,21 +57,38 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
         curve: const Interval(0.0, 0.30, curve: Curves.easeInCubic),
       ),
     );
-    _dropStretch = Tween<double>(begin: 1.0, end: 2.2).animate(
-      CurvedAnimation(
-        parent: _introController,
-        curve: const Interval(0.0, 0.22, curve: Curves.easeIn),
+
+    // Stretch physics (stretches dynamically, then squashes flat on impact)
+    _dropStretch = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.0, end: 2.5).chain(CurveTween(curve: Curves.easeInQuad)),
+        weight: 75,
       ),
-    );
-    // Wobble effect during descent
-    _dropWobble = TweenSequence<double>([
-      TweenSequenceItem(tween: Tween<double>(begin: 1.0, end: 1.25), weight: 30),
-      TweenSequenceItem(tween: Tween<double>(begin: 1.25, end: 0.75), weight: 30),
-      TweenSequenceItem(tween: Tween<double>(begin: 0.75, end: 1.0), weight: 40),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 2.5, end: 0.6).chain(CurveTween(curve: Curves.easeOut)),
+        weight: 25,
+      ),
     ]).animate(
       CurvedAnimation(
         parent: _introController,
-        curve: const Interval(0.0, 0.30, curve: Curves.linear),
+        curve: const Interval(0.0, 0.30),
+      ),
+    );
+
+    // Wobble and horizontal squash physics
+    _dropWobble = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.0, end: 0.75).chain(CurveTween(curve: Curves.easeInOut)),
+        weight: 70,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.75, end: 1.5).chain(CurveTween(curve: Curves.easeOut)),
+        weight: 30,
+      ),
+    ]).animate(
+      CurvedAnimation(
+        parent: _introController,
+        curve: const Interval(0.0, 0.30),
       ),
     );
 
@@ -267,16 +284,21 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
             },
           ),
 
-          // ── 3. Realistic Falling Droplet with Wobble ──
+          // ── 3. Realistic Falling Droplet with Wobble and Compression ──
           AnimatedBuilder(
             animation: _introController,
             builder: (context, child) {
               if (_introController.value >= 0.30) return const SizedBox.shrink();
+              
+              // Base scale dimensions for painter
+              final dropWidth = 16 * _dropWobble.value;
+              final dropHeight = 30 * _dropStretch.value;
+              
               return Positioned(
-                top: impactY + _dropFall.value - 30,
-                left: size.width / 2 - (8 * _dropWobble.value),
+                top: impactY + _dropFall.value - dropHeight,
+                left: size.width / 2 - (dropWidth / 2),
                 child: CustomPaint(
-                  size: const Size(16, 30),
+                  size: Size(dropWidth, dropHeight),
                   painter: DropletPainter(
                     stretch: _dropStretch.value,
                     wobble: _dropWobble.value,
@@ -307,20 +329,21 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                     children: [
                       // Brand Logo Header (pops beautifully on leaves photo)
                       if (_currentStep != AuthStep.splash) ...[
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF2D7A3A),
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.15),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
+                        // Sitting droplet 3D glass container for brand icon
+                        CustomPaint(
+                          size: const Size(80, 80),
+                          painter: SittingDropletPainter(),
+                          child: const SizedBox(
+                            width: 80,
+                            height: 80,
+                            child: Center(
+                              child: Icon(
+                                Icons.water_drop_rounded,
+                                color: Colors.white,
+                                size: 38,
                               ),
-                            ],
+                            ),
                           ),
-                          child: const Icon(Icons.water_drop, color: Colors.white, size: 48),
                         ),
                         const SizedBox(height: 16),
                         const Text(
@@ -605,7 +628,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
   }
 }
 
-// ── Realistic Teardrop Painter with Wobble Physics ──
+// ── Realistic Teardrop Painter with Fluid Dynamics ──
 class DropletPainter extends CustomPainter {
   final double stretch;
   final double wobble;
@@ -614,49 +637,98 @@ class DropletPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final width = size.width * wobble;
-    final height = size.height * stretch;
+    final width = size.width;
+    final height = size.height;
+    final rect = Rect.fromLTWH(0, 0, width, height);
 
+    // ── 1. Dynamic Drop Shadow on surface ──
+    final shadowPath = Path();
+    shadowPath.moveTo(width / 2, 4);
+    shadowPath.cubicTo(
+      width * 0.84,
+      height * 0.44 + 4,
+      width + 4,
+      height * 0.74 + 4,
+      width / 2,
+      height + 4,
+    );
+    shadowPath.cubicTo(4, height * 0.74 + 4, width * 0.16, height * 0.44 + 4, width / 2, 4);
+    canvas.drawPath(
+      shadowPath,
+      Paint()
+        ..color = const Color(0xFF1B5E20).withValues(alpha: 0.25)
+        ..style = PaintingStyle.fill
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3.0),
+    );
+
+    // ── 2. Refracting Liquid Teardrop Path ──
     final path = Path();
     path.moveTo(width / 2, 0);
     path.cubicTo(
       width * 0.84,
-      height * 0.44,
+      height * 0.42,
       width,
-      height * 0.74,
+      height * 0.72,
       width / 2,
       height,
     );
-    path.cubicTo(0, height * 0.74, width * 0.16, height * 0.44, width / 2, 0);
+    path.cubicTo(0, height * 0.72, width * 0.16, height * 0.42, width / 2, 0);
 
-    final gradient = RadialGradient(
-      center: const Alignment(-0.25, 0.25),
-      radius: 0.8,
+    // Radial gradient mimics internal reflection (translucent glass core)
+    final baseGradient = RadialGradient(
+      center: const Alignment(0.0, 0.20),
+      radius: 0.85,
       colors: [
-        Colors.white,
-        const Color(0xFFE8F5E9).withValues(alpha: 0.9),
-        const Color(0xFF81C784).withValues(alpha: 0.55),
+        const Color(0xFFC8E6C9).withValues(alpha: 0.18), // transparent center
+        const Color(0xFF81C784).withValues(alpha: 0.45), // body green
+        const Color(0xFF2E7D32).withValues(alpha: 0.75), // dark edge contour
       ],
-      stops: const [0.0, 0.55, 1.0],
+      stops: const [0.0, 0.65, 1.0],
     );
 
     canvas.drawPath(
       path,
       Paint()
-        ..shader = gradient.createShader(Rect.fromLTWH(0, 0, width, height))
+        ..shader = baseGradient.createShader(rect)
         ..style = PaintingStyle.fill,
     );
 
-    // Dynamic reflection highlight
-    final highlight = Path();
-    highlight.addOval(
-      Rect.fromLTWH(width * 0.22, height * 0.18, width * 0.32, height * 0.22),
+    // ── 3. Thin Liquid Rim Light (thickness simulation) ──
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = Colors.white.withValues(alpha: 0.45)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.0,
+    );
+
+    // ── 4. Caustic Focus Glow (focused light on bottom opposite light source) ──
+    final causticPaint = Paint()
+      ..shader = RadialGradient(
+        colors: [
+          Colors.white.withValues(alpha: 0.45),
+          const Color(0xFFA5D6A7).withValues(alpha: 0.0),
+        ],
+      ).createShader(Rect.fromCircle(center: Offset(width * 0.65, height * 0.75), radius: width * 0.35));
+    canvas.drawCircle(Offset(width * 0.65, height * 0.75), width * 0.35, causticPaint);
+
+    // ── 5. Primary Specular Highlight (Reflection of light source top-left) ──
+    final specHighlight = Path();
+    specHighlight.addOval(
+      Rect.fromLTWH(width * 0.22, height * 0.16, width * 0.32, height * 0.22),
     );
     canvas.drawPath(
-      highlight,
+      specHighlight,
       Paint()
-        ..color = Colors.white.withValues(alpha: 0.90)
+        ..color = Colors.white.withValues(alpha: 0.88)
         ..style = PaintingStyle.fill,
+    );
+
+    // ── 6. Secondary Specular Highlight (Tiny pin-point reflection) ──
+    canvas.drawCircle(
+      Offset(width * 0.30, height * 0.38),
+      width * 0.06,
+      Paint()..color = Colors.white.withValues(alpha: 0.70),
     );
   }
 
@@ -665,7 +737,78 @@ class DropletPainter extends CustomPainter {
       oldDelegate.stretch != stretch || oldDelegate.wobble != wobble;
 }
 
-// ── Energy Dissipation Ripple & Splash Particle Painter ──
+// ── Detailed Sitting Teardrop Painter (Logo container) ──
+class SittingDropletPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final width = size.width;
+    final height = size.height;
+    final rect = Rect.fromLTWH(0, 0, width, height);
+
+    final path = Path();
+    path.addOval(rect);
+
+    // ── 1. Soft Shadow on the Leaf Surface ──
+    canvas.drawOval(
+      Rect.fromLTWH(2, 4, width - 4, height - 2),
+      Paint()
+        ..color = const Color(0xFF1B5E20).withValues(alpha: 0.38)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4.0),
+    );
+
+    // ── 2. Base Refraction Gradient (spherical lens illusion) ──
+    final baseGradient = RadialGradient(
+      center: const Alignment(0.0, 0.15),
+      radius: 0.85,
+      colors: [
+        const Color(0xFFE8F5E9).withValues(alpha: 0.15), // Clear core
+        const Color(0xFFC8E6C9).withValues(alpha: 0.40),
+        const Color(0xFF2E7D32).withValues(alpha: 0.72), // Dark boundary edge
+      ],
+      stops: const [0.0, 0.60, 1.0],
+    );
+    canvas.drawPath(
+      path,
+      Paint()..shader = baseGradient.createShader(rect),
+    );
+
+    // ── 3. Specular Rim Light ──
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = Colors.white.withValues(alpha: 0.38)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.2,
+    );
+
+    // ── 4. Caustic Focus Spot (bottom-right glow) ──
+    final causticPaint = Paint()
+      ..shader = RadialGradient(
+        colors: [
+          Colors.white.withValues(alpha: 0.50),
+          const Color(0xFFC8E6C9).withValues(alpha: 0.0),
+        ],
+      ).createShader(Rect.fromCircle(center: Offset(width * 0.70, height * 0.70), radius: width * 0.30));
+    canvas.drawCircle(Offset(width * 0.70, height * 0.70), width * 0.30, causticPaint);
+
+    // ── 5. Specular Highlights (Double reflection) ──
+    canvas.drawOval(
+      Rect.fromLTWH(width * 0.20, height * 0.15, width * 0.30, height * 0.22),
+      Paint()..color = Colors.white.withValues(alpha: 0.86),
+    );
+
+    canvas.drawCircle(
+      Offset(width * 0.28, height * 0.38),
+      width * 0.05,
+      Paint()..color = Colors.white.withValues(alpha: 0.65),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// ── Energy Dissipation Ripple & Glossy Particle Painter ──
 class RipplePainter extends CustomPainter {
   final double radius;
   final double opacity;
@@ -703,7 +846,7 @@ class RipplePainter extends CustomPainter {
       );
     }
 
-    // 2. Splash Particle Burst
+    // 2. Glossy Splash Particle Burst (Glass bead simulation)
     if (glowProgress >= 0.0 && glowProgress <= 1.0) {
       final particlePaint = Paint()..style = PaintingStyle.fill;
       final numParticles = 8;
@@ -721,18 +864,26 @@ class RipplePainter extends CustomPainter {
         );
 
         final double pRadius = (1.0 - glowProgress) * 2.8;
-        if (pRadius > 0.1) {
-          particlePaint.color = Colors.white.withValues(alpha: (1.0 - glowProgress) * 0.9);
+        if (pRadius > 0.15) {
+          // Glass volume body gradient
+          particlePaint.shader = RadialGradient(
+            colors: [
+              Colors.white.withValues(alpha: (1.0 - glowProgress) * 0.95),
+              const Color(0xFF81C784).withValues(alpha: (1.0 - glowProgress) * 0.50),
+            ],
+          ).createShader(Rect.fromCircle(center: pPos, radius: pRadius));
           canvas.drawCircle(pPos, pRadius, particlePaint);
 
-          // Subdued secondary trail
-          particlePaint.color = const Color(0xFFC8E6C9).withValues(alpha: (1.0 - glowProgress) * 0.4);
-          canvas.drawCircle(pPos - Offset(math.cos(angle) * 1.5, math.sin(angle) * 1.5), pRadius * 0.75, particlePaint);
+          // Specular white dot highlight on the bead
+          final highlightPaint = Paint()
+            ..color = Colors.white.withValues(alpha: (1.0 - glowProgress) * 0.98)
+            ..style = PaintingStyle.fill;
+          canvas.drawCircle(pPos - Offset(pRadius * 0.3, pRadius * 0.3), pRadius * 0.3, highlightPaint);
         }
       }
     }
 
-    // 3. Tension ripples with perspective shadows
+    // 3. Elliptical tension ripples with perspective shadows
     if (radius == 0 || opacity == 0) return;
 
     for (int i = 0; i < 3; i++) {

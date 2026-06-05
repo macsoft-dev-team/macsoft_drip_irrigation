@@ -140,7 +140,7 @@ class _MasterControllerDetailScreenState extends State<MasterControllerDetailScr
                             child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation(Colors.white)),
                           )
                         : const Icon(Icons.refresh_rounded),
-                    label: const Text('Refresh Status'),
+                    label: const Text('Refresh'),
                     style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2D7A3A)),
                   ),
                 ),

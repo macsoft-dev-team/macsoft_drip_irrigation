@@ -148,8 +148,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 isDestructive: true,
               );
               if (confirmed && context.mounted) {
+                Navigator.pop(context); // pop back first
                 await context.read<AppState>().logout();
-                Navigator.pop(context); // pop back to Login
               }
             },
             icon: const Icon(Icons.logout_rounded, size: 20, color: Colors.white),

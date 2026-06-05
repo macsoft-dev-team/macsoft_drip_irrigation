@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../services/app_state.dart';
+import '../screens/profile_screen.dart';
 
 class AppNavItem {
   final IconData icon;
@@ -31,6 +34,9 @@ class AppLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final state = context.watch<AppState>();
+    final user = state.user;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7F2),
       extendBody: false,
@@ -122,6 +128,39 @@ class AppLayout extends StatelessWidget {
                       ),
                     ),
                   ],
+                ),
+                const SizedBox(width: 14),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const ProfileScreen()),
+                    );
+                  },
+                  child: Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.08),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: CircleAvatar(
+                      radius: 17,
+                      backgroundColor: const Color(0xFFE2F3D5),
+                      child: Text(
+                        (user?.name?.isNotEmpty == true ? user!.name![0] : '🌿').toUpperCase(),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF2D7A3A),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
