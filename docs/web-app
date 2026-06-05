@@ -1,0 +1,900 @@
+You are working inside my existing web app/admin boilerplate.
+
+Goal:
+Add admin web screens for managing a SaaS drip irrigation platform.
+
+The platform manages:
+- Farmers
+- Distributors
+- Fields
+- Master Controllers
+- Zones
+- Valves
+- Commands
+- Schedules
+- Products
+- Orders
+- Platform/service fees
+- Support tickets
+- Technicians
+- Reports
+
+Important:
+- Do not rewrite the whole boilerplate.
+- Follow the existing folder structure, routing, theme, API client, and state management.
+- Use camelCase for all model fields.
+- Build desktop-first responsive admin pages.
+- Use reusable table, form, modal, filter, and status components.
+- Prepare API integration with REST endpoints.
+- Use mock data only if API is not ready.
+- Keep the UI clean and operations-friendly.
+
+Admin Sidebar Navigation:
+1. Dashboard
+2. Farmers
+3. Distributors
+4. Fields
+5. Master Controllers
+6. Zones
+7. Valves
+8. Commands
+9. Schedules
+10. Products
+11. Orders
+12. Platform Fees
+13. Support Tickets
+14. Technicians
+15. Reports
+16. Settings
+
+Core hierarchy:
+Farmer → Field → Zone → Valve
+
+Each field has exactly one masterController.
+Admin can view and manage all customers and devices.
+
+Build these screens:
+
+1. Admin Login Screen
+
+Fields:
+- phone or email
+- password
+
+Actions:
+- login
+- forgot password placeholder
+
+2. Admin Dashboard
+
+Show metric cards:
+- totalFarmers
+- totalDistributors
+- totalFields
+- totalMasterControllers
+- onlineMasters
+- offlineMasters
+- totalValves
+- openValves
+- failedCommandsToday
+- activeSchedules
+- pendingOrders
+- openSupportTickets
+
+Sections:
+- Recent failed commands
+- Offline master controllers
+- Recent orders
+- Open support tickets
+- Device health summary
+
+Filters:
+- dateRange
+- distributor
+- state
+- district
+
+3. Farmer List Page
+
+Table columns:
+- id
+- farmerName
+- phone
+- village
+- district
+- state
+- distributorName
+- totalFields
+- totalValves
+- status
+- createdAt
+
+Actions:
+- view farmer
+- edit farmer
+- block/unblock farmer
+- assign distributor
+- create support ticket
+
+Filters:
+- search by name/phone
+- distributor
+- state
+- district
+- status
+
+4. Farmer Detail Page
+
+Tabs:
+- Overview
+- Fields
+- Devices
+- Commands
+- Schedules
+- Orders
+- Support Tickets
+- Service Plan
+
+Overview shows:
+- farmer profile
+- address
+- distributor
+- total fields
+- total zones
+- total valves
+- active service plan
+- recent activity
+
+Actions:
+- edit profile
+- assign distributor
+- block/unblock
+- add field
+- add order
+- create support ticket
+
+5. Distributor List Page
+
+Table columns:
+- id
+- businessName
+- contactName
+- phone
+- gstNumber
+- assignedFarmers
+- totalOrders
+- status
+- createdAt
+
+Actions:
+- view
+- edit
+- block/unblock
+- assign farmers
+
+6. Distributor Detail Page
+
+Tabs:
+- Overview
+- Farmers
+- Orders
+- Payments placeholder
+
+Show:
+- business details
+- assigned farmers
+- sales/orders
+- platform fees collected placeholder
+
+7. Field List Page
+
+Table columns:
+- id
+- fieldName
+- farmerName
+- locationName
+- areaAcres
+- masterStatus
+- totalZones
+- totalValves
+- status
+
+Actions:
+- view field
+- edit field
+- add zone
+- add valve
+- view master controller
+
+Filters:
+- farmer
+- distributor
+- master status
+- state
+- district
+
+8. Field Detail Page
+
+Show:
+- field information
+- farmer information
+- master controller card
+- zones list
+- valves list
+- recent commands
+- recent alerts
+
+Actions:
+- edit field
+- add zone
+- add valve
+- replace master controller
+- send test command placeholder
+
+9. Master Controller List Page
+
+Table columns:
+- id
+- deviceUid
+- farmerName
+- fieldName
+- imei
+- simNumber
+- firmwareVersion
+- connectionType
+- status
+- lastHeartbeatAt
+- installedAt
+
+Actions:
+- view
+- edit
+- disable/enable
+- assign to field
+- view heartbeat logs
+- create support ticket
+
+Filters:
+- status
+- connectionType
+- firmwareVersion
+- lastHeartbeat older than
+- farmer/distributor
+
+10. Master Controller Detail Page
+
+Tabs:
+- Overview
+- Heartbeats
+- Commands
+- Valves
+- Logs
+
+Overview fields:
+- deviceUid
+- imei
+- simNumber
+- firmwareVersion
+- connectionType
+- status
+- lastHeartbeatAt
+- lastIp
+- installedAt
+- assigned field
+- assigned farmer
+
+Actions:
+- refresh status
+- disable device
+- update firmware placeholder
+- create support ticket
+
+11. Zone List Page
+
+Table columns:
+- id
+- zoneName
+- fieldName
+- farmerName
+- totalValves
+- status
+
+Actions:
+- view
+- edit
+- delete
+- open zone
+- close zone
+
+Important:
+Before open/close zone, show confirmation modal.
+
+12. Zone Detail Page
+
+Show:
+- zone information
+- valves table
+- recent commands
+- schedules using this zone
+
+Actions:
+- add valve
+- open zone
+- close zone
+- create schedule
+
+13. Valve List Page
+
+Table columns:
+- id
+- deviceUid
+- valveName
+- valveNumber
+- zoneName
+- fieldName
+- farmerName
+- status
+- lastStatusAt
+- installedAt
+
+Actions:
+- view
+- edit
+- open valve
+- close valve
+- disable/enable
+- create support ticket
+
+Filters:
+- status
+- farmer
+- field
+- zone
+- lastStatusAt
+
+Important:
+Before open/close valve, show confirmation modal.
+
+14. Valve Detail Page
+
+Tabs:
+- Overview
+- Command History
+- Status Logs
+- Support Tickets
+
+Show:
+- deviceUid
+- name
+- valveNumber
+- status
+- lastStatusAt
+- installedAt
+- zone
+- field
+- farmer
+
+Actions:
+- open valve
+- close valve
+- edit
+- report issue
+
+15. Command List Page
+
+Table columns:
+- id
+- commandUid
+- farmerName
+- fieldName
+- masterControllerDeviceUid
+- targetType
+- targetName
+- action
+- status
+- source
+- retryCount
+- createdAt
+- sentAt
+- acknowledgedAt
+- failedReason
+
+Filters:
+- status
+- action
+- source
+- targetType
+- farmer
+- field
+- dateRange
+
+Actions:
+- view command
+- retry command if failed/timeout
+- cancel command if queued
+- create support ticket
+
+16. Command Detail Page
+
+Show:
+- command metadata
+- target details
+- command status timeline
+- command items table
+
+Command item columns:
+- valveName
+- valveNumber
+- sequenceNumber
+- action
+- status
+- sentAt
+- acknowledgedAt
+- failedReason
+
+Statuses:
+- created
+- queued
+- sent
+- partialSuccess
+- acknowledged
+- failed
+- timeout
+- expired
+
+17. Schedule List Page
+
+Table columns:
+- id
+- scheduleName
+- farmerName
+- fieldName
+- targetType
+- targetName
+- startTime
+- durationMinutes
+- repeatType
+- repeatDays
+- status
+
+Actions:
+- view
+- edit
+- pause
+- resume
+- delete
+
+Filters:
+- farmer
+- field
+- status
+- repeatType
+
+18. Schedule Detail Page
+
+Tabs:
+- Overview
+- Runs
+- Commands
+
+Show:
+- schedule configuration
+- latest schedule runs
+- openCommandId
+- closeCommandId
+- failedReason
+
+19. Product List Page
+
+Table columns:
+- id
+- name
+- sku
+- type
+- price
+- status
+- createdAt
+
+Product types:
+- masterController
+- valve
+- accessory
+- serviceFee
+- sparePart
+
+Actions:
+- add product
+- edit product
+- activate/deactivate
+
+20. Add/Edit Product Page
+
+Fields:
+- name
+- sku
+- type
+- description
+- price
+- status
+
+21. Order List Page
+
+Table columns:
+- id
+- orderNumber
+- farmerName
+- distributorName
+- subtotal
+- platformFee
+- taxAmount
+- totalAmount
+- paymentStatus
+- orderStatus
+- createdAt
+
+Actions:
+- view order
+- update payment status
+- update order status
+- download invoice placeholder
+
+Filters:
+- paymentStatus
+- orderStatus
+- distributor
+- farmer
+- dateRange
+
+22. Order Detail Page
+
+Show:
+- orderNumber
+- farmer details
+- distributor details
+- order items
+- subtotal
+- platformFee
+- taxAmount
+- totalAmount
+- paymentStatus
+- orderStatus
+
+Actions:
+- update status
+- create installation ticket
+- download invoice placeholder
+
+23. Platform Fees Page
+
+Purpose:
+Manage service/platform fees like marketplace platform charges.
+
+Show:
+- farmerName
+- planName
+- billingType
+- feeAmount
+- remoteSupportEnabled
+- monitoringEnabled
+- status
+- startsAt
+- endsAt
+
+Actions:
+- create service plan
+- edit fee
+- activate/deactivate
+- renew plan
+
+Form fields:
+- farmerId
+- planName
+- billingType: oneTime/monthly/yearly/bundled
+- feeAmount
+- remoteSupportEnabled
+- monitoringEnabled
+- startsAt
+- endsAt
+- status
+
+24. Support Ticket List Page
+
+Table columns:
+- id
+- title
+- farmerName
+- fieldName
+- masterControllerDeviceUid
+- valveName
+- assignedTo
+- priority
+- status
+- createdAt
+- updatedAt
+
+Actions:
+- view
+- assign technician
+- update priority
+- update status
+- add internal note placeholder
+
+Filters:
+- priority
+- status
+- technician
+- farmer
+- dateRange
+
+25. Support Ticket Detail Page
+
+Show:
+- ticket title
+- description
+- farmer
+- field
+- masterController
+- valve
+- priority
+- status
+- assigned technician
+- createdAt
+- updatedAt
+
+Actions:
+- assign technician
+- mark in progress
+- mark resolved
+- close ticket
+- add note placeholder
+
+26. Technician List Page
+
+Table columns:
+- id
+- name
+- phone
+- email
+- assignedTickets
+- status
+
+Actions:
+- add technician
+- edit
+- block/unblock
+- view assigned tickets
+
+27. Reports Page
+
+Add simple report cards and tables:
+- command success rate
+- failed commands by field
+- offline masters
+- valve error count
+- orders total
+- platform fees total
+- support ticket resolution summary
+
+Filters:
+- dateRange
+- distributor
+- state
+- district
+
+28. Settings Page
+
+Sections:
+- Admin profile
+- Notification settings placeholder
+- Platform fee defaults
+- Command retry settings
+- App version placeholder
+
+Command retry settings fields:
+- manualCommandExpiryMinutes
+- scheduleCommandExpiryMinutes
+- maxRetryCount
+- heartbeatIntervalSeconds
+- offlineThresholdSeconds
+
+Default values:
+- manualCommandExpiryMinutes: 30
+- scheduleCommandExpiryMinutes: 10
+- maxRetryCount: 3
+- heartbeatIntervalSeconds: 30
+- offlineThresholdSeconds: 120
+
+Reusable Components to create/use:
+- AdminLayout
+- Sidebar
+- Topbar
+- DataTable
+- TableFilters
+- StatusChip
+- MetricCard
+- ConfirmDialog
+- FormModal
+- DetailCard
+- Timeline
+- EmptyState
+- LoadingState
+- ErrorState
+- Pagination
+- SearchInput
+- DateRangeFilter
+
+API service methods to prepare:
+
+Auth:
+- POST /auth/login
+- GET /auth/me
+- POST /auth/logout
+
+Dashboard:
+- GET /admin/dashboard
+
+Farmers:
+- GET /admin/farmers
+- POST /admin/farmers
+- GET /admin/farmers/:farmerId
+- PATCH /admin/farmers/:farmerId
+- POST /admin/farmers/:farmerId/block
+- POST /admin/farmers/:farmerId/unblock
+- POST /admin/farmers/:farmerId/assignDistributor
+
+Distributors:
+- GET /admin/distributors
+- POST /admin/distributors
+- GET /admin/distributors/:distributorId
+- PATCH /admin/distributors/:distributorId
+- POST /admin/distributors/:distributorId/block
+- POST /admin/distributors/:distributorId/unblock
+
+Fields:
+- GET /admin/fields
+- POST /admin/fields
+- GET /admin/fields/:fieldId
+- PATCH /admin/fields/:fieldId
+
+Master Controllers:
+- GET /admin/masterControllers
+- POST /admin/masterControllers
+- GET /admin/masterControllers/:masterControllerId
+- PATCH /admin/masterControllers/:masterControllerId
+- POST /admin/masterControllers/:masterControllerId/disable
+- POST /admin/masterControllers/:masterControllerId/enable
+- GET /admin/masterControllers/:masterControllerId/heartbeats
+
+Zones:
+- GET /admin/zones
+- POST /admin/zones
+- GET /admin/zones/:zoneId
+- PATCH /admin/zones/:zoneId
+- DELETE /admin/zones/:zoneId
+
+Valves:
+- GET /admin/valves
+- POST /admin/valves
+- GET /admin/valves/:valveId
+- PATCH /admin/valves/:valveId
+- DELETE /admin/valves/:valveId
+
+Commands:
+- GET /admin/commands
+- POST /admin/commands
+- GET /admin/commands/:commandId
+- GET /admin/commands/:commandId/items
+- POST /admin/commands/:commandId/retry
+- POST /admin/commands/:commandId/cancel
+
+Schedules:
+- GET /admin/schedules
+- POST /admin/schedules
+- GET /admin/schedules/:scheduleId
+- PATCH /admin/schedules/:scheduleId
+- DELETE /admin/schedules/:scheduleId
+- POST /admin/schedules/:scheduleId/pause
+- POST /admin/schedules/:scheduleId/resume
+
+Products:
+- GET /admin/products
+- POST /admin/products
+- GET /admin/products/:productId
+- PATCH /admin/products/:productId
+- POST /admin/products/:productId/activate
+- POST /admin/products/:productId/deactivate
+
+Orders:
+- GET /admin/orders
+- GET /admin/orders/:orderId
+- PATCH /admin/orders/:orderId/paymentStatus
+- PATCH /admin/orders/:orderId/orderStatus
+
+Platform Fees:
+- GET /admin/servicePlans
+- POST /admin/servicePlans
+- GET /admin/servicePlans/:servicePlanId
+- PATCH /admin/servicePlans/:servicePlanId
+- POST /admin/servicePlans/:servicePlanId/activate
+- POST /admin/servicePlans/:servicePlanId/cancel
+
+Support Tickets:
+- GET /admin/supportTickets
+- POST /admin/supportTickets
+- GET /admin/supportTickets/:ticketId
+- PATCH /admin/supportTickets/:ticketId
+- POST /admin/supportTickets/:ticketId/assign
+- POST /admin/supportTickets/:ticketId/resolve
+- POST /admin/supportTickets/:ticketId/close
+
+Technicians:
+- GET /admin/technicians
+- POST /admin/technicians
+- GET /admin/technicians/:technicianId
+- PATCH /admin/technicians/:technicianId
+
+Reports:
+- GET /admin/reports/commands
+- GET /admin/reports/devices
+- GET /admin/reports/orders
+- GET /admin/reports/support
+
+UX Rules:
+- Use tables with search, filters, sorting, and pagination.
+- Every detail page should have breadcrumbs.
+- Use status chips:
+  - online
+  - offline
+  - error
+  - open
+  - closed
+  - active
+  - inactive
+  - failed
+  - acknowledged
+  - pending
+- Use confirmation modal before destructive or device actions.
+- Device actions like open/close valve must show clear warning.
+- Disable command action if masterController is disabled.
+- Show warning if masterController is offline:
+  "Master controller is offline. Command may be queued and expire later."
+- Show failedReason wherever available.
+- Keep admin actions auditable in UI placeholders.
+
+Suggested routes:
+- /admin/login
+- /admin/dashboard
+- /admin/farmers
+- /admin/farmers/:farmerId
+- /admin/distributors
+- /admin/distributors/:distributorId
+- /admin/fields
+- /admin/fields/:fieldId
+- /admin/masterControllers
+- /admin/masterControllers/:masterControllerId
+- /admin/zones
+- /admin/zones/:zoneId
+- /admin/valves
+- /admin/valves/:valveId
+- /admin/commands
+- /admin/commands/:commandId
+- /admin/schedules
+- /admin/schedules/:scheduleId
+- /admin/products
+- /admin/products/:productId
+- /admin/orders
+- /admin/orders/:orderId
+- /admin/servicePlans
+- /admin/supportTickets
+- /admin/supportTickets/:ticketId
+- /admin/technicians
+- /admin/reports
+- /admin/settings
+
+Final output:
+- Add admin web screens and components.
+- Add/update models.
+- Add API service methods.
+- Add routes.
+- Do not rewrite unrelated boilerplate.
+- App should compile after changes.
