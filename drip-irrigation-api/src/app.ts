@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
-import { corsOrigins } from "./config/env";
+import { env, corsOrigins } from "./config/env";
 import { apiRoutes } from "./routes";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 import { requestLogger } from "./middleware/requestLogger";
@@ -11,7 +11,13 @@ export function createApp() {
 
   app.use(helmet());
   app.use(cors({
-    origin: corsOrigins === "*" ? "*" : corsOrigins,
+    origin: (origin, callback) => {
+      if (!origin || env.CORS_ORIGIN === "*" || corsOrigins.includes(origin) || env.NODE_ENV === "development") {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true
   }));
   app.use(express.json({ limit: "1mb" }));

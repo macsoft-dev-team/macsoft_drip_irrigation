@@ -60,7 +60,14 @@ export const authService = {
       include: { farmer: true }
     });
 
-    const token = signJwt({ userId: user.id.toString(), role: user.role });
+    const token = signJwt({
+      userId: user.id.toString(),
+      role: user.role,
+      name: user.name || undefined,
+      email: user.email || undefined,
+      phone: user.phone,
+      tenantId: user.farmer?.id.toString() || undefined
+    });
 
     return { token, user };
   },
@@ -82,7 +89,14 @@ export const authService = {
       throw new AppError(401, "Invalid phone or password", "invalidCredentials");
     }
 
-    const token = signJwt({ userId: user.id.toString(), role: user.role });
+    const token = signJwt({
+      userId: user.id.toString(),
+      role: user.role,
+      name: user.name || undefined,
+      email: user.email || undefined,
+      phone: user.phone,
+      tenantId: user.farmer?.id.toString() || user.distributor?.id.toString() || undefined
+    });
     return { token, user };
   },
 

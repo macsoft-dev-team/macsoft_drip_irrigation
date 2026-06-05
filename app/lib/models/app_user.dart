@@ -7,14 +7,17 @@ UserRole _parseRole(String? raw) {
     case 'MACSOFT_ADMIN':
     case 'MACSOFT_USER':
     case 'SUPERADMIN':
+    case 'ADMIN':
       return UserRole.systemAdmin;
     case 'CUSTOMER_ADMIN':
-    case 'ADMIN':
+    case 'DISTRIBUTOR':
       return UserRole.customerAdmin;
     case 'CUSTOMER_USER':
     case 'END_USER':
+    case 'TECHNICIAN':
       return UserRole.customerUser;
     case 'CUSTOMER':
+    case 'FARMER':
     default:
       return UserRole.customer;
   }
@@ -42,7 +45,7 @@ class AppUser {
 
   factory AppUser.fromTokenPayload(Map<String, dynamic> payload) {
     return AppUser(
-      id: payload['id'].toString(),
+      id: (payload['id'] ?? payload['userId'] ?? '').toString(),
       name: payload['name'] as String?,
       email: payload['email'] as String?,
       phone: payload['phone'] as String?,

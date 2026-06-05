@@ -38,14 +38,14 @@ class AlertTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: alert.isRead
             ? null
-            : BoxDecoration(color: color.withOpacity(0.04)),
+            : BoxDecoration(color: color.withValues(alpha: 0.04)),
         child: Row(
           children: [
             Container(
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.12),
+                color: color.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(_icon, color: color, size: 20),
@@ -56,21 +56,27 @@ class AlertTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    alert.message,
+                    alert.title,
                     style: TextStyle(
                       fontSize: 14,
-                      fontWeight: alert.isRead
-                          ? FontWeight.w400
-                          : FontWeight.w600,
-                      color: const Color(0xFF1A1F36),
+                      fontWeight: alert.isRead ? FontWeight.w500 : FontWeight.bold,
+                      color: const Color(0xFF1E2A1F),
                     ),
                   ),
-                  const SizedBox(height: 3),
+                  const SizedBox(height: 2),
                   Text(
-                    '${alert.deviceName} · ${_formatTime(alert.timestamp)}',
+                    alert.message,
                     style: const TextStyle(
                       fontSize: 12,
-                      color: Color(0xFF9CA3AF),
+                      color: Color(0xFF546E7A),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _formatTime(alert.createdAt),
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: Color(0xFF8A958A),
                     ),
                   ),
                 ],

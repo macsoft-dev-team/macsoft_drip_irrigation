@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/app_state.dart';
 import '../widgets/app_text_field.dart';
-import '../widgets/primary_button.dart';
+import '../widgets/app_loading_button.dart';
+
+enum AuthStep { splash, phoneInput, otpInput, profileSetup }
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -12,343 +14,403 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
+class _LoginPageState extends State<LoginPage> {
+  AuthStep _currentStep = AuthStep.splash;
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
 
-  bool _obscurePassword = true;
+  // Text Controllers
+  final _phoneController = TextEditingController();
+  final _otpController = TextEditingController();
+  final _nameController = TextEditingController();
+  final _villageController = TextEditingController();
+  final _districtController = TextEditingController();
+  final _stateController = TextEditingController();
+  final _pincodeController = TextEditingController();
+
   bool _isLoading = false;
-
-  late AnimationController _introController;
-
-  late Animation<double> _dropFall;
-  late Animation<double> _dropStretch;
-  late Animation<double> _rippleRadius;
-  late Animation<double> _rippleOpacity;
-  late Animation<double> _uiOpacity;
-  late Animation<Offset> _uiSlide;
+  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
+    _checkAuthState();
+  }
 
-    _introController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 3500),
-    );
+  Future<void> _checkAuthState() async {
+    await Future.delayed(const Duration(seconds: 2)); // Splash wait
+    if (!mounted) return;
 
-    _dropFall = Tween<double>(begin: -150, end: 0).animate(
-      CurvedAnimation(
-        parent: _introController,
-        curve: const Interval(0.0, 0.30, curve: Curves.easeInCubic),
-      ),
-    );
-
-    _dropStretch = Tween<double>(begin: 1.0, end: 2.5).animate(
-      CurvedAnimation(
-        parent: _introController,
-        curve: const Interval(0.0, 0.30, curve: Curves.easeIn),
-      ),
-    );
-
-    _rippleRadius = Tween<double>(begin: 0, end: 600).animate(
-      CurvedAnimation(
-        parent: _introController,
-        curve: const Interval(0.30, 0.70, curve: Curves.easeOutCubic),
-      ),
-    );
-
-    _rippleOpacity = Tween<double>(begin: 1.0, end: 0.0).animate(
-      CurvedAnimation(
-        parent: _introController,
-        curve: const Interval(0.40, 0.75, curve: Curves.easeOut),
-      ),
-    );
-
-    _uiOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _introController,
-        curve: const Interval(0.45, 1.0, curve: Curves.easeOut),
-      ),
-    );
-
-    _uiSlide = Tween<Offset>(begin: const Offset(0, 0.15), end: Offset.zero)
-        .animate(
-          CurvedAnimation(
-            parent: _introController,
-            curve: const Interval(0.45, 1.0, curve: Curves.easeOutCubic),
-          ),
-        );
-
-    _introController.forward();
+    final state = context.read<AppState>();
+    if (state.isAuthenticated) {
+      // If authenticated but profile name is empty, go to profile setup, else home
+      if (state.user?.name?.isNotEmpty == true) {
+        // AppShell is loaded automatically by main.dart since isAuthenticated is true
+      } else {
+        setState(() => _currentStep = AuthStep.profileSetup);
+      }
+    } else {
+      setState(() => _currentStep = AuthStep.phoneInput);
+    }
   }
 
   @override
   void dispose() {
-    _introController.dispose();
-    _emailController.dispose();
-    _passwordController.dispose();
+    _phoneController.dispose();
+    _otpController.dispose();
+    _nameController.dispose();
+    _villageController.dispose();
+    _districtController.dispose();
+    _stateController.dispose();
+    _pincodeController.dispose();
     super.dispose();
   }
 
-  Future<void> _login() async {
-    if (!_formKey.currentState!.validate()) return;
+  Future<void> _sendOtp() async {
+    final phone = _phoneController.text.trim();
+    if (phone.isEmpty || phone.length < 8) {
+      setState(() => _errorMessage = 'Please enter a valid phone number');
+      return;
+    }
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
-    final ok = await context.read<AppState>().login(
-      any: _emailController.text.trim(),
-      password: _passwordController.text,
-    );
-
+    final success = await context.read<AppState>().sendOtp(phone);
     if (!mounted) return;
 
     setState(() => _isLoading = false);
 
-    if (!ok) {
-      final err = context.read<AppState>().authError ?? 'Login failed';
-
+    if (success) {
+      setState(() => _currentStep = AuthStep.otpInput);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(err),
-          backgroundColor: const Color(0xFFEF4444),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+        const SnackBar(
+          content: Text('OTP sent successfully. Try 123456.'),
+          backgroundColor: Color(0xFF2D7A3A),
         ),
       );
+    } else {
+      setState(() => _errorMessage = 'Failed to send OTP. Try again.');
     }
   }
 
-  bool _isDesktop(double width) => width >= 900;
-  bool _isTablet(double width) => width >= 600 && width < 900;
+  Future<void> _verifyOtp() async {
+    final phone = _phoneController.text.trim();
+    final otp = _otpController.text.trim();
+
+    if (otp.length < 4) {
+      setState(() => _errorMessage = 'Please enter a valid OTP');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    final loggedIn = await context.read<AppState>().verifyOtp(phone, otp);
+    if (!mounted) return;
+
+    setState(() => _isLoading = false);
+
+    if (loggedIn) {
+      // Successfully authenticated against backend
+      // AppState handles authentication status, causing main.dart to rebuild with AppShell
+    } else {
+      final error = context.read<AppState>().authError;
+      if (error == 'Need registration') {
+        // User not registered, redirect to profile setup
+        setState(() => _currentStep = AuthStep.profileSetup);
+      } else {
+        setState(() => _errorMessage = error ?? 'OTP verification failed');
+      }
+    }
+  }
+
+  Future<void> _saveProfile() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    final success = await context.read<AppState>().registerFarmer(
+          name: _nameController.text.trim(),
+          phone: _phoneController.text.trim(),
+          village: _villageController.text.trim(),
+          district: _districtController.text.trim(),
+          state: _stateController.text.trim(),
+          pincode: _pincodeController.text.trim(),
+        );
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (!success) {
+      setState(() {
+        _errorMessage = context.read<AppState>().authError ?? 'Failed to save profile';
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final desktop = _isDesktop(size.width);
-
-    final impactY = size.height * (desktop ? 0.38 : 0.45);
-
     return Scaffold(
-      backgroundColor: const Color(0xFF9FB091),
+      backgroundColor: const Color(0xFFE8F5E9),
       body: Stack(
         children: [
+          // Background graphic
           Positioned.fill(
-            child: Image.asset('assets/bg_leaves.png', fit: BoxFit.cover),
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFFE8F5E9), Color(0xFFC8E6C9)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+            ),
           ),
+          Positioned(
+            top: -100,
+            right: -100,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF2D7A3A).withValues(alpha: 0.1),
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Brand / Logo Header
+                    if (_currentStep != AuthStep.splash) ...[
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF2D7A3A),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.water_drop, color: Colors.white, size: 48),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'DripFlow Farmer',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF1E2A1F),
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      const Text(
+                        'Smart Drip Irrigation SaaS Platform',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF546E7A),
+                        ),
+                      ),
+                      const SizedBox(height: 40),
+                    ],
 
-          AnimatedBuilder(
-            animation: _introController,
-            builder: (context, child) {
-              if (_introController.value < 0.30) {
-                return const SizedBox.shrink();
-              }
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      child: _buildStepContent(),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-              return Positioned.fill(
-                child: CustomPaint(
-                  painter: RipplePainter(
-                    radius: _rippleRadius.value,
-                    opacity: _rippleOpacity.value,
-                    center: Offset(size.width / 2, impactY),
+  Widget _buildStepContent() {
+    switch (_currentStep) {
+      case AuthStep.splash:
+        return Column(
+          key: const ValueKey('splash'),
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF2D7A3A).withValues(alpha: 0.15),
+                    blurRadius: 24,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: const Icon(Icons.water_drop, color: Color(0xFF2D7A3A), size: 64),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'DripFlow',
+              style: TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFF1E2A1F),
+                letterSpacing: -1,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const SizedBox(
+              width: 140,
+              child: LinearProgressIndicator(
+                backgroundColor: Color(0xFFC8E6C9),
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2D7A3A)),
+                minHeight: 3,
+              ),
+            ),
+          ],
+        );
+
+      case AuthStep.phoneInput:
+        return Container(
+          key: const ValueKey('phoneInput'),
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x0A000000),
+                blurRadius: 16,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Welcome, Farmer!',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1E2A1F)),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Enter your registered phone number to log in via OTP verification.',
+                style: TextStyle(fontSize: 13, color: Color(0xFF546E7A)),
+              ),
+              const SizedBox(height: 24),
+              AppTextField(
+                label: 'Phone Number',
+                hint: 'Enter your 10-digit phone',
+                controller: _phoneController,
+                keyboardType: TextInputType.phone,
+                prefixIcon: const Icon(Icons.phone_outlined, size: 20, color: Color(0xFF8A958A)),
+              ),
+              if (_errorMessage != null) ...[
+                const SizedBox(height: 12),
+                Text(_errorMessage!, style: const TextStyle(color: Color(0xFFDC2626), fontSize: 13)),
+              ],
+              const SizedBox(height: 24),
+              AppLoadingButton(
+                label: 'Send OTP',
+                isLoading: _isLoading,
+                onPressed: _sendOtp,
+                color: const Color(0xFF2D7A3A),
+              ),
+            ],
+          ),
+        );
+
+      case AuthStep.otpInput:
+        return Container(
+          key: const ValueKey('otpInput'),
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x0A000000),
+                blurRadius: 16,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back_ios, size: 18),
+                    onPressed: () => setState(() => _currentStep = AuthStep.phoneInput),
+                  ),
+                  const Text(
+                    'Verify Code',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E2A1F)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Enter the 6-digit OTP sent to ${_phoneController.text}.',
+                style: const TextStyle(fontSize: 13, color: Color(0xFF546E7A)),
+              ),
+              const SizedBox(height: 24),
+              AppTextField(
+                label: 'OTP Code',
+                hint: 'Enter 6-digit OTP',
+                controller: _otpController,
+                keyboardType: TextInputType.number,
+                prefixIcon: const Icon(Icons.lock_outline, size: 20, color: Color(0xFF8A958A)),
+              ),
+              if (_errorMessage != null) ...[
+                const SizedBox(height: 12),
+                Text(_errorMessage!, style: const TextStyle(color: Color(0xFFDC2626), fontSize: 13)),
+              ],
+              const SizedBox(height: 24),
+              AppLoadingButton(
+                label: 'Verify OTP',
+                isLoading: _isLoading,
+                onPressed: _verifyOtp,
+                color: const Color(0xFF2D7A3A),
+              ),
+              const SizedBox(height: 12),
+              Center(
+                child: TextButton(
+                  onPressed: _isLoading ? null : _sendOtp,
+                  child: const Text(
+                    'Resend OTP',
+                    style: TextStyle(color: Color(0xFF2D7A3A), fontWeight: FontWeight.bold),
                   ),
                 ),
-              );
-            },
-          ),
-
-          AnimatedBuilder(
-            animation: _introController,
-            builder: (context, child) {
-              if (_introController.value >= 0.30) {
-                return const SizedBox.shrink();
-              }
-
-              return Positioned(
-                top: impactY + _dropFall.value - 30,
-                left: size.width / 2 - 8,
-                child: CustomPaint(
-                  size: const Size(16, 30),
-                  painter: DropletPainter(stretch: _dropStretch.value),
-                ),
-              );
-            },
-          ),
-
-          AnimatedBuilder(
-            animation: _introController,
-            builder: (context, child) {
-              return FadeTransition(
-                opacity: _uiOpacity,
-                child: SlideTransition(position: _uiSlide, child: child),
-              );
-            },
-            child: SafeArea(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final width = constraints.maxWidth;
-                  final height = constraints.maxHeight;
-
-                  final isDesktopScreen = _isDesktop(width);
-                  final isTabletScreen = _isTablet(width);
-
-                  final horizontalPadding = isDesktopScreen
-                      ? 72.0
-                      : isTabletScreen
-                      ? 48.0
-                      : 24.0;
-
-                  return Center(
-                    child: SingleChildScrollView(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: horizontalPadding,
-                        vertical: isDesktopScreen ? 40 : 32,
-                      ),
-                      child: isDesktopScreen
-                          ? _buildWebLayout(height)
-                          : _buildMobileTabletLayout(isTabletScreen),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildWebLayout(double height) {
-    return ConstrainedBox(
-      constraints: BoxConstraints(
-        maxWidth: 1180,
-        minHeight: height > 80 ? height - 80 : 0,
-      ),
-      child: Row(
-        children: [
-          Expanded(child: _buildBrandSection(isDesktop: true)),
-          const SizedBox(width: 56),
-          SizedBox(
-            width: 440,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildLoginCard(isDesktop: true),
-                const SizedBox(height: 24),
-                _buildSupportRow(),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMobileTabletLayout(bool isTablet) {
-    return ConstrainedBox(
-      constraints: BoxConstraints(maxWidth: isTablet ? 520 : 430),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _buildBrandSection(isDesktop: false),
-          SizedBox(height: isTablet ? 36 : 32),
-          _buildLoginCard(isDesktop: false),
-          const SizedBox(height: 28),
-          _buildSupportRow(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBrandSection({required bool isDesktop}) {
-    return Column(
-      crossAxisAlignment: isDesktop
-          ? CrossAxisAlignment.start
-          : CrossAxisAlignment.center,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Image.asset(
-          'assets/logo.png',
-          width: isDesktop ? 96 : 72,
-          height: isDesktop ? 96 : 72,
-        ),
-        const SizedBox(height: 18),
-        Text(
-          'Smart Drip',
-          textAlign: isDesktop ? TextAlign.left : TextAlign.center,
-          style: TextStyle(
-            fontSize: isDesktop ? 52 : 32,
-            fontWeight: FontWeight.w900,
-            color: Colors.white,
-            letterSpacing: -0.8,
-            shadows: const [
-              Shadow(
-                color: Colors.black26,
-                blurRadius: 12,
-                offset: Offset(0, 3),
               ),
             ],
           ),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          'Nurture every drop.',
-          textAlign: isDesktop ? TextAlign.left : TextAlign.center,
-          style: TextStyle(
-            fontSize: isDesktop ? 22 : 16,
-            color: Colors.white.withOpacity(0.92),
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.4,
-            shadows: const [
-              Shadow(
-                color: Colors.black26,
-                blurRadius: 8,
-                offset: Offset(0, 1),
-              ),
-            ],
-          ),
-        ),
-        if (isDesktop) ...[
-          const SizedBox(height: 26),
-          SizedBox(
-            width: 520,
-            child: Text(
-              'Monitor farms, manage irrigation schedules, and control field operations from one secure dashboard.',
-              style: TextStyle(
-                fontSize: 17,
-                height: 1.6,
-                color: Colors.white.withOpacity(0.88),
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ],
-      ],
-    );
-  }
+        );
 
-  Widget _buildLoginCard({required bool isDesktop}) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(isDesktop ? 36 : 32),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-        child: Container(
-          width: double.infinity,
-          padding: EdgeInsets.all(isDesktop ? 36 : 28),
+      case AuthStep.profileSetup:
+        return Container(
+          key: const ValueKey('profileSetup'),
+          padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.58),
-            borderRadius: BorderRadius.circular(isDesktop ? 36 : 32),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.8),
-              width: 1.5,
-            ),
-            boxShadow: [
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: const [
               BoxShadow(
-                color: const Color(0xFF1E3B20).withOpacity(0.16),
-                blurRadius: 42,
-                offset: const Offset(0, 20),
+                color: Color(0x0A000000),
+                blurRadius: 16,
+                offset: Offset(0, 4),
               ),
             ],
           ),
@@ -357,230 +419,77 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'System Login',
-                  style: TextStyle(
-                    fontSize: isDesktop ? 26 : 24,
-                    fontWeight: FontWeight.w800,
-                    color: const Color(0xFF1E3B20),
-                  ),
-                ),
-                const SizedBox(height: 6),
                 const Text(
-                  'Access your irrigation dashboard',
-                  style: TextStyle(fontSize: 14, color: Color(0xFF4A634D)),
+                  'Profile Setup',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1E2A1F)),
                 ),
-                SizedBox(height: isDesktop ? 34 : 30),
-
-                AppTextField(
-                  controller: _emailController,
-                  label: 'Email',
-                  hint: 'you@example.com',
-                  keyboardType: TextInputType.emailAddress,
-                  prefixIcon: const Icon(
-                    Icons.email_outlined,
-                    size: 20,
-                    color: Color(0xFF2E7D32),
-                  ),
-                  validator: (v) {
-                    if (v == null || v.trim().isEmpty) {
-                      return 'Email is required';
-                    }
-                    if (!v.contains('@')) {
-                      return 'Enter a valid email';
-                    }
-                    return null;
-                  },
+                const SizedBox(height: 4),
+                const Text(
+                  'Complete your farm details to get started.',
+                  style: TextStyle(fontSize: 12, color: Color(0xFF546E7A)),
                 ),
-
                 const SizedBox(height: 20),
-
                 AppTextField(
-                  controller: _passwordController,
-                  label: 'Password',
-                  obscureText: _obscurePassword,
-                  prefixIcon: const Icon(
-                    Icons.lock_outline,
-                    size: 20,
-                    color: Color(0xFF2E7D32),
-                  ),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscurePassword
-                          ? Icons.visibility_off_outlined
-                          : Icons.visibility_outlined,
-                      size: 20,
-                      color: const Color(0xFF6B8E6E),
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _obscurePassword = !_obscurePassword;
-                      });
-                    },
-                  ),
-                  validator: (v) {
-                    if (v == null || v.isEmpty) {
-                      return 'Password is required';
-                    }
-                    if (v.length < 6) {
-                      return 'Minimum 6 characters';
-                    }
-                    return null;
-                  },
+                  label: 'Full Name',
+                  hint: 'Enter your name',
+                  controller: _nameController,
+                  validator: (v) => v == null || v.isEmpty ? 'Name is required' : null,
+                  prefixIcon: const Icon(Icons.person_outline, size: 20, color: Color(0xFF8A958A)),
                 ),
-
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () {},
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      foregroundColor: const Color(0xFF2E7D32),
-                    ),
-                    child: const Text(
-                      'Forgot Password?',
-                      style: TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                  ),
+                const SizedBox(height: 16),
+                AppTextField(
+                  label: 'Village',
+                  hint: 'Enter village name',
+                  controller: _villageController,
+                  validator: (v) => v == null || v.isEmpty ? 'Village is required' : null,
+                  prefixIcon: const Icon(Icons.home_outlined, size: 20, color: Color(0xFF8A958A)),
                 ),
-
-                const SizedBox(height: 8),
-
-                SizedBox(
-                  width: double.infinity,
-                  child: PrimaryButton(
-                    label: 'Initialize',
-                    onPressed: _login,
-                    isLoading: _isLoading,
-                  ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: AppTextField(
+                        label: 'District',
+                        hint: 'District name',
+                        controller: _districtController,
+                        validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: AppTextField(
+                        label: 'State',
+                        hint: 'State name',
+                        controller: _stateController,
+                        validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                AppTextField(
+                  label: 'Pincode',
+                  hint: 'Enter 6-digit postal code',
+                  controller: _pincodeController,
+                  keyboardType: TextInputType.number,
+                  validator: (v) => v == null || v.isEmpty || v.length < 6 ? 'Enter valid 6-digit pincode' : null,
+                  prefixIcon: const Icon(Icons.pin_drop_outlined, size: 20, color: Color(0xFF8A958A)),
+                ),
+                if (_errorMessage != null) ...[
+                  const SizedBox(height: 12),
+                  Text(_errorMessage!, style: const TextStyle(color: Color(0xFFDC2626), fontSize: 13)),
+                ],
+                const SizedBox(height: 24),
+                AppLoadingButton(
+                  label: 'Save Profile',
+                  isLoading: _isLoading,
+                  onPressed: _saveProfile,
+                  color: const Color(0xFF2D7A3A),
                 ),
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSupportRow() {
-    return Wrap(
-      alignment: WrapAlignment.center,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        const Text(
-          'System offline?',
-          style: TextStyle(
-            color: Color(0xFF4A634D),
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        TextButton(
-          onPressed: () {},
-          style: TextButton.styleFrom(foregroundColor: const Color(0xFF1E3B20)),
-          child: const Text(
-            'Contact Admin',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class DropletPainter extends CustomPainter {
-  final double stretch;
-
-  DropletPainter({required this.stretch});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final width = size.width;
-    final height = size.height * stretch;
-
-    final path = Path();
-    path.moveTo(width / 2, 0);
-    path.cubicTo(
-      width * 0.8,
-      height * 0.4,
-      width,
-      height * 0.7,
-      width / 2,
-      height,
-    );
-    path.cubicTo(0, height * 0.7, width * 0.2, height * 0.4, width / 2, 0);
-
-    final gradient = RadialGradient(
-      center: const Alignment(-0.2, 0.3),
-      radius: 0.8,
-      colors: [
-        Colors.white,
-        const Color(0xFFE8F5E9).withOpacity(0.9),
-        const Color(0xFF81C784).withOpacity(0.5),
-      ],
-      stops: const [0.0, 0.6, 1.0],
-    );
-
-    canvas.drawPath(
-      path,
-      Paint()
-        ..shader = gradient.createShader(Rect.fromLTWH(0, 0, width, height))
-        ..style = PaintingStyle.fill,
-    );
-
-    final highlight = Path();
-    highlight.addOval(
-      Rect.fromLTWH(width * 0.2, height * 0.15, width * 0.35, height * 0.25),
-    );
-
-    canvas.drawPath(
-      highlight,
-      Paint()
-        ..color = Colors.white.withOpacity(0.85)
-        ..style = PaintingStyle.fill,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant DropletPainter oldDelegate) {
-    return oldDelegate.stretch != stretch;
-  }
-}
-
-class RipplePainter extends CustomPainter {
-  final double radius;
-  final double opacity;
-  final Offset center;
-
-  RipplePainter({
-    required this.radius,
-    required this.opacity,
-    required this.center,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (radius == 0 || opacity == 0) return;
-
-    for (int i = 0; i < 3; i++) {
-      final currentRadius = (radius - (i * 45)).clamp(0.0, double.infinity);
-
-      if (currentRadius <= 0) continue;
-
-      final currentOpacity = (opacity - (i * 0.25)).clamp(0.0, 1.0);
-
-      final currentStroke = (3.0 - (radius / 250) - (i * 0.5)).clamp(0.5, 3.0);
-
-      final paint = Paint()
-        ..color = Colors.white.withOpacity(currentOpacity * 0.8)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = currentStroke;
-
-      canvas.drawCircle(center, currentRadius, paint);
+        );
     }
-  }
-
-  @override
-  bool shouldRepaint(covariant RipplePainter oldDelegate) {
-    return oldDelegate.radius != radius || oldDelegate.opacity != opacity;
   }
 }

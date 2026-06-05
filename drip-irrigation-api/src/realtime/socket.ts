@@ -1,6 +1,6 @@
 import { Server } from "socket.io";
 import type { Server as HttpServer } from "node:http";
-import { corsOrigins } from "../config/env";
+import { env, corsOrigins } from "../config/env";
 import { toJsonSafe } from "../lib/http";
 
 let io: Server | undefined;
@@ -8,7 +8,13 @@ let io: Server | undefined;
 export function initSocket(server: HttpServer) {
   io = new Server(server, {
     cors: {
-      origin: corsOrigins === "*" ? "*" : corsOrigins,
+      origin: (origin, callback) => {
+        if (!origin || env.CORS_ORIGIN === "*" || corsOrigins.includes(origin) || env.NODE_ENV === "development") {
+          callback(null, true);
+        } else {
+          callback(new Error("Not allowed by CORS"));
+        }
+      },
       credentials: true
     }
   });
