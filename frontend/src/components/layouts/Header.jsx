@@ -10,14 +10,16 @@ const PAGE_TITLES = {
 
 const ROLE_META = {
     [ROLES.MACSOFT_ADMIN]: { label: 'Super Admin', color: 'bg-rose-50 text-rose-600 border-rose-200', Icon: ShieldCheck },
-    [ROLES.ADMIN]: { label: 'Admin', color: 'bg-violet-50 text-violet-600 border-violet-200', Icon: Shield },
-    [ROLES.USER]: { label: 'User', color: 'bg-slate-50 text-slate-500 border-slate-200', Icon: User },
+    [ROLES.MACSOFT_USER]: { label: 'Super User', color: 'bg-orange-50 text-orange-600 border-orange-200', Icon: Shield },
+    [ROLES.CUSTOMER_ADMIN]: { label: 'Admin', color: 'bg-violet-50 text-violet-600 border-violet-200', Icon: Shield },
+    [ROLES.CUSTOMER_USER]: { label: 'User', color: 'bg-slate-50 text-slate-500 border-slate-200', Icon: User },
+    [ROLES.END_USER]: { label: 'End User', color: 'bg-slate-50 text-slate-500 border-slate-200', Icon: User },
 };
 
 export default function Header({ setIsMobileOpen, onLogout, user }) {
     const location = useLocation();
     const page = PAGE_TITLES[location.pathname] || { breadcrumb: 'Master', title: 'Dashboard' };
-    const roleMeta = ROLE_META[user?.role] || ROLE_META[ROLES.USER];
+    const roleMeta = ROLE_META[user?.role] || ROLE_META[ROLES.END_USER];
     const RoleIcon = roleMeta.Icon;
 
     return (

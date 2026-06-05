@@ -5,8 +5,10 @@ import { useRole, ROLES } from '../../hooks/useRole';
 
 const ROLE_BADGE = {
     [ROLES.MACSOFT_ADMIN]: { label: 'Super Admin', color: 'text-indigo-700', bg: 'bg-indigo-50', Icon: ShieldCheck },
-    [ROLES.ADMIN]: { label: 'Admin', color: 'text-blue-700', bg: 'bg-blue-50', Icon: Shield },
-    [ROLES.USER]: { label: 'User', color: 'text-slate-600', bg: 'bg-slate-100', Icon: User },
+    [ROLES.MACSOFT_USER]: { label: 'Super User', color: 'text-orange-700', bg: 'bg-orange-50', Icon: Shield },
+    [ROLES.CUSTOMER_ADMIN]: { label: 'Admin', color: 'text-blue-700', bg: 'bg-blue-50', Icon: Shield },
+    [ROLES.CUSTOMER_USER]: { label: 'User', color: 'text-slate-600', bg: 'bg-slate-100', Icon: User },
+    [ROLES.END_USER]: { label: 'End User', color: 'text-slate-600', bg: 'bg-slate-100', Icon: User },
 };
 
 const SidebarHeader = ({ onClose }) => (
@@ -44,7 +46,7 @@ const SidebarNavItem = ({ icon: Icon, label, path, isActive, onClick, rightEleme
 );
 
 const SidebarProfile = ({ user }) => {
-    const roleMeta = ROLE_BADGE[user?.role] || ROLE_BADGE[ROLES.USER];
+    const roleMeta = ROLE_BADGE[user?.role] || ROLE_BADGE[ROLES.END_USER];
     const RoleIcon = roleMeta.Icon;
     const name = user?.name || 'User';
     const initials = name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();

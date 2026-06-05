@@ -13,6 +13,7 @@ datasource db {
 
 enum UserRole {
   SYSTEM_ADMIN
+  SYSTEM_USER
   CUSTOMER_ADMIN
   CUSTOMER_USER
   CUSTOMER

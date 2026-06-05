@@ -1,11 +1,11 @@
 import { useSelector } from 'react-redux';
 
 export const ROLES = {
-    MACSOFT_ADMIN: 'MACSOFT_ADMIN',
-    MACSOFT_USER: 'MACSOFT_USER',
+    MACSOFT_ADMIN: 'SYSTEM_ADMIN',
+    MACSOFT_USER: 'SYSTEM_USER',
     CUSTOMER_ADMIN: 'CUSTOMER_ADMIN',
     CUSTOMER_USER: 'CUSTOMER_USER',
-    END_USER: 'END_USER',
+    END_USER: 'CUSTOMER',
 };
 
 /**

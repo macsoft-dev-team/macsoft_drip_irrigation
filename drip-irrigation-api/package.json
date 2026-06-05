@@ -1,0 +1,49 @@
+{
+  "name": "drip-irrigation-saas-api",
+  "version": "0.1.0",
+  "description": "SaaS drip irrigation API: Flutter app backend, farmer-field-zone-valve model, Prisma ORM MySQL, MQTT command workflow.",
+  "type": "module",
+  "main": "src/server.ts",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc --noEmit",
+    "start": "tsx src/server.ts",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev --name init",
+    "prisma:studio": "prisma studio",
+    "prisma:seed": "tsx prisma/seed.ts",
+    "lint": "tsc --noEmit",
+    "test:mqtt:ack": "tsx scripts/sendMockAck.ts",
+    "test:mqtt:heartbeat": "tsx scripts/sendMockHeartbeat.ts"
+  },
+  "dependencies": {
+    "@prisma/adapter-mariadb": "^7.8.0",
+    "@prisma/client": "^7.8.0",
+    "bcryptjs": "^3.0.3",
+    "bullmq": "^5.78.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "helmet": "^8.1.0",
+    "ioredis": "^5.11.1",
+    "jsonwebtoken": "^9.0.3",
+    "mariadb": "^3.5.2",
+    "mqtt": "^5.13.3",
+    "morgan": "^1.10.0",
+    "socket.io": "^4.8.3",
+    "zod": "^4.4.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/morgan": "^1.9.10",
+    "@types/node": "^24.3.0",
+    "prisma": "^7.8.0",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
+  },
+  "engines": {
+    "node": ">=20.19.0"
+  }
+}

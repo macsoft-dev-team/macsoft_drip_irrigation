@@ -15,15 +15,15 @@ import { fetchCustomers } from '../../reducers/customersSlice';
 import { useRole, ROLES } from '../../hooks/useRole';
 
 const ROLE_META = {
-    MACSOFT_ADMIN: { label: 'Macsoft Admin', color: 'bg-rose-50 text-rose-700 border-rose-200', icon: ShieldCheck },
-    MACSOFT_USER: { label: 'Macsoft User', color: 'bg-orange-50 text-orange-700 border-orange-200', icon: Shield },
-    CUSTOMER_ADMIN: { label: 'Customer Admin', color: 'bg-violet-50 text-violet-700 border-violet-200', icon: Shield },
-    CUSTOMER_USER: { label: 'Customer User', color: 'bg-blue-50 text-blue-700 border-blue-200', icon: User },
-    END_USER: { label: 'End User', color: 'bg-slate-50 text-slate-600 border-slate-200', icon: User },
+    [ROLES.MACSOFT_ADMIN]: { label: 'Macsoft Admin', color: 'bg-rose-50 text-rose-700 border-rose-200', icon: ShieldCheck },
+    [ROLES.MACSOFT_USER]: { label: 'Macsoft User', color: 'bg-orange-50 text-orange-700 border-orange-200', icon: Shield },
+    [ROLES.CUSTOMER_ADMIN]: { label: 'Customer Admin', color: 'bg-violet-50 text-violet-700 border-violet-200', icon: Shield },
+    [ROLES.CUSTOMER_USER]: { label: 'Customer User', color: 'bg-blue-50 text-blue-700 border-blue-200', icon: User },
+    [ROLES.END_USER]: { label: 'End User', color: 'bg-slate-50 text-slate-600 border-slate-200', icon: User },
 };
 
 const RoleBadge = ({ role }) => {
-    const meta = ROLE_META[role] || ROLE_META.USER;
+    const meta = ROLE_META[role] || ROLE_META[ROLES.END_USER];
     const Icon = meta.icon;
     return (
         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider border ${meta.color}`}>
@@ -34,7 +34,7 @@ const RoleBadge = ({ role }) => {
 };
 
 // ---------- Form Schema ----------
-const ALL_ROLES = ['MACSOFT_ADMIN', 'MACSOFT_USER', 'CUSTOMER_ADMIN', 'CUSTOMER_USER', 'END_USER'];
+const ALL_ROLES = [ROLES.MACSOFT_ADMIN, ROLES.MACSOFT_USER, ROLES.CUSTOMER_ADMIN, ROLES.CUSTOMER_USER, ROLES.END_USER];
 
 const makeSchema = (isEdit) =>
     yup.object().shape({
@@ -60,7 +60,7 @@ function UserFormModal({ user, onClose, onSaved, isMacsoftAdmin, isMacsoftRole, 
             name: user?.name || '',
             email: user?.email || '',
             phone: user?.phone || '',
-            role: user?.role || 'END_USER',
+            role: user?.role || ROLES.END_USER,
             customerId: user?.customerId || '',
             password: '',
         },
@@ -134,19 +134,19 @@ function UserFormModal({ user, onClose, onSaved, isMacsoftAdmin, isMacsoftRole, 
                                 <>
                                     {isMacsoftAdmin && (
                                         <>
-                                            <option value="MACSOFT_ADMIN">Macsoft Admin</option>
-                                            <option value="MACSOFT_USER">Macsoft User</option>
+                                            <option value={ROLES.MACSOFT_ADMIN}>Macsoft Admin</option>
+                                            <option value={ROLES.MACSOFT_USER}>Macsoft User</option>
                                         </>
                                     )}
-                                    <option value="CUSTOMER_ADMIN">Customer Admin</option>
-                                    <option value="CUSTOMER_USER">Customer User</option>
-                                    <option value="END_USER">End User</option>
+                                    <option value={ROLES.CUSTOMER_ADMIN}>Customer Admin</option>
+                                    <option value={ROLES.CUSTOMER_USER}>Customer User</option>
+                                    <option value={ROLES.END_USER}>End User</option>
                                 </>
                             ) : (
                                 <>
-                                    <option value="CUSTOMER_ADMIN">Admin</option>
-                                    <option value="CUSTOMER_USER">User</option>
-                                    <option value="END_USER">End User</option>
+                                    <option value={ROLES.CUSTOMER_ADMIN}>Admin</option>
+                                    <option value={ROLES.CUSTOMER_USER}>User</option>
+                                    <option value={ROLES.END_USER}>End User</option>
                                 </>
                             )}
                         </select>
@@ -315,13 +315,13 @@ export default function UsersPage() {
                     <option value="">All Roles</option>
                     {isMacsoftRole() && (
                         <>
-                            <option value="MACSOFT_ADMIN">Macsoft Admin</option>
-                            <option value="MACSOFT_USER">Macsoft User</option>
+                            <option value={ROLES.MACSOFT_ADMIN}>Macsoft Admin</option>
+                            <option value={ROLES.MACSOFT_USER}>Macsoft User</option>
                         </>
                     )}
-                    <option value="CUSTOMER_ADMIN">{isMacsoftRole() ? 'Customer Admin' : 'Admin'}</option>
-                    <option value="CUSTOMER_USER">{isMacsoftRole() ? 'Customer User' : 'User'}</option>
-                    <option value="END_USER">End User</option>
+                    <option value={ROLES.CUSTOMER_ADMIN}>{isMacsoftRole() ? 'Customer Admin' : 'Admin'}</option>
+                    <option value={ROLES.CUSTOMER_USER}>{isMacsoftRole() ? 'Customer User' : 'User'}</option>
+                    <option value={ROLES.END_USER}>End User</option>
                 </select>
 
                 {isMacsoftRole() && (

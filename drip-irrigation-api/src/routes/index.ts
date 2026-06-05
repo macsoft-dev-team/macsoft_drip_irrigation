@@ -1,0 +1,30 @@
+import { Router } from "express";
+import { authRoutes } from "./authRoutes";
+import { fieldRoutes } from "./fieldRoutes";
+import { masterControllerRoutes } from "./masterControllerRoutes";
+import { zoneRoutes } from "./zoneRoutes";
+import { valveRoutes } from "./valveRoutes";
+import { commandRoutes } from "./commandRoutes";
+import { deviceRoutes } from "./deviceRoutes";
+import { scheduleRoutes } from "./scheduleRoutes";
+import { productRoutes } from "./productRoutes";
+import { orderRoutes } from "./orderRoutes";
+import { servicePlanRoutes } from "./servicePlanRoutes";
+import { supportTicketRoutes } from "./supportTicketRoutes";
+import { adminRoutes } from "./adminRoutes";
+
+export const apiRoutes = Router();
+
+apiRoutes.use("/auth", authRoutes);
+apiRoutes.use("/fields", fieldRoutes);
+apiRoutes.use("/masterControllers", masterControllerRoutes);
+apiRoutes.use("/zones", zoneRoutes);
+apiRoutes.use("/valves", valveRoutes);
+apiRoutes.use("/commands", commandRoutes);
+apiRoutes.use("/device", deviceRoutes);
+apiRoutes.use("/schedules", scheduleRoutes);
+apiRoutes.use("/products", productRoutes);
+apiRoutes.use("/orders", orderRoutes);
+apiRoutes.use("/servicePlans", servicePlanRoutes);
+apiRoutes.use("/supportTickets", supportTicketRoutes);
+apiRoutes.use("/admin", adminRoutes);
