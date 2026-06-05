@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:math' as math;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../services/app_state.dart';
+import '../models/product.dart';
 import '../widgets/dashboard_metric_card.dart';
 import '../widgets/alert_tile.dart';
 import '../widgets/status_chip.dart';
@@ -18,15 +20,38 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
+  static const _storage = FlutterSecureStorage();
+  static const _adDismissedKey = 'macsoft_dashboard_ad_dismissed';
+  bool _showAdBanner = false;
+
   @override
   void initState() {
     super.initState();
+    _checkAdBannerStatus();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final state = context.read<AppState>();
       state.loadFields();
       state.loadSchedules();
       state.loadAlerts();
     });
+  }
+
+  Future<void> _checkAdBannerStatus() async {
+    final dismissed = await _storage.read(key: _adDismissedKey);
+    if (dismissed != 'true' && mounted) {
+      setState(() {
+        _showAdBanner = true;
+      });
+    }
+  }
+
+  Future<void> _dismissAdBanner() async {
+    await _storage.write(key: _adDismissedKey, value: 'true');
+    if (mounted) {
+      setState(() {
+        _showAdBanner = false;
+      });
+    }
   }
 
   @override
@@ -68,6 +93,12 @@ class _DashboardPageState extends State<DashboardPage> {
                   // Weather / Farm scene card
                   _weatherCard(),
                   const SizedBox(height: 20),
+
+                  // Marketing Banner
+                  if (_showAdBanner) ...[
+                    _buildMarketingBanner(state),
+                    const SizedBox(height: 20),
+                  ],
 
                   // Metrics Grid
                   GridView.count(
@@ -407,6 +438,213 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildMarketingBanner(AppState state) {
+    final sensorProduct = state.products.firstWhere(
+      (p) => p.id == '1004',
+      orElse: () => const Product(
+        id: '1004',
+        name: 'Soil Moisture Sensor Pro',
+        sku: 'SE-SM-04',
+        type: 'spareParts',
+        description: 'Capacitive soil moisture sensor with corrosion resistant probe for high accuracy soil wetting profile.',
+        price: 1500.0,
+        status: 'active',
+      ),
+    );
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF0F172A), // Deep Slate
+            Color(0xFF1E1B4B), // Deep Indigo
+            Color(0xFF1E293B), // Navy Slate
+          ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF4F46E5).withOpacity(0.15),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+        border: Border.all(
+          color: const Color(0xFF6366F1).withOpacity(0.3),
+          width: 1.2,
+        ),
+      ),
+      child: Stack(
+        children: [
+          // Background glowing accents
+          Positioned(
+            right: -20,
+            top: -20,
+            child: Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF6366F1).withOpacity(0.08),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Badge/Tag
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF6366F1).withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(30),
+                        border: Border.all(
+                          color: const Color(0xFF6366F1).withOpacity(0.4),
+                          width: 0.8,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.star_rounded,
+                            size: 12,
+                            color: Color(0xFFA5B4FC),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'SPECIAL OFFER · ₹${sensorProduct.price.toStringAsFixed(0)}',
+                            style: const TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w900,
+                              color: Color(0xFFA5B4FC),
+                              letterSpacing: 1.0,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Close Button
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, size: 20, color: Colors.white70),
+                      onPressed: _dismissAdBanner,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      splashRadius: 18,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Icon Container
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF6366F1), Color(0xFF3B82F6)],
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF6366F1).withOpacity(0.3),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.auto_awesome_rounded,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    // Banner Title and Content
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            sensorProduct.name,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.2,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            sensorProduct.description ?? '',
+                            style: const TextStyle(
+                              color: Color(0xFFCBD5E1),
+                              fontSize: 12,
+                              height: 1.4,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // Action Button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ProductDetailScreen(product: sensorProduct),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: const Color(0xFF1E1B4B),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      elevation: 2,
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Learn More & Buy',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(width: 6),
+                        Icon(Icons.arrow_forward_rounded, size: 14),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
