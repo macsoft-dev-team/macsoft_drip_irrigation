@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import { motion, AnimatePresence } from 'motion/react';
-import { Cpu, CheckCircle, X, Server, Wifi, Terminal, Settings } from 'lucide-react';
+import { Cpu, CheckCircle, X, Server, Wifi, Terminal, Settings, Sparkles, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { DataTable } from '../../components';
@@ -32,6 +32,12 @@ export default function DeviceDashboard() {
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [customerFilter, setCustomerFilter] = useState('all');
+    const [isAdBannerOpen, setIsAdBannerOpen] = useState(() => localStorage.getItem('macsoft_dashboard_ad_dismissed') !== 'true');
+
+    const handleCloseAdBanner = () => {
+        setIsAdBannerOpen(false);
+        localStorage.setItem('macsoft_dashboard_ad_dismissed', 'true');
+    };
 
     // Local copy of devices so live socket updates don't require a Redux round-trip
     const [liveDevices, setLiveDevices] = useState([]);
@@ -232,6 +238,67 @@ export default function DeviceDashboard() {
                     customers={isMacsoftRole() ? customers : []}
                     onExport={handleExport}
                 />
+
+                <AnimatePresence>
+                    {isAdBannerOpen && (
+                        <motion.div
+                            initial={{ opacity: 0, y: -20, height: 0 }}
+                            animate={{ opacity: 1, y: 0, height: 'auto' }}
+                            exit={{ opacity: 0, y: -20, height: 0 }}
+                            transition={{ duration: 0.3, ease: 'easeInOut' }}
+                            className="overflow-hidden"
+                        >
+                            <div className="relative overflow-hidden rounded-2xl border border-indigo-500/20 bg-linear-to-r from-indigo-950 via-slate-900 to-blue-950 p-5 md:p-6 text-white shadow-xl shadow-indigo-950/10 mb-6">
+                                {/* Decorative glowing blobs */}
+                                <div className="absolute -right-10 -top-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none"></div>
+                                <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-blue-500/10 rounded-full blur-2xl pointer-events-none"></div>
+
+                                <div className="relative flex flex-col md:flex-row gap-5 items-start md:items-center justify-between">
+                                    <div className="flex gap-4 items-start">
+                                        <div className="w-12 h-12 rounded-xl bg-linear-to-tr from-indigo-500 to-blue-500 flex items-center justify-center shadow-lg shadow-indigo-500/30 shrink-0 animate-pulse">
+                                            <Sparkles className="w-6 h-6 text-white" />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-indigo-500/20 border border-indigo-500/30 text-indigo-300">
+                                                    Pro Edition
+                                                </span>
+                                                <span className="text-xs text-indigo-200/80 font-medium">Limited Time Upgrade Offer</span>
+                                            </div>
+                                            <h3 className="text-lg font-bold text-white leading-snug tracking-tight">
+                                                Upgrade to Macsoft Drip Pro System
+                                            </h3>
+                                            <p className="text-sm text-slate-300 max-w-2xl">
+                                                Maximize your farm's efficiency. Unlock next-gen predictive irrigation scheduling, high-precision soil moisture sensors, and direct multi-operator SMS alert notifications.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-3 w-full md:w-auto justify-end">
+                                        <button 
+                                            onClick={() => {
+                                                toast.success('Promo Code DripPro20 Applied! Contact sales to upgrade.', {
+                                                    icon: '🎉',
+                                                    duration: 5000
+                                                });
+                                            }}
+                                            className="w-full md:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-white text-indigo-950 hover:bg-slate-100 transition-all duration-300 shadow-md shadow-white/5 active:scale-95 group shrink-0 cursor-pointer"
+                                        >
+                                            Upgrade Now
+                                            <ArrowRight className="w-4 h-4 text-indigo-950 group-hover:translate-x-0.5 transition-transform" />
+                                        </button>
+                                        <button 
+                                            onClick={handleCloseAdBanner}
+                                            className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-xl transition-all duration-300 shrink-0 cursor-pointer"
+                                            title="Dismiss Ad"
+                                        >
+                                            <X className="w-5 h-5" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
                 <AnimatePresence>
                     {uploadedImeis.length > 0 && (
