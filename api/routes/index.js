@@ -9,7 +9,7 @@ const zonesRouter = require('./zones');
 const valvesRouter = require('./valves');
 
 router.get('/', (req, res) => {
-    res.json({ message: 'Welcome to the WRMS API' });
+    res.json({ message: 'Welcome to the Drip Irrigation API' });
 });
 
 router.use('/auth', authRouter);
