@@ -56,6 +56,7 @@ enum CommandTargetType {
   valve
   zone
   field
+  motor
 }
 
 enum CommandAction {
@@ -277,6 +278,8 @@ model MasterController {
   firmwareVersion  String?   @db.VarChar(50)
   connectionType   ControllerConnectionType @default(gsm4g)
   status           ControllerStatus @default(offline)
+  tankLevel        Int?      @default(50)
+  motorStatus      String    @default("off")
   lastHeartbeatAt  DateTime?
   lastIp           String?   @db.VarChar(100)
   installedAt      DateTime?
@@ -287,10 +290,27 @@ model MasterController {
   commands         Command[]
   heartbeats       MasterHeartbeat[]
   supportTickets   SupportTicket[]
+  slaveBoards      SlaveBoard[]
 
   @@index([status])
   @@index([lastHeartbeatAt])
   @@map("masterControllers")
+}
+
+model SlaveBoard {
+  id                 BigInt           @id @default(autoincrement())
+  masterControllerId BigInt
+  deviceUid          String           @unique @db.VarChar(100)
+  name               String           @db.VarChar(150)
+  status             String           @default("active") // "active", "inactive"
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  masterController   MasterController @relation(fields: [masterControllerId], references: [id])
+  valves             Valve[]
+
+  @@index([masterControllerId])
+  @@map("slaveBoards")
 }
 
 model Zone {
@@ -312,6 +332,7 @@ model Zone {
 model Valve {
   id           BigInt      @id @default(autoincrement())
   zoneId       BigInt
+  slaveBoardId BigInt
   deviceUid    String      @unique @db.VarChar(100)
   name         String      @db.VarChar(150)
   valveNumber  Int
@@ -322,12 +343,14 @@ model Valve {
   updatedAt    DateTime    @updatedAt
 
   zone         Zone        @relation(fields: [zoneId], references: [id])
+  slaveBoard   SlaveBoard  @relation(fields: [slaveBoardId], references: [id])
   commandItems CommandItem[]
   statusLogs   ValveStatusLog[]
   supportTickets SupportTicket[]
 
-  @@unique([zoneId, valveNumber])
+  @@unique([slaveBoardId, valveNumber])
   @@index([zoneId])
+  @@index([slaveBoardId])
   @@map("valves")
 }
 
@@ -437,6 +460,8 @@ model IrrigationSchedule {
   repeatDays      Json?
   status          ScheduleStatus @default(active)
   timezone        String         @default("Asia/Kolkata") @db.VarChar(80)
+  scheduleType    String         @default("timeBased") // "timeBased", "timerBased"
+  zoneIds         Json?          // Array of zone IDs: number[]
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
@@ -459,6 +484,7 @@ model ScheduleRun {
   startedAt      DateTime?
   completedAt    DateTime?
   failedReason   String?           @db.Text
+  metadata       Json?             // state tracker for sequential scheduling
   createdAt      DateTime          @default(now())
 
   schedule       IrrigationSchedule @relation(fields: [scheduleId], references: [id])

@@ -14,6 +14,8 @@ class IrrigationSchedule {
   final String repeatType; // once, daily, weekly, customDays
   final List<String> repeatDays; // e.g. ["monday", "tuesday"] or ["1", "2"]
   final String status; // active, paused, deleted
+  final String scheduleType; // timeBased, timerBased
+  final List<String>? zoneIds;
 
   const IrrigationSchedule({
     required this.id,
@@ -29,6 +31,8 @@ class IrrigationSchedule {
     required this.repeatType,
     required this.repeatDays,
     required this.status,
+    required this.scheduleType,
+    this.zoneIds,
   });
 
   factory IrrigationSchedule.fromJson(Map<String, dynamic> json) {
@@ -42,6 +46,20 @@ class IrrigationSchedule {
           }
         } else if (json['repeatDays'] is List) {
           days = (json['repeatDays'] as List).map((e) => e.toString()).toList();
+        }
+      } catch (_) {}
+    }
+
+    List<String>? parsedZoneIds;
+    if (json['zoneIds'] != null) {
+      try {
+        if (json['zoneIds'] is String) {
+          final decoded = jsonDecode(json['zoneIds'] as String);
+          if (decoded is List) {
+            parsedZoneIds = decoded.map((e) => e.toString()).toList();
+          }
+        } else if (json['zoneIds'] is List) {
+          parsedZoneIds = (json['zoneIds'] as List).map((e) => e.toString()).toList();
         }
       } catch (_) {}
     }
@@ -60,6 +78,8 @@ class IrrigationSchedule {
       repeatType: json['repeatType'] as String? ?? 'daily',
       repeatDays: days,
       status: json['status'] as String? ?? 'active',
+      scheduleType: json['scheduleType'] as String? ?? 'timeBased',
+      zoneIds: parsedZoneIds,
     );
   }
 
@@ -77,7 +97,45 @@ class IrrigationSchedule {
     'repeatType': repeatType,
     'repeatDays': repeatDays,
     'status': status,
+    'scheduleType': scheduleType,
+    'zoneIds': zoneIds,
   };
+
+  IrrigationSchedule copyWith({
+    String? id,
+    String? farmerId,
+    String? fieldId,
+    String? name,
+    String? targetType,
+    String? targetId,
+    String? targetName,
+    String? action,
+    String? startTime,
+    int? durationMinutes,
+    String? repeatType,
+    List<String>? repeatDays,
+    String? status,
+    String? scheduleType,
+    List<String>? zoneIds,
+  }) {
+    return IrrigationSchedule(
+      id: id ?? this.id,
+      farmerId: farmerId ?? this.farmerId,
+      fieldId: fieldId ?? this.fieldId,
+      name: name ?? this.name,
+      targetType: targetType ?? this.targetType,
+      targetId: targetId ?? this.targetId,
+      targetName: targetName ?? this.targetName,
+      action: action ?? this.action,
+      startTime: startTime ?? this.startTime,
+      durationMinutes: durationMinutes ?? this.durationMinutes,
+      repeatType: repeatType ?? this.repeatType,
+      repeatDays: repeatDays ?? this.repeatDays,
+      status: status ?? this.status,
+      scheduleType: scheduleType ?? this.scheduleType,
+      zoneIds: zoneIds ?? this.zoneIds,
+    );
+  }
 
   bool get isActive => status == 'active';
   bool get isPaused => status == 'paused';

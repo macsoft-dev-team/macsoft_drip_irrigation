@@ -11,7 +11,7 @@ export type JwtPayload = {
 };
 
 export function signJwt(payload: JwtPayload) {
-  return jwt.sign(payload, env.JWT_SECRET, { expiresIn: env.JWT_EXPIRES_IN });
+  return jwt.sign(payload, env.JWT_SECRET, { expiresIn: env.JWT_EXPIRES_IN as any });
 }
 
 export function verifyJwt(token: string) {

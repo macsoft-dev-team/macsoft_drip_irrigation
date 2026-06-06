@@ -5,7 +5,9 @@ const heartbeatSchema = z.object({
   firmwareVersion: z.string().optional(),
   signalStrength: z.number().int().optional(),
   batteryVoltage: z.number().optional(),
-  powerSource: z.enum(["mainPower", "battery", "solar"]).optional()
+  powerSource: z.enum(["mainPower", "battery", "solar"]).optional(),
+  tankLevel: z.number().optional(),
+  motorStatus: z.string().optional()
 }).passthrough();
 
 const ackSchema = z.object({
@@ -24,7 +26,9 @@ const statusSchema = z.object({
   valves: z.array(z.object({
     valveId: z.string(),
     currentValveStatus: z.enum(["open", "closed", "unknown", "error", "disabled"])
-  })).default([])
+  })).default([]),
+  tankLevel: z.number().optional(),
+  motorStatus: z.string().optional()
 }).passthrough();
 
 function extractDeviceUid(topic: string) {

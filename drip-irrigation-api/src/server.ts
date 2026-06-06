@@ -5,6 +5,7 @@ import { initSocket } from "./realtime/socket";
 import { getMqttClient } from "./iot/mqttClient";
 import { startCommandWorker } from "./queues/commandQueue";
 import { prisma } from "./db/prisma";
+import { startScheduler } from "./services/scheduler";
 
 const app = createApp();
 const server = http.createServer(app);
@@ -12,6 +13,7 @@ const server = http.createServer(app);
 initSocket(server);
 getMqttClient();
 startCommandWorker();
+startScheduler();
 
 server.listen(env.PORT, () => {
   console.log(`Drip Irrigation API running on port ${env.PORT}`);

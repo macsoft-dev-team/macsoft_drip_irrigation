@@ -614,6 +614,8 @@ class AppState extends ChangeNotifier {
     required int durationMinutes,
     required String repeatType,
     required List<String> repeatDays,
+    String scheduleType = 'timeBased',
+    List<String>? zoneIds,
   }) async {
     if (api == null) return false;
     try {
@@ -626,6 +628,8 @@ class AppState extends ChangeNotifier {
         durationMinutes: durationMinutes,
         repeatType: repeatType,
         repeatDays: repeatDays,
+        scheduleType: scheduleType,
+        zoneIds: zoneIds,
       );
       schedules.add(newSchedule);
       notifyListeners();
@@ -645,6 +649,8 @@ class AppState extends ChangeNotifier {
         repeatType: repeatType,
         repeatDays: repeatDays,
         status: 'active',
+        scheduleType: scheduleType,
+        zoneIds: zoneIds,
       );
       schedules.add(newSchedule);
       notifyListeners();
@@ -659,6 +665,8 @@ class AppState extends ChangeNotifier {
     required int durationMinutes,
     required String repeatType,
     required List<String> repeatDays,
+    String? scheduleType,
+    List<String>? zoneIds,
   }) async {
     if (api == null) return false;
     try {
@@ -669,6 +677,8 @@ class AppState extends ChangeNotifier {
         durationMinutes: durationMinutes,
         repeatType: repeatType,
         repeatDays: repeatDays,
+        scheduleType: scheduleType,
+        zoneIds: zoneIds,
       );
       final idx = schedules.indexWhere((s) => s.id == scheduleId);
       if (idx != -1) {
@@ -693,6 +703,8 @@ class AppState extends ChangeNotifier {
           repeatType: repeatType,
           repeatDays: repeatDays,
           status: schedules[idx].status,
+          scheduleType: scheduleType ?? schedules[idx].scheduleType,
+          zoneIds: zoneIds ?? schedules[idx].zoneIds,
         );
         notifyListeners();
       }
@@ -707,21 +719,7 @@ class AppState extends ChangeNotifier {
     final targetStatus = currentlyActive ? 'paused' : 'active';
 
     if (api == null) {
-      schedules[idx] = IrrigationSchedule(
-        id: scheduleId,
-        farmerId: schedules[idx].farmerId,
-        fieldId: schedules[idx].fieldId,
-        name: schedules[idx].name,
-        targetType: schedules[idx].targetType,
-        targetId: schedules[idx].targetId,
-        targetName: schedules[idx].targetName,
-        action: schedules[idx].action,
-        startTime: schedules[idx].startTime,
-        durationMinutes: schedules[idx].durationMinutes,
-        repeatType: schedules[idx].repeatType,
-        repeatDays: schedules[idx].repeatDays,
-        status: targetStatus,
-      );
+      schedules[idx] = schedules[idx].copyWith(status: targetStatus);
       notifyListeners();
       return true;
     }
@@ -732,21 +730,7 @@ class AppState extends ChangeNotifier {
       } else {
         await api!.resumeSchedule(scheduleId);
       }
-      schedules[idx] = IrrigationSchedule(
-        id: scheduleId,
-        farmerId: schedules[idx].farmerId,
-        fieldId: schedules[idx].fieldId,
-        name: schedules[idx].name,
-        targetType: schedules[idx].targetType,
-        targetId: schedules[idx].targetId,
-        targetName: schedules[idx].targetName,
-        action: schedules[idx].action,
-        startTime: schedules[idx].startTime,
-        durationMinutes: schedules[idx].durationMinutes,
-        repeatType: schedules[idx].repeatType,
-        repeatDays: schedules[idx].repeatDays,
-        status: targetStatus,
-      );
+      schedules[idx] = schedules[idx].copyWith(status: targetStatus);
       notifyListeners();
       return true;
     } catch (e) {
@@ -1056,6 +1040,85 @@ class AppState extends ChangeNotifier {
 
       _startMockCommandPolling();
     }
+  }
+
+  Future<bool> controlMotor(String masterControllerId, String action) async {
+    commandLoading = true;
+    _commandPollTimer?.cancel();
+    notifyListeners();
+
+    try {
+      if (api == null) throw Exception('No API Client');
+      final cmd = await api!.controlMotor(masterControllerId: masterControllerId, action: action);
+      activeCommand = cmd;
+      commandLoading = false;
+      notifyListeners();
+
+      _startCommandPolling(cmd.id);
+      return true;
+    } catch (e) {
+      // Mock motor trigger fallback
+      final newMotorStatus = action == 'start' ? 'on' : 'off';
+      for (int i = 0; i < fields.length; i++) {
+        if (fields[i].masterController?.id == masterControllerId) {
+          fields[i] = fields[i].copyWith(
+            masterController: fields[i].masterController?.copyWith(motorStatus: newMotorStatus)
+          );
+          break;
+        }
+      }
+      commandLoading = false;
+      notifyListeners();
+      return true;
+    }
+  }
+
+  void updateMasterControllerLive(String mcId, Map<String, dynamic> data) {
+    for (int i = 0; i < fields.length; i++) {
+      final mc = fields[i].masterController;
+      if (mc != null && mc.id == mcId) {
+        final updatedMc = mc.copyWith(
+          status: data['status'] as String?,
+          tankLevel: data['tankLevel'] != null ? (data['tankLevel'] as num).toInt() : null,
+          motorStatus: data['motorStatus'] as String?,
+          lastHeartbeatAt: data['lastHeartbeatAt'] != null ? DateTime.tryParse(data['lastHeartbeatAt'].toString()) : null,
+        );
+        fields[i] = fields[i].copyWith(masterController: updatedMc);
+        notifyListeners();
+        break;
+      }
+    }
+  }
+
+  void updateValveStatusLive(Map<String, dynamic> data) {
+    final list = data['valves'];
+    if (list is! List) return;
+    
+    bool changed = false;
+    for (final item in list) {
+      if (item is! Map) continue;
+      final valveId = item['valveId']?.toString();
+      final status = item['currentValveStatus']?.toString();
+      if (valveId == null || status == null) continue;
+
+      for (int i = 0; i < fields.length; i++) {
+        final updatedZones = fields[i].zones.map((z) {
+          final updatedValves = z.valves.map((v) {
+            if (v.id == valveId) {
+              changed = true;
+              return v.copyWith(status: status, lastStatusAt: DateTime.now());
+            }
+            return v;
+          }).toList();
+          return z.copyWith(valves: updatedValves);
+        }).toList();
+        if (changed) {
+          fields[i] = fields[i].copyWith(zones: updatedZones);
+          break;
+        }
+      }
+    }
+    if (changed) notifyListeners();
   }
 
   void _startCommandPolling(String commandId) {
@@ -1422,6 +1485,7 @@ class AppState extends ChangeNotifier {
         repeatType: 'daily',
         repeatDays: [],
         status: 'active',
+        scheduleType: 'timeBased',
       ),
       const IrrigationSchedule(
         id: '4002',
@@ -1437,6 +1501,7 @@ class AppState extends ChangeNotifier {
         repeatType: 'customDays',
         repeatDays: ['1', '4'], // Monday, Thursday
         status: 'paused',
+        scheduleType: 'timeBased',
       )
     ];
   }

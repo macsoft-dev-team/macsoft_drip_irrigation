@@ -10,7 +10,9 @@ client.on("connect", () => {
       firmwareVersion: "1.0.0",
       signalStrength: 80,
       batteryVoltage: 12.5,
-      powerSource: "solar"
+      powerSource: "solar",
+      tankLevel: 85,
+      motorStatus: "on"
     }),
     { qos: 1 },
     () => {

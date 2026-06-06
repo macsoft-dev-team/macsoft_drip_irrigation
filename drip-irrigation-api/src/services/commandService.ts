@@ -178,6 +178,53 @@ export const commandService = {
     return command;
   },
 
+  async createMotorCommand(auth: Express.Request["auth"], masterControllerId: bigint, action: Action, source: Source = "app") {
+    if (!auth) throw new AppError(401, "Authentication required", "authRequired");
+
+    const master = await prisma.masterController.findUnique({
+      where: { id: masterControllerId },
+      include: { field: true }
+    });
+
+    if (!master || master.status === "disabled") {
+      throw new AppError(404, "Master controller not found", "masterNotFound");
+    }
+
+    if (auth.role === "farmer" && master.field.farmerId !== auth.farmerId) {
+      throw new AppError(403, "Forbidden", "forbidden");
+    }
+
+    const expiresAt = addMinutes(source === "schedule" ? env.SCHEDULE_COMMAND_EXPIRY_MINUTES : env.MANUAL_COMMAND_EXPIRY_MINUTES);
+    const commandUid = uid("cmd");
+
+    const command = await prisma.command.create({
+      data: {
+        commandUid,
+        farmerId: master.field.farmerId,
+        fieldId: master.field.id,
+        masterControllerId: master.id,
+        requestedByUserId: auth.userId,
+        targetType: "motor",
+        targetId: master.id,
+        action,
+        source,
+        status: isMasterOnline(master.status) ? "queued" : "created",
+        maxRetries: env.MAX_COMMAND_RETRIES,
+        expiresAt
+      },
+      include: {
+        items: { include: { valve: true } },
+        masterController: true
+      }
+    });
+
+    if (isMasterOnline(master.status)) {
+      await enqueueCommand(command.id);
+    }
+
+    return command;
+  },
+
   async list(auth: Express.Request["auth"], filters: { status?: string } = {}) {
     if (!auth) throw new AppError(401, "Authentication required", "authRequired");
 

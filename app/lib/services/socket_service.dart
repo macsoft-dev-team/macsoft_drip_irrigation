@@ -6,6 +6,8 @@ import '../models/api_device.dart';
 const String _wsUrl = Env.wsBaseUrl;
 
 typedef TelemetryCallback = void Function(String deviceId, TelemetryRow row);
+typedef MasterHeartbeatCallback = void Function(String mcId, Map<String, dynamic> data);
+typedef ValveStatusCallback = void Function(Map<String, dynamic> data);
 
 /// Singleton WebSocket service for real-time telemetry.
 class SocketService {
@@ -14,6 +16,9 @@ class SocketService {
 
   io.Socket? _socket;
   final _listeners = <TelemetryCallback>[];
+  final _masterHeartbeatListeners = <MasterHeartbeatCallback>[];
+  final _valveStatusListeners = <ValveStatusCallback>[];
+
   bool get connected => _socket?.connected ?? false;
 
   void connect(String token) {
@@ -65,6 +70,23 @@ class SocketService {
       }
     });
 
+    // ── master heartbeats and statuses ──────────────────────────────────────
+    _socket!.on('masterHeartbeat', (data) {
+      if (data is! Map) return;
+      final mcId = data['masterControllerId']?.toString() ?? '';
+      for (final cb in List.of(_masterHeartbeatListeners)) {
+        cb(mcId, Map<String, dynamic>.from(data));
+      }
+    });
+
+    // ── valve status updates ────────────────────────────────────────────────
+    _socket!.on('valveStatusUpdated', (data) {
+      if (data is! Map) return;
+      for (final cb in List.of(_valveStatusListeners)) {
+        cb(Map<String, dynamic>.from(data));
+      }
+    });
+
     _socket!.connect();
   }
 
@@ -72,6 +94,9 @@ class SocketService {
     _socket?.disconnect();
     _socket?.dispose();
     _socket = null;
+    _listeners.clear();
+    _masterHeartbeatListeners.clear();
+    _valveStatusListeners.clear();
   }
 
   /// Subscribe to updates for a single device room.
@@ -83,6 +108,16 @@ class SocketService {
     _socket?.emit('unsubscribe:device', deviceId);
   }
 
+  void joinField(String fieldId) {
+    _socket?.emit('joinField', fieldId);
+  }
+
   void addListener(TelemetryCallback cb) => _listeners.add(cb);
   void removeListener(TelemetryCallback cb) => _listeners.remove(cb);
+
+  void addMasterHeartbeatListener(MasterHeartbeatCallback cb) => _masterHeartbeatListeners.add(cb);
+  void removeMasterHeartbeatListener(MasterHeartbeatCallback cb) => _masterHeartbeatListeners.remove(cb);
+
+  void addValveStatusListener(ValveStatusCallback cb) => _valveStatusListeners.add(cb);
+  void removeValveStatusListener(ValveStatusCallback cb) => _valveStatusListeners.remove(cb);
 }

@@ -34,11 +34,26 @@ class _AppShellState extends State<AppShell> {
     if (state.token != null) {
       SocketService.instance.connect(state.token!);
       SocketService.instance.addListener(_onTelemetry);
+      SocketService.instance.addMasterHeartbeatListener(_onMasterHeartbeat);
+      SocketService.instance.addValveStatusListener(_onValveStatus);
+
+      // Join rooms for all loaded fields to receive updates
+      for (final field in state.fields) {
+        SocketService.instance.joinField(field.id);
+      }
     }
   }
 
   void _onTelemetry(String deviceId, TelemetryRow row) {
     context.read<AppState>().updateDeviceLive(deviceId, row);
+  }
+
+  void _onMasterHeartbeat(String mcId, Map<String, dynamic> data) {
+    context.read<AppState>().updateMasterControllerLive(mcId, data);
+  }
+
+  void _onValveStatus(Map<String, dynamic> data) {
+    context.read<AppState>().updateValveStatusLive(data);
   }
 
   Future<void> _logout() async {
@@ -49,6 +64,8 @@ class _AppShellState extends State<AppShell> {
   @override
   void dispose() {
     SocketService.instance.removeListener(_onTelemetry);
+    SocketService.instance.removeMasterHeartbeatListener(_onMasterHeartbeat);
+    SocketService.instance.removeValveStatusListener(_onValveStatus);
     super.dispose();
   }
 

@@ -4,7 +4,7 @@ import { env } from "../config/env";
 import { commandDispatchService } from "../services/commandDispatchService";
 
 export const commandQueue = new Queue("commands", {
-  connection: redisConnection
+  connection: redisConnection as any
 });
 
 export async function enqueueCommand(commandId: bigint, options: JobsOptions = {}) {
@@ -29,7 +29,7 @@ export function startCommandWorker() {
       await commandDispatchService.dispatchCommand(commandId);
     },
     {
-      connection: redisConnection,
+      connection: redisConnection as any,
       concurrency: 10
     }
   );

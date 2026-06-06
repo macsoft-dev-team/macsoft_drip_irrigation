@@ -48,7 +48,9 @@ export const deviceService = {
       data: {
         status: "online",
         lastHeartbeatAt: new Date(),
-        firmwareVersion: input.firmwareVersion ?? master.firmwareVersion
+        firmwareVersion: input.firmwareVersion ?? master.firmwareVersion,
+        tankLevel: input.tankLevel !== undefined ? Number(input.tankLevel) : undefined,
+        motorStatus: input.motorStatus !== undefined ? String(input.motorStatus) : undefined
       },
       include: { field: true }
     });
@@ -71,13 +73,17 @@ export const deviceService = {
     emitFieldEvent(updated.fieldId, "masterHeartbeat", {
       masterControllerId: updated.id.toString(),
       status: updated.status,
-      lastHeartbeatAt: updated.lastHeartbeatAt
+      lastHeartbeatAt: updated.lastHeartbeatAt,
+      tankLevel: updated.tankLevel,
+      motorStatus: updated.motorStatus
     });
 
     emitAdminEvent("masterHeartbeat", {
       masterControllerId: updated.id.toString(),
       status: updated.status,
-      lastHeartbeatAt: updated.lastHeartbeatAt
+      lastHeartbeatAt: updated.lastHeartbeatAt,
+      tankLevel: updated.tankLevel,
+      motorStatus: updated.motorStatus
     });
 
     return updated;
@@ -144,6 +150,14 @@ export const deviceService = {
         }
       }
 
+      if (command.targetType === "motor" && (input.status === "acknowledged" || input.status === "partialSuccess")) {
+        const newMotorStatus = command.action === "open" ? "on" : "off";
+        await tx.masterController.update({
+          where: { id: command.masterControllerId },
+          data: { motorStatus: newMotorStatus }
+        });
+      }
+
       await tx.command.update({
         where: { id: command.id },
         data: {
@@ -204,6 +218,33 @@ export const deviceService = {
           source: "masterController",
           rawPayload: item as any
         }
+      });
+    }
+
+    // Update master controller motor status and tank level if present
+    if (input.tankLevel !== undefined || input.motorStatus !== undefined) {
+      const updatedMaster = await prisma.masterController.update({
+        where: { id: master.id },
+        data: {
+          tankLevel: input.tankLevel !== undefined ? Number(input.tankLevel) : undefined,
+          motorStatus: input.motorStatus !== undefined ? String(input.motorStatus) : undefined
+        }
+      });
+
+      emitFieldEvent(master.fieldId, "masterHeartbeat", {
+        masterControllerId: master.id.toString(),
+        status: updatedMaster.status,
+        lastHeartbeatAt: updatedMaster.lastHeartbeatAt,
+        tankLevel: updatedMaster.tankLevel,
+        motorStatus: updatedMaster.motorStatus
+      });
+
+      emitAdminEvent("masterHeartbeat", {
+        masterControllerId: master.id.toString(),
+        status: updatedMaster.status,
+        lastHeartbeatAt: updatedMaster.lastHeartbeatAt,
+        tankLevel: updatedMaster.tankLevel,
+        motorStatus: updatedMaster.motorStatus
       });
     }
 

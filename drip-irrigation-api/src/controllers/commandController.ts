@@ -24,6 +24,16 @@ export const commandController = {
     return created(res, command);
   }),
 
+  startMotor: asyncHandler(async (req, res) => {
+    const command = await commandService.createMotorCommand(req.auth, parseBigIntId(req.params.masterControllerId, "masterControllerId"), "open");
+    return created(res, command);
+  }),
+
+  stopMotor: asyncHandler(async (req, res) => {
+    const command = await commandService.createMotorCommand(req.auth, parseBigIntId(req.params.masterControllerId, "masterControllerId"), "close");
+    return created(res, command);
+  }),
+
   list: asyncHandler(async (req, res) => {
     const commands = await commandService.list(req.auth, { status: req.query.status?.toString() });
     return ok(res, commands);

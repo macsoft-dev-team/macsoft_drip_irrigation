@@ -4,6 +4,7 @@ import { AppError } from "../lib/AppError";
 import { zoneService } from "./zoneService";
 
 const createValveSchema = z.object({
+  slaveBoardId: z.string(),
   deviceUid: z.string().min(2).max(100),
   name: z.string().min(1).max(150),
   valveNumber: z.number().int().positive()
@@ -62,6 +63,7 @@ export const valveService = {
     return prisma.valve.create({
       data: {
         zoneId,
+        slaveBoardId: BigInt(data.slaveBoardId),
         deviceUid: data.deviceUid,
         name: data.name,
         valveNumber: data.valveNumber
@@ -78,7 +80,10 @@ export const valveService = {
     const data = updateValveSchema.parse(input);
     return prisma.valve.update({
       where: { id: valveId },
-      data
+      data: {
+        ...data,
+        slaveBoardId: data.slaveBoardId ? BigInt(data.slaveBoardId) : undefined
+      }
     });
   },
 

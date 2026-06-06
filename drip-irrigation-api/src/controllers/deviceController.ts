@@ -7,7 +7,9 @@ const heartbeatSchema = z.object({
   firmwareVersion: z.string().optional(),
   signalStrength: z.number().int().optional(),
   batteryVoltage: z.number().optional(),
-  powerSource: z.enum(["mainPower", "battery", "solar"]).optional()
+  powerSource: z.enum(["mainPower", "battery", "solar"]).optional(),
+  tankLevel: z.number().optional(),
+  motorStatus: z.string().optional()
 }).passthrough();
 
 const ackSchema = z.object({
@@ -24,12 +26,12 @@ const ackSchema = z.object({
 
 export const deviceController = {
   heartbeat: asyncHandler(async (req, res) => {
-    const result = await deviceService.recordHeartbeat(req.params.deviceUid, heartbeatSchema.parse(req.body));
+    const result = await deviceService.recordHeartbeat(String(req.params.deviceUid), heartbeatSchema.parse(req.body));
     return ok(res, result);
   }),
 
   ack: asyncHandler(async (req, res) => {
-    const result = await deviceService.recordAck(req.params.deviceUid, ackSchema.parse(req.body));
+    const result = await deviceService.recordAck(String(req.params.deviceUid), ackSchema.parse(req.body));
     return ok(res, result);
   })
 };

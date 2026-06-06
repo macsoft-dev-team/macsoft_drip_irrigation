@@ -61,7 +61,7 @@ async function main() {
     }
   });
 
-  await prisma.masterController.upsert({
+  const master = await prisma.masterController.upsert({
     where: { deviceUid: "master-demo-001" },
     update: {},
     create: {
@@ -69,7 +69,20 @@ async function main() {
       deviceUid: "master-demo-001",
       simNumber: "9000000000",
       firmwareVersion: "1.0.0",
-      connectionType: "gsm4g"
+      connectionType: "gsm4g",
+      tankLevel: 80,
+      motorStatus: "off"
+    }
+  });
+
+  const slaveBoard = await prisma.slaveBoard.upsert({
+    where: { deviceUid: "slave-demo-001" },
+    update: {},
+    create: {
+      masterControllerId: master.id,
+      deviceUid: "slave-demo-001",
+      name: "Slave Board 1",
+      status: "active"
     }
   });
 
@@ -87,6 +100,7 @@ async function main() {
     update: {},
     create: {
       zoneId: zoneA.id,
+      slaveBoardId: slaveBoard.id,
       deviceUid: "valve-demo-001",
       name: "Valve 1",
       valveNumber: 1,
@@ -99,6 +113,7 @@ async function main() {
     update: {},
     create: {
       zoneId: zoneA.id,
+      slaveBoardId: slaveBoard.id,
       deviceUid: "valve-demo-002",
       name: "Valve 2",
       valveNumber: 2,

@@ -4,15 +4,17 @@ import { AppError } from "../lib/AppError";
 import { fieldService } from "./fieldService";
 
 const createScheduleSchema = z.object({
-  fieldId: z.string(),
+  fieldId: z.union([z.string(), z.number()]).transform(val => String(val)),
   name: z.string().min(1).max(150),
   targetType: z.enum(["valve", "zone"]),
-  targetId: z.string(),
+  targetId: z.union([z.string(), z.number()]).transform(val => String(val)),
   startTime: z.string().regex(/^\d{2}:\d{2}$/),
   durationMinutes: z.number().int().positive(),
   repeatType: z.enum(["once", "daily", "weekly", "customDays"]).default("daily"),
   repeatDays: z.array(z.string()).optional(),
-  timezone: z.string().default("Asia/Kolkata")
+  timezone: z.string().default("Asia/Kolkata"),
+  scheduleType: z.string().optional().default("timeBased"),
+  zoneIds: z.array(z.union([z.number(), z.string()])).optional()
 });
 
 const updateScheduleSchema = createScheduleSchema.partial().extend({
@@ -54,7 +56,9 @@ export const scheduleService = {
         durationMinutes: data.durationMinutes,
         repeatType: data.repeatType,
         repeatDays: data.repeatDays,
-        timezone: data.timezone
+        timezone: data.timezone,
+        scheduleType: data.scheduleType,
+        zoneIds: data.zoneIds ? data.zoneIds.map(id => Number(id)) : undefined
       }
     });
   },
@@ -75,7 +79,8 @@ export const scheduleService = {
       data: {
         ...data,
         fieldId: data.fieldId ? BigInt(data.fieldId) : undefined,
-        targetId: data.targetId ? BigInt(data.targetId) : undefined
+        targetId: data.targetId ? BigInt(data.targetId) : undefined,
+        zoneIds: data.zoneIds ? data.zoneIds.map(id => Number(id)) : undefined
       }
     });
   },

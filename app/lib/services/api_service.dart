@@ -532,6 +532,18 @@ class ApiService {
     return Command.fromJson(_unwrap(jsonDecode(res.body) as Map<String, dynamic>));
   }
 
+  Future<Command> controlMotor({
+    required String masterControllerId,
+    required String action, // start, stop
+  }) async {
+    final res = await http.post(
+      Uri.parse('$_baseUrl/commands/masterControllers/$masterControllerId/motor/$action'),
+      headers: _headers,
+    );
+    _check(res);
+    return Command.fromJson(_unwrap(jsonDecode(res.body) as Map<String, dynamic>));
+  }
+
   Future<Command> getCommandStatus(String commandId) async {
     final res = await http.get(
       Uri.parse('$_baseUrl/commands/$commandId'),
@@ -604,6 +616,8 @@ class ApiService {
     required int durationMinutes,
     required String repeatType,
     required List<String> repeatDays,
+    String scheduleType = 'timeBased',
+    List<String>? zoneIds,
   }) async {
     final res = await http.post(
       Uri.parse('$_baseUrl/schedules'),
@@ -617,6 +631,8 @@ class ApiService {
         'durationMinutes': durationMinutes,
         'repeatType': repeatType,
         'repeatDays': repeatDays,
+        'scheduleType': scheduleType,
+        'zoneIds': zoneIds,
       }),
     );
     _check(res);
@@ -630,6 +646,8 @@ class ApiService {
     required int durationMinutes,
     required String repeatType,
     required List<String> repeatDays,
+    String? scheduleType,
+    List<String>? zoneIds,
   }) async {
     final res = await http.patch(
       Uri.parse('$_baseUrl/schedules/$scheduleId'),
@@ -640,6 +658,8 @@ class ApiService {
         'durationMinutes': durationMinutes,
         'repeatType': repeatType,
         'repeatDays': repeatDays,
+        if (scheduleType != null) 'scheduleType': scheduleType,
+        if (zoneIds != null) 'zoneIds': zoneIds,
       }),
     );
     _check(res);
