@@ -222,12 +222,14 @@ class _ScheduleListScreenState extends State<ScheduleListScreen> {
 
 class ScheduleFormScreen extends StatefulWidget {
   final IrrigationSchedule? schedule;
+  final String? initialFieldId;
   final String? initialTargetType;
   final String? initialTargetId;
 
   const ScheduleFormScreen({
     super.key,
     this.schedule,
+    this.initialFieldId,
     this.initialTargetType,
     this.initialTargetId,
   });
@@ -285,10 +287,14 @@ class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
       _targetType = widget.initialTargetType ?? 'zone';
       _selectedTargetId = widget.initialTargetId;
       
-      // Auto-select first field if available
-      final state = context.read<AppState>();
-      if (state.fields.isNotEmpty) {
-        _selectedFieldId = state.fields[0].id;
+      if (widget.initialFieldId != null) {
+        _selectedFieldId = widget.initialFieldId;
+      } else {
+        // Auto-select first field if available
+        final state = context.read<AppState>();
+        if (state.fields.isNotEmpty) {
+          _selectedFieldId = state.fields[0].id;
+        }
       }
     }
   }
@@ -427,12 +433,10 @@ class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
       ),
       body: Form(
         key: _formKey,
-        child: SingleChildScrollView(
+        child: ListView(
           padding: const EdgeInsets.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              AppTextField(
+          children: [
+            AppTextField(
                 label: 'Schedule Name',
                 hint: 'e.g. Sugar Block Drip A',
                 controller: _nameController,
@@ -466,10 +470,13 @@ class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
                       selected: _scheduleType == 'timeBased',
                       selectedColor: const Color(0xFF2D7A3A).withValues(alpha: 0.15),
                       checkmarkColor: const Color(0xFF2D7A3A),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      labelPadding: EdgeInsets.zero,
+                      visualDensity: VisualDensity.compact,
                       labelStyle: TextStyle(
                         color: _scheduleType == 'timeBased' ? const Color(0xFF2D7A3A) : const Color(0xFF475569),
                         fontWeight: FontWeight.bold,
-                        fontSize: 13,
+                        fontSize: 10,
                       ),
                       onSelected: (selected) {
                         if (selected) {
@@ -480,16 +487,19 @@ class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
                         }
                       },
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 8),
                     ChoiceChip(
                       label: const Text('Timer-based (Sequence)'),
                       selected: _scheduleType == 'timerBased',
                       selectedColor: const Color(0xFF2D7A3A).withValues(alpha: 0.15),
                       checkmarkColor: const Color(0xFF2D7A3A),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      labelPadding: EdgeInsets.zero,
+                      visualDensity: VisualDensity.compact,
                       labelStyle: TextStyle(
                         color: _scheduleType == 'timerBased' ? const Color(0xFF2D7A3A) : const Color(0xFF475569),
                         fontWeight: FontWeight.bold,
-                        fontSize: 13,
+                        fontSize: 10,
                       ),
                       onSelected: (selected) {
                         if (selected) {
@@ -712,9 +722,14 @@ class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
                       selected: isSelected,
                       selectedColor: const Color(0xFF2D7A3A).withValues(alpha: 0.2),
                       checkmarkColor: const Color(0xFF2D7A3A),
+                      showCheckmark: false,
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      labelPadding: EdgeInsets.zero,
+                      visualDensity: VisualDensity.compact,
                       labelStyle: TextStyle(
                         color: isSelected ? const Color(0xFF2D7A3A) : Colors.black87,
                         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        fontSize: 10,
                       ),
                       onSelected: (selected) {
                         setState(() {
@@ -742,7 +757,6 @@ class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
             ],
           ),
         ),
-      ),
-    );
+      );
   }
 }

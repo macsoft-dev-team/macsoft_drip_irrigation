@@ -11,11 +11,30 @@ const createProductSchema = z.object({
 });
 
 export const productService = {
-  async list() {
-    return prisma.product.findMany({
+  async list(auth: Express.Request["auth"]) {
+    if (!auth) throw new AppError(401, "Authentication required", "authRequired");
+
+    const products = await prisma.product.findMany({
       where: { status: "active" },
       orderBy: { id: "asc" }
     });
+
+    const user = await prisma.user.findUnique({
+      where: { id: auth.userId }
+    });
+
+    const allowedWholesale =
+      ["admin", "tenant_admin", "sales", "distributor"].includes(auth.role) ||
+      (auth.role === "dealer" && user?.hasWholesalePricing === true);
+
+    if (!allowedWholesale) {
+      return products.map(p => {
+        const { wholesalePrice, ...rest } = p;
+        return rest;
+      });
+    }
+
+    return products;
   },
 
   async create(auth: Express.Request["auth"], input: unknown) {

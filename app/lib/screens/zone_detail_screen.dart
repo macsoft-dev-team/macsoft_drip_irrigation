@@ -139,7 +139,11 @@ class ZoneDetailScreen extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => ScheduleFormScreen(initialTargetType: 'zone', initialTargetId: zone.id),
+                    builder: (context) => ScheduleFormScreen(
+                      initialFieldId: fieldId,
+                      initialTargetType: 'zone',
+                      initialTargetId: zone.id,
+                    ),
                   ),
                 );
               },

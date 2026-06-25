@@ -80,7 +80,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
             final int activeAlerts = state.alerts.where((a) => !a.isRead).length;
             final int todaySchedules = state.schedules.where((s) => s.status == 'active').length;
-            final int failedCommands = state.alerts.where((a) => a.type == 'commandFailed').length;
+            final int runningMotors = state.fields.where((f) => f.masterController?.motorStatus == 'on').length;
 
             final unreadAlerts = state.alerts.where((a) => !a.isRead).take(3).toList();
 
@@ -136,9 +136,9 @@ class _DashboardPageState extends State<DashboardPage> {
                         color: const Color(0xFF10B981),
                       ),
                       DashboardMetricCard(
-                        title: 'Failed Commands',
-                        value: '$failedCommands',
-                        icon: Icons.cancel_schedule_send_rounded,
+                        title: 'Motors Running',
+                        value: '$runningMotors',
+                        icon: Icons.bolt_rounded,
                         color: const Color(0xFFEF4444),
                       ),
                       DashboardMetricCard(

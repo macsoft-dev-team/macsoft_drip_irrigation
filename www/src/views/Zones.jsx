@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react"
-import { Play, Square, Droplet, Sprout, AlertCircle, ThermometerSun } from "lucide-react"
+import { Play, Square, Droplet, Sprout, AlertCircle, ThermometerSun, Plus } from "lucide-react"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 
-export default function Zones() {
+export default function Zones({ navigate, setPreselectedZone }) {
   // Zone states
   const [zones, setZones] = useState([
-    { id: 1, name: "Front Lawn & Turf", location: "Sector A-1", status: "Idle", moisture: 45, flowRate: 0, durationLeft: 0 },
+    { id: 1, name: "Front Lawn", location: "Sector A-1", status: "Idle", moisture: 45, flowRate: 0, durationLeft: 0 },
     { id: 2, name: "Orchard & Vines", location: "Sector B-3", status: "Idle", moisture: 38, flowRate: 0, durationLeft: 0 },
     { id: 3, name: "Vegetable Beds", location: "Sector C-2", status: "Watering", moisture: 48, flowRate: 8.5, durationLeft: 240 },
     { id: 4, name: "Greenhouse Herbs", location: "Greenhouse-1", status: "Idle", moisture: 21, flowRate: 0, durationLeft: 0 }
@@ -128,27 +128,44 @@ export default function Zones() {
                   </div>
                 </div>
 
-                {/* Valve action button */}
-                <button 
-                  onClick={() => toggleWatering(zone.id)}
-                  className={`w-full py-2 rounded-md font-semibold text-xs flex items-center justify-center gap-2 border transition-all ${
-                    isWatering 
-                      ? "bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/30 text-red-600 dark:text-red-400 border-red-200/60 dark:border-red-950/50" 
-                      : "bg-blue-500 hover:bg-blue-600 text-white border-transparent shadow-xs"
-                  }`}
-                >
-                  {isWatering ? (
-                    <>
-                      <Square className="h-3.5 w-3.5 fill-current" />
-                      <span>Shut Off Valve</span>
-                    </>
-                  ) : (
-                    <>
-                      <Play className="h-3.5 w-3.5 fill-current" />
-                      <span>Open Valve Now</span>
-                    </>
-                  )}
-                </button>
+                {/* Valve action button grid */}
+                <div className="grid grid-cols-2 gap-2 mt-1">
+                  <button 
+                    onClick={() => toggleWatering(zone.id)}
+                    className={`py-2 rounded-md font-semibold text-xs flex items-center justify-center gap-1.5 border transition-all ${
+                      isWatering 
+                        ? "bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/30 text-red-600 dark:text-red-400 border-red-200/60 dark:border-red-950/50" 
+                        : "bg-blue-500 hover:bg-blue-600 text-white border-transparent shadow-xs"
+                    }`}
+                  >
+                    {isWatering ? (
+                      <>
+                        <Square className="h-3.5 w-3.5 fill-current" />
+                        <span>Stop</span>
+                      </>
+                    ) : (
+                      <>
+                        <Play className="h-3.5 w-3.5 fill-current" />
+                        <span>Water</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button 
+                    onClick={() => {
+                      if (setPreselectedZone) {
+                        setPreselectedZone(zone.name)
+                      }
+                      if (navigate) {
+                        navigate("/schedules")
+                      }
+                    }}
+                    className="py-2 rounded-md font-semibold text-xs flex items-center justify-center gap-1.5 border border-border bg-card hover:bg-muted/50 text-foreground transition-all"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    <span>Schedule</span>
+                  </button>
+                </div>
               </CardContent>
             </Card>
           )

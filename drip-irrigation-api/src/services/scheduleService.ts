@@ -11,10 +11,10 @@ const createScheduleSchema = z.object({
   startTime: z.string().regex(/^\d{2}:\d{2}$/),
   durationMinutes: z.number().int().positive(),
   repeatType: z.enum(["once", "daily", "weekly", "customDays"]).default("daily"),
-  repeatDays: z.array(z.string()).optional(),
+  repeatDays: z.array(z.string()).nullish(),
   timezone: z.string().default("Asia/Kolkata"),
   scheduleType: z.string().optional().default("timeBased"),
-  zoneIds: z.array(z.union([z.number(), z.string()])).optional()
+  zoneIds: z.array(z.union([z.number(), z.string()])).nullish()
 });
 
 const updateScheduleSchema = createScheduleSchema.partial().extend({
@@ -55,7 +55,7 @@ export const scheduleService = {
         startTime: data.startTime,
         durationMinutes: data.durationMinutes,
         repeatType: data.repeatType,
-        repeatDays: data.repeatDays,
+        repeatDays: data.repeatDays ?? undefined,
         timezone: data.timezone,
         scheduleType: data.scheduleType,
         zoneIds: data.zoneIds ? data.zoneIds.map(id => Number(id)) : undefined
@@ -80,8 +80,39 @@ export const scheduleService = {
         ...data,
         fieldId: data.fieldId ? BigInt(data.fieldId) : undefined,
         targetId: data.targetId ? BigInt(data.targetId) : undefined,
+        repeatDays: data.repeatDays ?? undefined,
         zoneIds: data.zoneIds ? data.zoneIds.map(id => Number(id)) : undefined
       }
+    });
+  },
+
+  async pause(auth: Express.Request["auth"], scheduleId: bigint) {
+    if (!auth) throw new AppError(401, "Authentication required", "authRequired");
+
+    const schedule = await prisma.irrigationSchedule.findUnique({ where: { id: scheduleId } });
+    if (!schedule) throw new AppError(404, "Schedule not found", "scheduleNotFound");
+    if (auth.role === "farmer" && schedule.farmerId !== auth.farmerId) {
+      throw new AppError(403, "Forbidden", "forbidden");
+    }
+
+    return prisma.irrigationSchedule.update({
+      where: { id: scheduleId },
+      data: { status: "paused" }
+    });
+  },
+
+  async resume(auth: Express.Request["auth"], scheduleId: bigint) {
+    if (!auth) throw new AppError(401, "Authentication required", "authRequired");
+
+    const schedule = await prisma.irrigationSchedule.findUnique({ where: { id: scheduleId } });
+    if (!schedule) throw new AppError(404, "Schedule not found", "scheduleNotFound");
+    if (auth.role === "farmer" && schedule.farmerId !== auth.farmerId) {
+      throw new AppError(403, "Forbidden", "forbidden");
+    }
+
+    return prisma.irrigationSchedule.update({
+      where: { id: scheduleId },
+      data: { status: "active" }
     });
   },
 

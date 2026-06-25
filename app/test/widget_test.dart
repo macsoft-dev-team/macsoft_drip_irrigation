@@ -15,7 +15,7 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text('System Login'), findsOneWidget);
-    expect(find.text('Initialize'), findsOneWidget);
+    expect(find.text('DripFlow'), findsOneWidget);
+    expect(find.text('Welcome, Farmer!'), findsOneWidget);
   });
 }

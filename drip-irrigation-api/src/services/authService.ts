@@ -77,7 +77,7 @@ export const authService = {
 
     const user = await prisma.user.findUnique({
       where: { phone: data.phone },
-      include: { farmer: true, distributor: true }
+      include: { farmer: true, distributor: true, dealer: true }
     });
 
     if (!user || user.status !== "active") {
@@ -95,7 +95,7 @@ export const authService = {
       name: user.name || undefined,
       email: user.email || undefined,
       phone: user.phone,
-      tenantId: user.farmer?.id.toString() || user.distributor?.id.toString() || undefined
+      tenantId: user.farmer?.id.toString() || user.distributor?.id.toString() || user.belongsToDistributorId?.toString() || user.dealer?.id.toString() || user.belongsToDealerId?.toString() || undefined
     });
     return { token, user };
   },
@@ -103,7 +103,7 @@ export const authService = {
   async me(userId: bigint) {
     return prisma.user.findUnique({
       where: { id: userId },
-      include: { farmer: true, distributor: true }
+      include: { farmer: true, distributor: true, dealer: true }
     });
   }
 };

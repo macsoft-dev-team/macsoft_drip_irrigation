@@ -12,6 +12,10 @@ import { orderRoutes } from "./orderRoutes";
 import { servicePlanRoutes } from "./servicePlanRoutes";
 import { supportTicketRoutes } from "./supportTicketRoutes";
 import { adminRoutes } from "./adminRoutes";
+import { userRoutes } from "./userRoutes";
+import { inventoryRoutes } from "./inventoryRoutes";
+import { reportRoutes } from "./reportRoutes";
+import { settingsRoutes } from "./settingsRoutes";
 
 export const apiRoutes = Router();
 
@@ -28,3 +32,7 @@ apiRoutes.use("/orders", orderRoutes);
 apiRoutes.use("/servicePlans", servicePlanRoutes);
 apiRoutes.use("/supportTickets", supportTicketRoutes);
 apiRoutes.use("/admin", adminRoutes);
+apiRoutes.use("/users", userRoutes);
+apiRoutes.use("/inventory", inventoryRoutes);
+apiRoutes.use("/reports", reportRoutes);
+apiRoutes.use("/settings", settingsRoutes);

@@ -17,7 +17,8 @@ export async function requireAuth(req: Request, _res: Response, next: NextFuncti
       where: { id: BigInt(payload.userId) },
       include: {
         farmer: true,
-        distributor: true
+        distributor: true,
+        dealer: true
       }
     });
 
@@ -28,8 +29,9 @@ export async function requireAuth(req: Request, _res: Response, next: NextFuncti
     req.auth = {
       userId: user.id,
       role: user.role,
-      farmerId: user.farmer?.id,
-      distributorId: user.distributor?.id
+      farmerId: user.farmer?.id || undefined,
+      distributorId: user.distributor?.id || user.belongsToDistributorId || undefined,
+      dealerId: user.dealer?.id || user.belongsToDealerId || undefined
     };
 
     next();

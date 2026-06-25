@@ -18,7 +18,7 @@ async function main() {
   const adminPassword = await hashPassword("admin12345");
   const farmerPassword = await hashPassword("farmer12345");
 
-  await prisma.user.upsert({
+  const adminUser = await prisma.user.upsert({
     where: { phone: "9999999999" },
     update: {},
     create: {
@@ -26,6 +26,96 @@ async function main() {
       phone: "9999999999",
       passwordHash: adminPassword,
       role: "admin"
+    }
+  });
+
+  const distributorPassword = await hashPassword("distributor12345");
+  const distributorUser = await prisma.user.upsert({
+    where: { phone: "7777777777" },
+    update: {},
+    create: {
+      name: "Demo Distributor",
+      phone: "7777777777",
+      passwordHash: distributorPassword,
+      role: "distributor",
+      distributor: {
+        create: {
+          businessName: "Macro Drip Distributors",
+          gstNumber: "GST123456789",
+          address: "Distributor Hub, Industrial Area"
+        }
+      }
+    },
+    include: { distributor: true }
+  });
+
+  const dealerPassword = await hashPassword("dealer12345");
+  const dealerUser = await prisma.user.upsert({
+    where: { phone: "6666666666" },
+    update: {},
+    create: {
+      name: "Demo Dealer",
+      phone: "6666666666",
+      passwordHash: dealerPassword,
+      role: "dealer",
+      hasWholesalePricing: true, // Optional wholesale enabled
+      dealer: {
+        create: {
+          businessName: "Agri Drip Retailers",
+          gstNumber: "GST987654321",
+          address: "Dealer Shop, Market Street"
+        }
+      }
+    },
+    include: { dealer: true }
+  });
+
+  const salesPassword = await hashPassword("sales12345");
+  await prisma.user.upsert({
+    where: { phone: "5555555555" },
+    update: {},
+    create: {
+      name: "Demo Sales",
+      phone: "5555555555",
+      passwordHash: salesPassword,
+      role: "sales"
+    }
+  });
+
+  const csPassword = await hashPassword("support12345");
+  await prisma.user.upsert({
+    where: { phone: "4444444444" },
+    update: {},
+    create: {
+      name: "Demo Support",
+      phone: "4444444444",
+      passwordHash: csPassword,
+      role: "customer_service"
+    }
+  });
+
+  const techPassword = await hashPassword("tech12345");
+  await prisma.user.upsert({
+    where: { phone: "3333333333" },
+    update: {},
+    create: {
+      name: "Demo Technician",
+      phone: "3333333333",
+      passwordHash: techPassword,
+      role: "technician"
+    }
+  });
+
+  const tenantAdminPassword = await hashPassword("tenant12345");
+  await prisma.user.upsert({
+    where: { phone: "2222222222" },
+    update: {},
+    create: {
+      name: "Demo Tenant Admin",
+      phone: "2222222222",
+      passwordHash: tenantAdminPassword,
+      role: "tenant_admin",
+      belongsToDistributorId: distributorUser.distributor!.id
     }
   });
 
@@ -41,7 +131,9 @@ async function main() {
         create: {
           village: "Demo Village",
           district: "Demo District",
-          state: "Demo State"
+          state: "Demo State",
+          distributorId: distributorUser.distributor!.id,
+          dealerId: dealerUser.dealer!.id
         }
       }
     },
@@ -128,7 +220,8 @@ async function main() {
       name: "4G Master Controller",
       sku: "MASTER-4G-001",
       type: "masterController",
-      price: 8500
+      price: 8500,
+      wholesalePrice: 7000
     }
   });
 
@@ -139,7 +232,8 @@ async function main() {
       name: "Irrigation Valve",
       sku: "VALVE-001",
       type: "valve",
-      price: 1200
+      price: 1200,
+      wholesalePrice: 950
     }
   });
 
@@ -150,7 +244,8 @@ async function main() {
       name: "Platform & Remote Support Fee",
       sku: "SERVICE-FEE-001",
       type: "serviceFee",
-      price: 499
+      price: 499,
+      wholesalePrice: 400
     }
   });
 
