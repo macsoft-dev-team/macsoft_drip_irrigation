@@ -62,7 +62,7 @@ const navSettings = [
   },
 ]
 
-export default function SaasLayout({ children, currentPath = "/dashboard", navigate }) {
+export default function SaasLayout({ children, currentPath = "/dashboard", navigate, onLogout }) {
   const handleNavClick = (e, url) => {
     e.preventDefault()
     if (navigate) {
@@ -204,7 +204,10 @@ export default function SaasLayout({ children, currentPath = "/dashboard", navig
           <SidebarFooter className="p-4 border-t border-sidebar-border">
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50">
+                <SidebarMenuButton 
+                  className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50 cursor-pointer"
+                  onClick={onLogout}
+                >
                   <LogOut className="h-4 w-4" />
                   <span>Log out</span>
                 </SidebarMenuButton>
