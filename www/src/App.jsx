@@ -8,9 +8,13 @@ import SystemConfig from "@/views/SystemConfig"
 import AlertLimits from "@/views/AlertLimits"
 import Notifications from "@/views/Notifications"
 import Diagnostics from "@/views/Diagnostics"
+import Login from "@/views/Login"
 
 function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname)
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return localStorage.getItem("drip_admin_auth") === "true"
+  })
 
   useEffect(() => {
     const handleLocationChange = () => {
@@ -28,6 +32,17 @@ function App() {
       window.removeEventListener("popstate", handleLocationChange)
     }
   }, [])
+
+  // Sync route path with authentication state
+  useEffect(() => {
+    if (!isAuthenticated && currentPath !== "/login") {
+      window.history.replaceState({}, "", "/login")
+      setCurrentPath("/login")
+    } else if (isAuthenticated && currentPath === "/login") {
+      window.history.replaceState({}, "", "/dashboard")
+      setCurrentPath("/dashboard")
+    }
+  }, [isAuthenticated, currentPath])
 
   const navigate = (to) => {
     window.history.pushState({}, "", to)
@@ -57,8 +72,28 @@ function App() {
     }
   }
 
+  if (!isAuthenticated || currentPath === "/login") {
+    return (
+      <Login
+        onLogin={() => {
+          localStorage.setItem("drip_admin_auth", "true")
+          setIsAuthenticated(true)
+          navigate("/dashboard")
+        }}
+      />
+    )
+  }
+
   return (
-    <SaasLayout currentPath={currentPath} navigate={navigate}>
+    <SaasLayout 
+      currentPath={currentPath} 
+      navigate={navigate}
+      onLogout={() => {
+        localStorage.removeItem("drip_admin_auth")
+        setIsAuthenticated(false)
+        navigate("/login")
+      }}
+    >
       {renderView()}
     </SaasLayout>
   )
