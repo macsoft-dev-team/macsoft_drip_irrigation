@@ -6,6 +6,7 @@ declare global {
         role: string;
         farmerId?: bigint;
         distributorId?: bigint;
+        dealerId?: bigint;
       };
     }
   }

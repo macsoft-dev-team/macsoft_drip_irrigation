@@ -8,10 +8,15 @@ datasource db {
 }
 
 enum UserRole {
-  farmer
   admin
-  distributor
+  tenant_admin
+  sales
   technician
+  customer_service
+  warehouse_manager
+  distributor
+  dealer
+  farmer
 }
 
 enum UserStatus {
@@ -186,21 +191,30 @@ enum TicketStatus {
 }
 
 model User {
-  id           BigInt     @id @default(autoincrement())
-  name         String     @db.VarChar(150)
-  phone        String     @unique @db.VarChar(20)
-  email        String?    @unique @db.VarChar(150)
-  passwordHash String     @db.VarChar(255)
-  role         UserRole
-  status       UserStatus @default(active)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  id                     BigInt      @id @default(autoincrement())
+  name                   String      @db.VarChar(150)
+  phone                  String      @unique @db.VarChar(20)
+  email                  String?     @unique @db.VarChar(150)
+  passwordHash           String      @db.VarChar(255)
+  role                   UserRole
+  status                 UserStatus  @default(active)
+  hasWholesalePricing    Boolean     @default(false)
+  belongsToDistributorId BigInt?
+  belongsToDealerId      BigInt?
+  createdAt              DateTime    @default(now())
+  updatedAt              DateTime    @updatedAt
 
-  farmer       Farmer?
-  distributor  Distributor?
-  requestedCommands Command[] @relation("requestedCommands")
-  assignedTickets SupportTicket[] @relation("assignedTickets")
+  farmer                 Farmer?
+  distributor            Distributor?
+  dealer                 Dealer?     @relation("dealerProfile")
+  belongsToDistributor   Distributor? @relation("distributorUsers", fields: [belongsToDistributorId], references: [id])
+  belongsToDealer        Dealer?     @relation("dealerUsers", fields: [belongsToDealerId], references: [id])
+  requestedCommands      Command[]   @relation("requestedCommands")
+  assignedTickets        SupportTicket[] @relation("assignedTickets")
+  createdOrders          Order[]     @relation("createdOrders")
 
+  @@index([belongsToDistributorId])
+  @@index([belongsToDealerId])
   @@map("users")
 }
 
@@ -208,6 +222,7 @@ model Farmer {
   id            BigInt   @id @default(autoincrement())
   userId        BigInt   @unique
   distributorId BigInt?
+  dealerId      BigInt?
   address       String?  @db.Text
   village       String?  @db.VarChar(150)
   district      String?  @db.VarChar(150)
@@ -218,6 +233,7 @@ model Farmer {
 
   user          User     @relation(fields: [userId], references: [id])
   distributor   Distributor? @relation(fields: [distributorId], references: [id])
+  dealer        Dealer?  @relation(fields: [dealerId], references: [id])
   fields        Field[]
   commands      Command[]
   schedules     IrrigationSchedule[]
@@ -226,6 +242,7 @@ model Farmer {
   supportTickets SupportTicket[]
 
   @@index([distributorId])
+  @@index([dealerId])
   @@map("farmers")
 }
 
@@ -240,8 +257,10 @@ model Distributor {
   updatedAt    DateTime   @updatedAt
 
   user         User       @relation(fields: [userId], references: [id])
+  users        User[]     @relation("distributorUsers")
   farmers      Farmer[]
   orders       Order[]
+  inventoryItems InventoryItem[]
 
   @@map("distributors")
 }
@@ -496,17 +515,19 @@ model ScheduleRun {
 }
 
 model Product {
-  id          BigInt        @id @default(autoincrement())
-  name        String        @db.VarChar(200)
-  sku         String        @unique @db.VarChar(100)
-  type        ProductType
-  description String?       @db.Text
-  price       Decimal       @db.Decimal(10, 2)
-  status      ProductStatus @default(active)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id             BigInt        @id @default(autoincrement())
+  name           String        @db.VarChar(200)
+  sku            String        @unique @db.VarChar(100)
+  type           ProductType
+  description    String?       @db.Text
+  price          Decimal       @db.Decimal(10, 2)
+  wholesalePrice Decimal       @default(0) @db.Decimal(10, 2)
+  status         ProductStatus @default(active)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
-  orderItems  OrderItem[]
+  orderItems     OrderItem[]
+  inventoryItems InventoryItem[]
 
   @@map("products")
 }
@@ -515,6 +536,8 @@ model Order {
   id            BigInt        @id @default(autoincrement())
   farmerId      BigInt
   distributorId BigInt?
+  dealerId      BigInt?
+  createdById   BigInt?
   orderNumber   String        @unique @db.VarChar(100)
   subtotal      Decimal       @default(0) @db.Decimal(10, 2)
   platformFee   Decimal       @default(0) @db.Decimal(10, 2)
@@ -527,10 +550,14 @@ model Order {
 
   farmer        Farmer        @relation(fields: [farmerId], references: [id])
   distributor   Distributor?  @relation(fields: [distributorId], references: [id])
+  dealer        Dealer?       @relation(fields: [dealerId], references: [id])
+  createdBy     User?         @relation("createdOrders", fields: [createdById], references: [id])
   items         OrderItem[]
 
   @@index([farmerId])
   @@index([distributorId])
+  @@index([dealerId])
+  @@index([createdById])
   @@map("orders")
 }
 
@@ -571,6 +598,11 @@ model FarmerServicePlan {
   @@map("farmerServicePlans")
 }
 
+enum TicketType {
+  installation
+  service
+}
+
 model SupportTicket {
   id                 BigInt         @id @default(autoincrement())
   farmerId           BigInt
@@ -582,6 +614,7 @@ model SupportTicket {
   description        String?        @db.Text
   priority           TicketPriority @default(medium)
   status             TicketStatus   @default(open)
+  ticketType         TicketType     @default(service)
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
 
@@ -594,4 +627,41 @@ model SupportTicket {
   @@index([farmerId, status])
   @@index([assignedToUserId])
   @@map("supportTickets")
+}
+
+model Dealer {
+  id           BigInt     @id @default(autoincrement())
+  userId       BigInt     @unique
+  businessName String     @db.VarChar(200)
+  gstNumber    String?    @db.VarChar(50)
+  address      String?    @db.Text
+  status       UserStatus @default(active)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  user         User       @relation("dealerProfile", fields: [userId], references: [id])
+  users        User[]     @relation("dealerUsers")
+  farmers      Farmer[]
+  orders       Order[]
+  inventoryItems InventoryItem[]
+
+  @@map("dealers")
+}
+
+model InventoryItem {
+  id            BigInt   @id @default(autoincrement())
+  productId     BigInt
+  distributorId BigInt?
+  dealerId      BigInt?
+  quantity      Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  product       Product  @relation(fields: [productId], references: [id])
+  distributor   Distributor? @relation(fields: [distributorId], references: [id])
+  dealer        Dealer?  @relation(fields: [dealerId], references: [id])
+
+  @@unique([productId, distributorId])
+  @@unique([productId, dealerId])
+  @@map("inventoryItems")
 }

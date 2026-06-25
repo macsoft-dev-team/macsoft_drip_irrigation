@@ -6,6 +6,7 @@ import { uid } from "../lib/ids";
 const createOrderSchema = z.object({
   farmerId: z.string().optional(),
   distributorId: z.string().optional(),
+  dealerId: z.string().optional(),
   platformFee: z.number().nonnegative().default(0),
   taxAmount: z.number().nonnegative().default(0),
   items: z.array(z.object({
@@ -18,13 +19,20 @@ export const orderService = {
   async list(auth: Express.Request["auth"]) {
     if (!auth) throw new AppError(401, "Authentication required", "authRequired");
 
+    const forbiddenRoles = ["technician"];
+    if (forbiddenRoles.includes(auth.role)) {
+      throw new AppError(403, "Forbidden", "forbidden");
+    }
+
     return prisma.order.findMany({
       where:
         auth.role === "farmer"
           ? { farmerId: auth.farmerId }
           : auth.role === "distributor"
-            ? { distributorId: auth.distributorId }
-            : {},
+            ? { OR: [{ distributorId: auth.distributorId }, { createdById: auth.userId }] }
+            : auth.role === "dealer"
+              ? { OR: [{ dealerId: auth.dealerId }, { createdById: auth.userId }] }
+              : {}, // sales, customer_service, admin, tenant_admin see all
       include: { items: { include: { product: true } } },
       orderBy: { id: "desc" }
     });
@@ -32,6 +40,12 @@ export const orderService = {
 
   async create(auth: Express.Request["auth"], input: unknown) {
     if (!auth) throw new AppError(401, "Authentication required", "authRequired");
+
+    const allowedRoles = ["farmer", "dealer", "distributor", "sales", "admin", "tenant_admin"];
+    if (!allowedRoles.includes(auth.role)) {
+      throw new AppError(403, "Forbidden", "forbidden");
+    }
+
     const data = createOrderSchema.parse(input);
 
     const farmerId = auth.role === "farmer" ? auth.farmerId! : BigInt(data.farmerId!);
@@ -40,6 +54,13 @@ export const orderService = {
         ? auth.distributorId
         : data.distributorId
           ? BigInt(data.distributorId)
+          : undefined;
+
+    const dealerId =
+      auth.role === "dealer"
+        ? auth.dealerId
+        : data.dealerId
+          ? BigInt(data.dealerId)
           : undefined;
 
     const products = await prisma.product.findMany({
@@ -52,10 +73,20 @@ export const orderService = {
       throw new AppError(400, "One or more products are invalid", "invalidProducts");
     }
 
+    const user = await prisma.user.findUnique({
+      where: { id: auth.userId }
+    });
+
+    const useWholesale =
+      auth.role === "distributor" ||
+      auth.role === "admin" ||
+      auth.role === "tenant_admin" ||
+      (auth.role === "dealer" && user?.hasWholesalePricing === true);
+
     const itemRows = data.items.map((item) => {
       const product = products.find((p) => p.id === BigInt(item.productId))!;
       const quantity = item.quantity;
-      const unitPrice = Number(product.price);
+      const unitPrice = useWholesale ? Number(product.wholesalePrice || product.price) : Number(product.price);
       const totalPrice = unitPrice * quantity;
       return {
         productId: product.id,
@@ -72,6 +103,8 @@ export const orderService = {
       data: {
         farmerId,
         distributorId,
+        dealerId,
+        createdById: auth.userId,
         orderNumber: uid("ord"),
         subtotal,
         platformFee: data.platformFee,

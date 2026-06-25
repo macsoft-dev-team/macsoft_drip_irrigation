@@ -8,6 +8,7 @@ import 'master_controller_detail_screen.dart';
 import 'zone_detail_screen.dart';
 import 'schedule_list_screen.dart';
 import 'command_status_screen.dart';
+import '../models/master_controller.dart';
 
 class FieldDetailScreen extends StatelessWidget {
   final String fieldId;
@@ -190,6 +191,10 @@ class FieldDetailScreen extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (field.masterController != null) ...[
+                  const SizedBox(height: 12),
+                  _buildMotorCard(context, state, field),
+                ],
                 const SizedBox(height: 24),
 
                 // Bulk controls
@@ -223,6 +228,29 @@ class FieldDetailScreen extends StatelessWidget {
                     ),
                   ),
                 ],
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ScheduleFormScreen(initialFieldId: field.id),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.add_alarm_rounded, size: 20),
+                  label: const Text('Create Irrigation Schedule'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2D7A3A),
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size.fromHeight(52),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    elevation: 2,
+                    shadowColor: const Color(0xFF2D7A3A).withValues(alpha: 0.3),
+                  ),
+                ),
                 const SizedBox(height: 28),
 
                 // Zones list section
@@ -304,6 +332,124 @@ class FieldDetailScreen extends StatelessWidget {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Future<void> _togglePump(BuildContext context, AppState state, String mcId, bool start) async {
+    final confirmed = await ConfirmActionDialog.show(
+      context,
+      title: start ? 'Start Pump Motor' : 'Stop Pump Motor',
+      content: start
+          ? 'Are you sure you want to turn ON the water pump motor?'
+          : 'Are you sure you want to turn OFF the water pump motor?',
+      isDestructive: !start,
+    );
+
+    if (confirmed && context.mounted) {
+      final ok = await state.controlMotor(mcId, start ? 'start' : 'stop');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(ok
+                ? 'Pump motor command dispatched successfully.'
+                : 'Failed to dispatch command to pump motor.'),
+            backgroundColor: ok ? const Color(0xFF2D7A3A) : const Color(0xFFDC2626),
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildMotorCard(BuildContext context, AppState state, Field field) {
+    final mc = field.masterController!;
+    final isPumpRunning = mc.motorStatus == 'on';
+    final isOnline = mc.isOnline;
+
+    return Card(
+      color: Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.bolt_rounded, color: Color(0xFFF59E0B), size: 22),
+                    SizedBox(width: 8),
+                    Text(
+                      'Field Pump Motor',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF1E2A1F),
+                      ),
+                    ),
+                  ],
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: isPumpRunning
+                        ? const Color(0xFF10B981).withValues(alpha: 0.1)
+                        : const Color(0xFF9CA3AF).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    isPumpRunning ? 'RUNNING' : 'STOPPED',
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w900,
+                      color: isPumpRunning ? const Color(0xFF10B981) : const Color(0xFF6B7280),
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              isPumpRunning
+                  ? 'The main field water pump is active and delivering water.'
+                  : 'The main field water pump is currently standby.',
+              style: const TextStyle(fontSize: 12, color: Color(0xFF8A958A), height: 1.4),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              height: 40,
+              child: ElevatedButton.icon(
+                onPressed: isOnline ? () => _togglePump(context, state, mc.id, !isPumpRunning) : null,
+                icon: Icon(
+                  isPumpRunning ? Icons.stop_circle_rounded : Icons.play_circle_rounded,
+                  size: 18,
+                ),
+                label: Text(
+                  isPumpRunning ? 'Stop Motor' : 'Start Motor',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isPumpRunning ? const Color(0xFFEF4444) : const Color(0xFF2D7A3A),
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ),
+            if (!isOnline) ...[
+              const SizedBox(height: 6),
+              const Center(
+                child: Text(
+                  'Motor commands disabled: Master Controller is offline.',
+                  style: TextStyle(fontSize: 10, color: Color(0xFFDC2626), fontWeight: FontWeight.w500),
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

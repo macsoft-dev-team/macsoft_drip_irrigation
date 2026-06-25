@@ -1,8 +1,8 @@
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { Clock, Plus, Trash2, Calendar, Droplets } from "lucide-react"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 
-export default function Schedules() {
+export default function Schedules({ preselectedZone, setPreselectedZone }) {
   const [schedules, setSchedules] = useState([
     { id: 1, name: "Morning Soak", zone: "Front Lawn", time: "06:00 AM", duration: 25, days: ["Mon", "Wed", "Fri"], active: true },
     { id: 2, name: "Orchard Mist", zone: "Orchard & Vines", time: "08:30 AM", duration: 15, days: ["Tue", "Thu", "Sat"], active: true },
@@ -16,6 +16,17 @@ export default function Schedules() {
   const [time, setTime] = useState("08:00 AM")
   const [duration, setDuration] = useState(15)
   const [days, setDays] = useState("Daily")
+
+  // Load preselected zone if passed from the zones card click
+  useEffect(() => {
+    if (preselectedZone) {
+      setZone(preselectedZone)
+      // Reset after loading so direct visits to the page are fresh
+      if (setPreselectedZone) {
+        setPreselectedZone("")
+      }
+    }
+  }, [preselectedZone, setPreselectedZone])
 
   const addSchedule = (e) => {
     e.preventDefault()
@@ -82,6 +93,7 @@ export default function Schedules() {
                   
                   {/* Toggle Switch */}
                   <button 
+                    type="button"
                     onClick={() => toggleSchedule(s.id)}
                     className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-hidden ${
                       s.active ? "bg-blue-500" : "bg-border"
@@ -94,6 +106,7 @@ export default function Schedules() {
 
                   {/* Delete Button */}
                   <button 
+                    type="button"
                     onClick={() => deleteSchedule(s.id)}
                     className="p-1.5 text-muted-foreground hover:text-red-500 rounded-md transition-colors"
                   >

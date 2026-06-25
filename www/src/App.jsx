@@ -11,6 +11,7 @@ import Diagnostics from "@/views/Diagnostics"
 
 function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname)
+  const [preselectedZone, setPreselectedZone] = useState("")
 
   useEffect(() => {
     const handleLocationChange = () => {
@@ -38,9 +39,9 @@ function App() {
   const renderView = () => {
     switch (currentPath) {
       case "/zones":
-        return <Zones />
+        return <Zones navigate={navigate} setPreselectedZone={setPreselectedZone} />
       case "/schedules":
-        return <Schedules />
+        return <Schedules preselectedZone={preselectedZone} setPreselectedZone={setPreselectedZone} />
       case "/sensors":
         return <Sensors />
       case "/settings/config":
