@@ -21,7 +21,11 @@ class ZoneDetailScreen extends StatelessWidget {
     required this.fieldId,
   });
 
-  Future<void> _triggerZoneCommand(BuildContext context, Zone zone, String action) async {
+  Future<void> _triggerZoneCommand(
+    BuildContext context,
+    Zone zone,
+    String action,
+  ) async {
     final confirmed = await ConfirmActionDialog.show(
       context,
       title: action == 'open' ? 'Open Zone' : 'Close Zone',
@@ -33,26 +37,40 @@ class ZoneDetailScreen extends StatelessWidget {
 
     if (confirmed && context.mounted) {
       final state = context.read<AppState>();
-      await state.executeCommand(targetType: 'zone', targetId: zone.id, action: action);
+      await state.executeCommand(
+        targetType: 'zone',
+        targetId: zone.id,
+        action: action,
+      );
       if (context.mounted && state.activeCommand != null) {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => CommandStatusScreen(commandId: state.activeCommand!.id),
+            builder: (context) =>
+                CommandStatusScreen(commandId: state.activeCommand!.id),
           ),
         );
       }
     }
   }
 
-  Future<void> _triggerValveCommand(BuildContext context, Valve valve, String action) async {
+  Future<void> _triggerValveCommand(
+    BuildContext context,
+    Valve valve,
+    String action,
+  ) async {
     final state = context.read<AppState>();
-    await state.executeCommand(targetType: 'valve', targetId: valve.id, action: action);
+    await state.executeCommand(
+      targetType: 'valve',
+      targetId: valve.id,
+      action: action,
+    );
     if (context.mounted && state.activeCommand != null) {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => CommandStatusScreen(commandId: state.activeCommand!.id),
+          builder: (context) =>
+              CommandStatusScreen(commandId: state.activeCommand!.id),
         ),
       );
     }
@@ -70,7 +88,8 @@ class ZoneDetailScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => ZoneFormScreen(fieldId: fieldId, zoneId: zoneId),
+                  builder: (context) =>
+                      ZoneFormScreen(fieldId: fieldId, zoneId: zoneId),
                 ),
               );
             },
@@ -81,11 +100,15 @@ class ZoneDetailScreen extends StatelessWidget {
               final confirmed = await ConfirmActionDialog.show(
                 context,
                 title: 'Delete Zone',
-                content: 'Are you sure you want to delete this zone and all its valves? This cannot be undone.',
+                content:
+                    'Are you sure you want to delete this zone and all its valves? This cannot be undone.',
                 isDestructive: true,
               );
               if (confirmed && context.mounted) {
-                final ok = await context.read<AppState>().deleteZone(zoneId, fieldId);
+                final ok = await context.read<AppState>().deleteZone(
+                  zoneId,
+                  fieldId,
+                );
                 if (ok && context.mounted) {
                   Navigator.pop(context);
                 }
@@ -97,7 +120,8 @@ class ZoneDetailScreen extends StatelessWidget {
       body: Consumer<AppState>(
         builder: (context, state, _) {
           final fieldIdx = state.fields.indexWhere((f) => f.id == fieldId);
-          if (fieldIdx == -1) return const Center(child: Text('Field not found'));
+          if (fieldIdx == -1)
+            return const Center(child: Text('Field not found'));
           final field = state.fields[fieldIdx];
 
           final zoneIdx = field.zones.indexWhere((z) => z.id == zoneId);
@@ -131,7 +155,8 @@ class ZoneDetailScreen extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => ValveFormScreen(fieldId: field.id, zoneId: zone.id),
+                    builder: (context) =>
+                        ValveFormScreen(fieldId: field.id, zoneId: zone.id),
                   ),
                 );
               },
@@ -224,7 +249,11 @@ class _ZoneFormScreenState extends State<ZoneFormScreen> {
     if (ok) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(widget.zoneId == null ? 'Zone created successfully' : 'Zone updated successfully'),
+          content: Text(
+            widget.zoneId == null
+                ? 'Zone created successfully'
+                : 'Zone updated successfully',
+          ),
           backgroundColor: const Color(0xFF2D7A3A),
         ),
       );
@@ -237,9 +266,7 @@ class _ZoneFormScreenState extends State<ZoneFormScreen> {
     final isEdit = widget.zoneId != null;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(isEdit ? 'Edit Zone' : 'Add Zone'),
-      ),
+      appBar: AppBar(title: Text(isEdit ? 'Edit Zone' : 'Add Zone')),
       body: Form(
         key: _formKey,
         child: SingleChildScrollView(
@@ -250,7 +277,8 @@ class _ZoneFormScreenState extends State<ZoneFormScreen> {
                 label: 'Zone Name',
                 hint: 'e.g. Zone A (High Flow)',
                 controller: _nameController,
-                validator: (v) => v == null || v.isEmpty ? 'Zone name is required' : null,
+                validator: (v) =>
+                    v == null || v.isEmpty ? 'Zone name is required' : null,
               ),
               const SizedBox(height: 16),
               AppTextField(

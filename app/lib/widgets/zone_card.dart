@@ -58,16 +58,24 @@ class ZoneCard extends StatelessWidget {
                         const SizedBox(height: 2),
                         Text(
                           zone.description!,
-                          style: const TextStyle(fontSize: 12, color: Color(0xFF8A958A)),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF8A958A),
+                          ),
                         ),
                       ],
                     ],
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
-                    color: openCount > 0 ? const Color(0xFFE8F5E9) : const Color(0xFFECEFF1),
+                    color: openCount > 0
+                        ? const Color(0xFFE8F5E9)
+                        : const Color(0xFFECEFF1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -75,7 +83,9 @@ class ZoneCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
-                      color: openCount > 0 ? const Color(0xFF2D7A3A) : const Color(0xFF546E7A),
+                      color: openCount > 0
+                          ? const Color(0xFF2D7A3A)
+                          : const Color(0xFF546E7A),
                     ),
                   ),
                 ),
@@ -93,7 +103,9 @@ class ZoneCard extends StatelessWidget {
                       foregroundColor: const Color(0xFF2D7A3A),
                       side: const BorderSide(color: Color(0xFF2D7A3A)),
                       padding: const EdgeInsets.symmetric(vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                   ),
                 ),
@@ -107,7 +119,9 @@ class ZoneCard extends StatelessWidget {
                       foregroundColor: const Color(0xFFDC2626),
                       side: const BorderSide(color: Color(0xFFDC2626)),
                       padding: const EdgeInsets.symmetric(vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                   ),
                 ),
@@ -120,15 +134,15 @@ class ZoneCard extends StatelessWidget {
                 TextButton.icon(
                   onPressed: onAddValve,
                   icon: const Icon(Icons.add, size: 16),
-                  label: const Text('Add Valve', style: TextStyle(fontSize: 12)),
-                  style: TextButton.styleFrom(foregroundColor: const Color(0xFF2D7A3A)),
+                  label: const Text(
+                    'Add Valve',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFF2D7A3A),
+                  ),
                 ),
-                TextButton.icon(
-                  onPressed: onCreateSchedule,
-                  icon: const Icon(Icons.calendar_today, size: 14),
-                  label: const Text('Schedule', style: TextStyle(fontSize: 12)),
-                  style: TextButton.styleFrom(foregroundColor: const Color(0xFF2D7A3A)),
-                ),
+                //
               ],
             ),
             if (zone.valves.isNotEmpty) ...[
@@ -155,11 +169,15 @@ class ZoneCard extends StatelessWidget {
                   padding: EdgeInsets.symmetric(vertical: 16.0),
                   child: Text(
                     'No valves added to this zone yet.',
-                    style: TextStyle(fontSize: 12, color: Color(0xFF8A958A), fontStyle: FontStyle.italic),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF8A958A),
+                      fontStyle: FontStyle.italic,
+                    ),
                   ),
                 ),
               ),
-            ]
+            ],
           ],
         ),
       ),
