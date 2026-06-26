@@ -66,72 +66,7 @@ function MoistureSparkline({ moisture }) {
   )
 }
 
-const initialFields = [
-  {
-    id: 1,
-    name: "North Orchard",
-    location: "Sector A-1",
-    area: "12.5 acres",
-    soilType: "Sandy Loam",
-    zones: [
-      {
-        id: 101,
-        name: "Apple Trees",
-        location: "Row 1-10",
-        moisture: 45.2,
-        valves: [
-          { id: 201, name: "Orchard Main Valve", type: "Solenoid", status: "Closed", flowRate: 0, capacity: 15.0 },
-          { id: 202, name: "Orchard Secondary Valve", type: "Drip", status: "Closed", flowRate: 0, capacity: 8.5 }
-        ]
-      },
-      {
-        id: 102,
-        name: "Vineyard Rows",
-        location: "Row 11-25",
-        moisture: 38.4,
-        valves: [
-          { id: 203, name: "Vineyard Main Drip", type: "Drip", status: "Closed", flowRate: 0, capacity: 12.0 }
-        ]
-      }
-    ]
-  },
-  {
-    id: 2,
-    name: "South Pasture",
-    location: "Sector B-3",
-    area: "15.0 acres",
-    soilType: "Clay Loam",
-    zones: [
-      {
-        id: 103,
-        name: "Vegetable Beds",
-        location: "Sector C-2",
-        moisture: 48.0,
-        valves: [
-          { id: 204, name: "Veggie Spray Valve", type: "Sprinkler", status: "Closed", flowRate: 0, capacity: 18.0 }
-        ]
-      }
-    ]
-  },
-  {
-    id: 3,
-    name: "Greenhouse Herbs",
-    location: "Greenhouse-1",
-    area: "2.0 acres",
-    soilType: "Peat Mix",
-    zones: [
-      {
-        id: 104,
-        name: "Misting Zone",
-        location: "Greenhouse-1",
-        moisture: 21.5,
-        valves: [
-          { id: 205, name: "Micro Mist Valve", type: "Mister", status: "Closed", flowRate: 0, capacity: 5.0 }
-        ]
-      }
-    ]
-  }
-]
+import { initialFields } from "@/lib/mockData"
 
 export default function Fields({ navigate }) {
   // Load fields from localStorage or use initial data
@@ -142,9 +77,6 @@ export default function Fields({ navigate }) {
 
   // State for search/filter query
   const [searchQuery, setSearchQuery] = useState("")
-
-  // Quick tab status filters: 'all' | 'dry' | 'watering'
-  const [activeTab, setActiveTab] = useState("all")
 
   // Form modals state: 'field' | 'zone' | 'valve' | null
   const [activeModal, setActiveModal] = useState(null)
@@ -212,7 +144,12 @@ export default function Fields({ navigate }) {
 
             return { ...zone, moisture: parseFloat(nextMoisture.toFixed(2)), valves: updatedValves }
           })
-          return { ...field, zones: updatedZones }
+
+          // If any valve in the field is open, pump motor must be in ON state
+          const isAnyValveOpen = updatedZones.some(z => (z.valves || []).some(v => v.status === "Open"))
+          const nextMotorStatus = isAnyValveOpen ? "On" : (field.motorStatus || "Off")
+
+          return { ...field, zones: updatedZones, motorStatus: nextMotorStatus }
         })
       )
     }, 1000)
@@ -234,6 +171,37 @@ export default function Fields({ navigate }) {
       ...prev,
       [id]: !prev[id]
     }))
+  }
+
+  // Toggle Pump Motor
+  const toggleMotor = (fieldId) => {
+    setFields(prevFields =>
+      prevFields.map(field => {
+        if (field.id === fieldId) {
+          const nextStatus = field.motorStatus === "On" ? "Off" : "On"
+          
+          // If turning OFF the motor, shut off all valves in the field automatically
+          let updatedZones = field.zones
+          if (nextStatus === "Off") {
+            updatedZones = (field.zones || []).map(zone => {
+              const updatedValves = (zone.valves || []).map(valve => ({
+                ...valve,
+                status: "Closed",
+                flowRate: 0
+              }))
+              return { ...zone, valves: updatedValves }
+            })
+          }
+          
+          return {
+            ...field,
+            motorStatus: nextStatus,
+            zones: updatedZones
+          }
+        }
+        return field
+      })
+    )
   }
 
   // Actuate (Open/Close) Valve
@@ -258,7 +226,11 @@ export default function Fields({ navigate }) {
             }
             return zone
           })
-          return { ...field, zones: updatedZones }
+
+          const isAnyValveOpenNow = updatedZones.some(z => (z.valves || []).some(v => v.status === "Open"))
+          const nextMotorStatus = isAnyValveOpenNow ? "On" : field.motorStatus
+
+          return { ...field, zones: updatedZones, motorStatus: nextMotorStatus }
         }
         return field
       })
@@ -276,6 +248,7 @@ export default function Fields({ navigate }) {
       location: fieldLocation || "N/A",
       area: fieldArea || "0.0 acres",
       soilType: fieldSoilType || "N/A",
+      motorStatus: "Off",
       zones: []
     }
 
@@ -416,24 +389,10 @@ export default function Fields({ navigate }) {
     const q = searchQuery.toLowerCase()
 
     // Search query matches field or zone details
-    const matchSearch = field.name.toLowerCase().includes(q) ||
+    return field.name.toLowerCase().includes(q) ||
       field.location.toLowerCase().includes(q) ||
       field.soilType.toLowerCase().includes(q) ||
       field.zones?.some(z => z.name.toLowerCase().includes(q) || z.location.toLowerCase().includes(q))
-
-    if (!matchSearch) return false
-
-    // Tab filter conditions
-    if (activeTab === "dry") {
-      // At least one zone is dry (< 25% moisture)
-      return field.zones?.some(z => z.moisture < 25)
-    }
-    if (activeTab === "watering") {
-      // At least one valve is open
-      return field.zones?.some(z => z.valves?.some(v => v.status === "Open"))
-    }
-
-    return true
   })
 
   // Open modally pre-filled for field or zone
@@ -601,39 +560,8 @@ export default function Fields({ navigate }) {
         </Card>
       </div>
 
-      {/* 3. Search and Tab filters toolbar - Smaller inputs for user-friendliness */}
-      <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-muted/10 p-3 rounded-xl border border-border/40">
-        {/* Tab filters: Compact & modern */}
-        <div className="flex border border-border/80 bg-background rounded-lg p-0.5 overflow-hidden">
-          <button
-            onClick={() => setActiveTab("all")}
-            className={`px-2.5 py-1 rounded text-[9px] font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer ${activeTab === "all"
-                ? "bg-emerald-500 text-white shadow-xs"
-                : "text-muted-foreground hover:text-foreground"
-              }`}
-          >
-            All Fields
-          </button>
-          <button
-            onClick={() => setActiveTab("dry")}
-            className={`px-2.5 py-1 rounded text-[9px] font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer ${activeTab === "dry"
-                ? "bg-amber-500 text-white shadow-xs"
-                : "text-muted-foreground hover:text-amber-500"
-              }`}
-          >
-            Dry Zones
-          </button>
-          <button
-            onClick={() => setActiveTab("watering")}
-            className={`px-2.5 py-1 rounded text-[9px] font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer ${activeTab === "watering"
-                ? "bg-blue-500 text-white shadow-xs"
-                : "text-muted-foreground hover:text-blue-500"
-              }`}
-          >
-            Watering
-          </button>
-        </div>
-
+      {/* 3. Search toolbar - Smaller inputs for user-friendliness */}
+      <div className="flex bg-muted/10 p-3 rounded-xl border border-gray-200/40">
         {/* Search */}
         <div className="relative w-full md:w-80">
           <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
@@ -641,23 +569,22 @@ export default function Fields({ navigate }) {
             placeholder="Search sectors, zones or soil types..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-8.5 h-8.5 w-full bg-background border-border/80 focus-visible:border-ring text-xs"
+            className="pl-8.5 h-8.5 w-full bg-background border-gray-200/80 focus-visible:border-ring text-xs"
           />
         </div>
       </div>
 
       {/* 4. Tabular Hierarchy Index */}
       {filteredFields.length === 0 ? (
-        <div className="flex flex-col items-center justify-center p-12 border border-dashed border-border/60 rounded-2xl bg-card">
+        <div className="flex flex-col items-center justify-center p-12 border border-dashed border-gray-200/60 rounded-2xl bg-card">
           <Info className="h-8 w-8 text-muted-foreground animate-pulse mb-3" />
           <h3 className="text-sm font-bold text-foreground">No Sectors Matching Criteria</h3>
-          <p className="text-xs text-muted-foreground text-center mt-1 max-w-sm">No records found. Try modifying your tab filter selection or query string.</p>
+          <p className="text-xs text-muted-foreground text-center mt-1 max-w-sm">No records found. Try modifying your query string.</p>
           <Button
             variant="outline"
             size="sm"
             onClick={() => {
               setSearchQuery("")
-              setActiveTab("all")
             }}
             className="mt-4 border-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-semibold cursor-pointer"
           >
@@ -665,17 +592,17 @@ export default function Fields({ navigate }) {
           </Button>
         </div>
       ) : (
-        <div className="border border-border/80 rounded-2xl bg-card overflow-hidden shadow-xs backdrop-blur-md">
+        <div className="border border-gray-200/80 rounded-2xl bg-card overflow-hidden shadow-xs backdrop-blur-md">
           <Table>
-            <TableHeader className="bg-muted/20 border-b border-border/80">
+            <TableHeader className="bg-muted/20 border-b border-gray-200/80">
               <TableRow>
                 <TableHead className="w-12 text-center"></TableHead>
                 <TableHead className="text-[10px] font-bold tracking-wider text-muted-foreground">Field / Sector Name</TableHead>
                 <TableHead className="text-[10px] font-bold tracking-wider text-muted-foreground">Location</TableHead>
                 <TableHead className="text-[10px] font-bold tracking-wider text-muted-foreground">Acreage</TableHead>
                 <TableHead className="text-[10px] font-bold tracking-wider text-muted-foreground">Soil Profile</TableHead>
+                <TableHead className="text-[10px] font-bold tracking-wider text-muted-foreground text-center">Pump Motor</TableHead>
                 <TableHead className="text-[10px] font-bold tracking-wider text-muted-foreground text-center">Zones</TableHead>
-                <TableHead className="text-[10px] font-bold tracking-wider text-muted-foreground text-center">Avg Hydration</TableHead>
                 <TableHead className="text-[10px] font-bold tracking-wider text-muted-foreground text-right pr-6">Manage</TableHead>
               </TableRow>
             </TableHeader>
@@ -692,7 +619,7 @@ export default function Fields({ navigate }) {
                 return (
                   <React.Fragment key={field.id}>
                     {/* Primary Field Row */}
-                    <TableRow className={`hover:bg-muted/20 font-medium ${!isCollapsed ? "bg-muted/5 border-b-transparent" : "border-b border-border/60"}`}>
+                    <TableRow className={`hover:bg-muted/20 font-medium ${!isCollapsed ? "bg-muted/5 border-b-transparent" : "border-b border-gray-200/60"}`}>
                       <TableCell className="text-center">
                         <button
                           onClick={() => toggleCollapse(field.id)}
@@ -712,39 +639,46 @@ export default function Fields({ navigate }) {
                         </span>
                       </TableCell>
                       <TableCell>
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-muted-foreground bg-muted/70 px-2 py-0.5 rounded border border-border/30 font-mono">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-muted-foreground bg-muted/70 px-2 py-0.5 rounded border border-gray-200/30 font-mono">
                           <MapPin className="h-2.5 w-2.5 text-emerald-500" />
                           {field.location}
                         </span>
                       </TableCell>
                       <TableCell className="text-xs text-foreground font-semibold">{field.area}</TableCell>
                       <TableCell className="text-xs text-muted-foreground font-medium">{field.soilType}</TableCell>
-                      <TableCell className="text-center">
-                        <span className="text-xs font-bold bg-muted px-2 py-0.5 rounded border border-border/20">
-                          {fieldZones.length} Zones
-                        </span>
+                      <TableCell className="text-center py-3">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => toggleMotor(field.id)}
+                            className={`p-1.5 rounded-lg transition-all duration-300 border flex items-center justify-center gap-1 ${
+                              field.motorStatus === "On"
+                                ? "bg-emerald-500/10 border-emerald-500/35 text-emerald-600 dark:text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.15)]"
+                                : "bg-muted border-border text-muted-foreground hover:bg-muted/80"
+                            } cursor-pointer`}
+                            title={field.motorStatus === "On" ? "Shut off Motor (Closes all valves)" : "Turn Motor On"}
+                          >
+                            <Power className={`h-3.5 w-3.5 ${field.motorStatus === "On" ? "animate-pulse" : ""}`} />
+                          </button>
+                          <span className={`text-[10px] font-black tracking-wider uppercase ${
+                            field.motorStatus === "On"
+                              ? "text-emerald-600 dark:text-emerald-400 animate-pulse font-black"
+                              : "text-muted-foreground"
+                          }`}>
+                            {field.motorStatus === "On" ? "ON" : "OFF"}
+                          </span>
+                        </div>
                       </TableCell>
                       <TableCell className="text-center">
-                        {avgMoisture === "N/A" ? (
-                          <span className="text-xs text-muted-foreground font-mono">--</span>
-                        ) : (
-                          <div className="inline-flex items-center gap-2">
-                            <MoistureSparkline moisture={Number(avgMoisture)} />
-                            <span className={`text-xs font-mono font-black px-2 py-0.5 rounded-md ${Number(avgMoisture) < 25
-                                ? "bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-500/20"
-                                : "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                              }`}>
-                              {avgMoisture}%
-                            </span>
-                          </div>
-                        )}
+                        <span className="text-xs font-bold bg-muted px-2 py-0.5 rounded border border-gray-200/20">
+                          {fieldZones.length} Zones
+                        </span>
                       </TableCell>
                       <TableCell className="text-right pr-6">
                         <div className="flex items-center justify-end gap-1">
                           {/* Small Table Actions */}
                           <button
                             onClick={() => openAddZoneForField(field.id)}
-                            className="p-1 rounded-md hover:bg-emerald-500 hover:text-white dark:hover:bg-emerald-950/40 text-emerald-600 border border-border/40 transition-all cursor-pointer"
+                            className="p-1 rounded-md hover:bg-emerald-500 hover:text-white dark:hover:bg-emerald-950/40 text-emerald-600 border border-gray-200/40 transition-all cursor-pointer"
                             title="Add Zone"
                           >
                             <Plus className="h-3 w-3" />
@@ -762,10 +696,10 @@ export default function Fields({ navigate }) {
 
                     {/* Zones Sub-Table (Revealed under Field Row) */}
                     {!isCollapsed && (
-                      <TableRow className="bg-muted/10 border-b border-border/60 hover:bg-transparent">
-                        <TableCell colSpan={8} className="p-3 pl-12 pr-6">
+                      <TableRow className="bg-muted/10 border-b border-gray-200/60 hover:bg-transparent">
+                        <TableCell colSpan={9} className="p-3 pl-12 pr-6">
                           {fieldZones.length === 0 ? (
-                            <div className="text-xs text-muted-foreground italic py-3 text-center bg-background border border-dashed border-border/50 rounded-xl">
+                            <div className="text-xs text-muted-foreground italic py-3 text-center bg-background border border-dashed border-gray-200/50 rounded-xl">
                               No irrigation zones configured.
                               <button
                                 onClick={() => openAddZoneForField(field.id)}
@@ -775,7 +709,7 @@ export default function Fields({ navigate }) {
                               </button>
                             </div>
                           ) : (
-                            <div className="border border-border/50 rounded-xl overflow-hidden bg-background shadow-xs">
+                            <div className="border border-gray-200/50 rounded-xl overflow-hidden bg-background shadow-xs">
                               <Table>
                                 <TableHeader className="bg-muted/30">
                                   <TableRow>
@@ -854,8 +788,8 @@ export default function Fields({ navigate }) {
                                           </TableCell>
                                           <TableCell className="text-center">
                                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${activeValvesCount > 0
-                                                ? "bg-emerald-50 border-emerald-500/20 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 animate-pulse"
-                                                : "bg-muted border-border/40 text-muted-foreground"
+                                              ? "bg-emerald-50 border-emerald-500/20 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 animate-pulse"
+                                              : "bg-muted border-border/40 text-muted-foreground"
                                               }`}>
                                               {zoneValves.length} Valves {activeValvesCount > 0 && `(${activeValvesCount} watering)`}
                                             </span>
@@ -946,8 +880,8 @@ export default function Fields({ navigate }) {
                                                               <button
                                                                 onClick={() => toggleValve(field.id, zone.id, valve.id)}
                                                                 className={`px-2 py-0.5 rounded text-[8px] font-black tracking-wider transition-all duration-200 ${isOpen
-                                                                    ? "bg-red-500 hover:bg-red-600 text-white shadow-xs"
-                                                                    : "bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-700 hover:to-teal-600 text-white shadow-xs"
+                                                                  ? "bg-red-500 hover:bg-red-600 text-white shadow-xs"
+                                                                  : "bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-700 hover:to-teal-600 text-white shadow-xs"
                                                                   } cursor-pointer hover:-translate-y-0.5 active:translate-y-0`}
                                                               >
                                                                 {isOpen ? "CLOSE" : "OPEN"}

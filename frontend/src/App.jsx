@@ -12,6 +12,7 @@ import Diagnostics from "@/views/Diagnostics"
 import Login from "@/views/Login"
 import Users from "@/views/Users"
 import Inventory from "@/views/Inventory"
+import Customers from "@/views/Customers"
 
 
 function App() {
@@ -73,6 +74,8 @@ function App() {
         return <Notifications />
       case "/users":
         return <Users />
+      case "/customers":
+        return <Customers navigate={navigate} />
       case "/inventory":
         return <Inventory />
       case "/diagnostics":

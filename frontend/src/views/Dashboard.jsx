@@ -1,4 +1,4 @@
-import React from "react"
+import React, { useState, useEffect } from "react"
 import { 
   Droplet, 
   Sprout, 
@@ -7,50 +7,192 @@ import {
   Activity, 
   ArrowUpRight, 
   Power,
-  LayoutDashboard
+  LayoutDashboard,
+  Users
 } from "lucide-react"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
+import { initialFields, initialUsers } from "@/lib/mockData"
 
 export default function Dashboard() {
-  // Mock data for dashboard
+  const [fields, setFields] = useState(() => {
+    const saved = localStorage.getItem("drip_fields")
+    return saved ? JSON.parse(saved) : initialFields
+  })
+  const [users, setUsers] = useState(() => {
+    const saved = localStorage.getItem("drip_users")
+    return saved ? JSON.parse(saved) : initialUsers
+  })
+
+  // Poll localStorage every second to get live telemetry updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const savedFields = localStorage.getItem("drip_fields")
+      if (savedFields) setFields(JSON.parse(savedFields))
+
+      const savedUsers = localStorage.getItem("drip_users")
+      if (savedUsers) setUsers(JSON.parse(savedUsers))
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [])
+
+  // Parse farmer filter from URL query params
+  const queryParams = new URLSearchParams(window.location.search)
+  const farmerIdParam = queryParams.get("farmerId")
+  const farmerId = farmerIdParam ? Number(farmerIdParam) : null
+  
+  const farmer = farmerId ? users.find(u => u.id === farmerId) : null
+  const farmerField = farmer ? fields.find(f => f.id === farmer.fieldId) : null
+
+  // Filter fields based on farmer
+  const filteredFields = farmerField ? [farmerField] : fields
+
+  // Calculations
+  // Average moisture
+  let moistureSum = 0
+  let moistureCount = 0
+  filteredFields.forEach(f => {
+    (f.zones || []).forEach(z => {
+      if (z.moisture !== undefined) {
+        moistureSum += z.moisture
+        moistureCount++
+      }
+    })
+  })
+  const avgMoisture = moistureCount > 0 ? (moistureSum / moistureCount).toFixed(1) : "0.0"
+
+  // Active Flow Rate
+  let totalFlowRate = 0
+  filteredFields.forEach(f => {
+    (f.zones || []).forEach(z => {
+      (z.valves || []).forEach(v => {
+        if (v.status === "Open") {
+          totalFlowRate += v.flowRate || v.capacity || 0
+        }
+      })
+    })
+  })
+
+  // System Status
+  const activePumps = filteredFields.filter(f => f.motorStatus === "On").length
+  const totalPumps = filteredFields.length
+
+  let systemStatusValue = "Fully Operational"
+  let systemStatusDesc = "No leaks detected"
+
+  if (farmerField) {
+    systemStatusValue = farmerField.motorStatus === "On" ? "Pump Motor ON" : "Pump Motor OFF"
+    systemStatusDesc = farmerField.motorStatus === "On" ? "Flowing water to active lines" : "Pump standby"
+  } else {
+    systemStatusValue = activePumps > 0 ? `${activePumps} / ${totalPumps} Pumps ON` : "All Pumps OFF"
+    systemStatusDesc = activePumps > 0 ? "Irrigation cycles running" : "System in standby mode"
+  }
+
+  // Next event details
+  let nextEventVal = "05:30 PM"
+  let nextEventDesc = "Zone 3 (Vegetables)"
+  if (farmerField) {
+    const firstZone = farmerField.zones?.[0]
+    nextEventVal = "06:00 PM"
+    nextEventDesc = firstZone ? `Zone: ${firstZone.name}` : "No configured lines"
+  }
+
   const metrics = [
     {
       title: "Average Moisture",
-      value: "42.8%",
-      description: "Across all active zones",
+      value: `${avgMoisture}%`,
+      description: farmerField ? `For ${farmerField.name}` : "Across all active zones",
       icon: Sprout,
       color: "text-emerald-600 dark:text-emerald-400 bg-gradient-to-tr from-emerald-500/10 to-teal-500/10 dark:from-emerald-500/20 dark:to-teal-500/20 border-emerald-500/10 dark:border-emerald-500/20",
     },
     {
       title: "Flow Rate",
-      value: "14.2 L/m",
-      description: "Targeting active lines",
+      value: `${totalFlowRate.toFixed(1)} L/m`,
+      description: farmerField ? "Farmer sector consumption" : "Targeting active lines",
       icon: Droplet,
       color: "text-teal-600 dark:text-teal-400 bg-gradient-to-tr from-teal-500/10 to-sky-500/10 dark:from-teal-500/20 dark:to-sky-500/20 border-teal-500/10 dark:border-teal-500/20",
     },
     {
       title: "Next Event",
-      value: "05:30 PM",
-      description: "Zone 3 (Vegetables)",
+      value: nextEventVal,
+      description: nextEventDesc,
       icon: Clock,
       color: "text-indigo-600 dark:text-indigo-400 bg-gradient-to-tr from-indigo-500/10 to-violet-500/10 dark:from-indigo-500/20 dark:to-violet-500/20 border-indigo-500/10 dark:border-indigo-500/20",
     },
     {
       title: "System Status",
-      value: "Fully Operational",
-      description: "No leaks detected",
+      value: systemStatusValue,
+      description: systemStatusDesc,
       icon: Activity,
-      color: "text-emerald-500 dark:text-emerald-400 bg-gradient-to-tr from-emerald-500/10 to-cyan-500/10 dark:from-emerald-500/20 dark:to-cyan-500/20 border-emerald-500/10 dark:border-emerald-500/20",
+      color: activePumps > 0 
+        ? "text-emerald-500 dark:text-emerald-400 bg-gradient-to-tr from-emerald-500/10 to-cyan-500/10 dark:from-emerald-500/20 dark:to-cyan-500/20 border-emerald-500/10 dark:border-emerald-500/20 animate-pulse"
+        : "text-slate-500 dark:text-slate-400 bg-gradient-to-tr from-slate-500/10 to-slate-400/10 dark:from-slate-500/20 dark:to-slate-400/20 border-slate-500/10 dark:border-slate-500/20",
     },
   ]
 
-  const activeAlerts = [
-    { zone: "Zone 4 (Greenhouse)", type: "Low Moisture", value: "18% moisture, minimum set to 25%", severity: "warning" },
-    { zone: "System Valve #2", type: "Voltage Fluctuations", value: "Normal range restored 15m ago", severity: "info" }
-  ]
+  // Dynamic Alerts
+  const activeAlerts = []
+  filteredFields.forEach(f => {
+    (f.zones || []).forEach(z => {
+      if (z.moisture < 25) {
+        activeAlerts.push({
+          zone: `${z.name} (${f.name})`,
+          type: "Low Moisture Alert",
+          value: `Current hydration at ${z.moisture}% (Threshold: 25%)`,
+          severity: "warning"
+        })
+      }
+    })
+  })
+
+  // Fallback alerts if empty
+  if (activeAlerts.length === 0) {
+    activeAlerts.push({
+      zone: farmerField ? farmerField.name : "System Calibrator",
+      type: "All Nodes Clean",
+      value: "Moisture parameters within optimal operating range",
+      severity: "info"
+    })
+  }
+
+  // Dynamic SVG Path
+  const areaPath = totalFlowRate > 0
+    ? "M0 200 L0 120 C50 150, 100 80, 150 100 C200 120, 250 40, 300 60 C350 80, 400 160, 450 130 C480 110, 500 140, 500 140 L500 200 Z"
+    : "M0 200 L0 170 Q 125 174, 250 170 T 500 172 L500 200 Z"
+
+  const linePath = totalFlowRate > 0
+    ? "M0 120 C50 150, 100 80, 150 100 C200 120, 250 40, 300 60 C350 80, 400 160, 450 130 C480 110, 500 140, 500 140"
+    : "M0 170 Q 125 174, 250 170 T 500 172"
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Farmer Dashboard Header Banner */}
+      {farmer && (
+        <div className="bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-blue-500/5 dark:from-emerald-950/40 dark:via-teal-950/20 dark:to-blue-950/10 border border-emerald-500/25 p-4 rounded-2xl flex items-center justify-between shadow-xs animate-in slide-in-from-top duration-300">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-md shadow-emerald-500/20">
+              <Users className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-foreground">
+                Viewing Dashboard: <span className="text-emerald-600 dark:text-emerald-400">{farmer.name}</span>
+              </h3>
+              <p className="text-[10px] text-muted-foreground font-medium mt-0.5">
+                Showing telemetry data filtered for field sector <strong className="text-foreground">{farmerField?.name || "Unassigned"}</strong> ({farmerField?.location || "N/A"}).
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              window.history.pushState({}, "", "/dashboard")
+              window.location.reload()
+            }}
+            className="px-3 py-1.5 rounded-lg border border-emerald-500/20 hover:bg-emerald-500 hover:text-white transition-all text-xs font-bold text-emerald-600 dark:text-emerald-400 cursor-pointer hover:shadow-md"
+          >
+            Clear Filter
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/60">
         <div className="flex items-center gap-3">
@@ -58,12 +200,14 @@ export default function Dashboard() {
             <LayoutDashboard className="h-6 w-6" />
           </div>
           <div>
-            <h2 className="text-xl font-bold tracking-tight text-foreground">Dashboard Overview</h2>
+            <h2 className="text-xl font-bold tracking-tight text-foreground">
+              {farmer ? `${farmer.name}'s Dashboard Overview` : "Dashboard Overview"}
+            </h2>
             <p className="text-xs text-muted-foreground mt-0.5">Real-time soil hydration levels, water usage timeline, and active alerts.</p>
           </div>
         </div>
       </div>
-
+      
       {/* Metrics Row */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {metrics.map((m) => (
@@ -125,13 +269,13 @@ export default function Dashboard() {
 
                   {/* Gradient Area */}
                   <path
-                    d="M0 200 L0 120 C50 150, 100 80, 150 100 C200 120, 250 40, 300 60 C350 80, 400 160, 450 130 C480 110, 500 140, 500 140 L500 200 Z"
+                    d={areaPath}
                     fill="url(#chart-fill)"
                   />
 
                   {/* Flow Line */}
                   <path
-                    d="M0 120 C50 150, 100 80, 150 100 C200 120, 250 40, 300 60 C350 80, 400 160, 450 130 C480 110, 500 140, 500 140"
+                    d={linePath}
                     fill="none"
                     stroke="url(#line-gradient)"
                     strokeWidth="3"
@@ -139,8 +283,12 @@ export default function Dashboard() {
                   />
                   
                   {/* Highlight dots */}
-                  <circle cx="300" cy="60" r="5" fill="#14b8a6" stroke="white" strokeWidth="2" />
-                  <circle cx="450" cy="130" r="5" fill="#0ea5e9" stroke="white" strokeWidth="2" />
+                  {totalFlowRate > 0 && (
+                    <>
+                      <circle cx="300" cy="60" r="5" fill="#14b8a6" stroke="white" strokeWidth="2" />
+                      <circle cx="450" cy="130" r="5" fill="#0ea5e9" stroke="white" strokeWidth="2" />
+                    </>
+                  )}
                 </svg>
               </div>
               {/* X Axis Labels */}

@@ -13,6 +13,7 @@ import {
   LogOut,
   ChevronDown,
   Users,
+  UserCheck,
   Package
 } from "lucide-react"
 
@@ -50,6 +51,7 @@ const navMain = [
   { title: "Zones & Valves", url: "/zones", icon: Droplet },
   { title: "Schedules", url: "/schedules", icon: Calendar },
   { title: "Sensors", url: "/sensors", icon: Activity, badge: "Live" },
+  { title: "Customers", url: "/customers", icon: UserCheck },
   { title: "Users", url: "/users", icon: Users },
   { title: "Inventory", url: "/inventory", icon: Package },
 ]
@@ -86,6 +88,7 @@ export default function SaasLayout({ children, currentPath = "/dashboard", navig
     if (currentPath === "/settings/notifications") return "Notification Preferences"
     if (currentPath === "/diagnostics") return "System Diagnostics"
     if (currentPath === "/users") return "User Management"
+    if (currentPath === "/customers") return "Customers & Farmers"
     if (currentPath === "/inventory") return "Inventory & Stock Management"
     return "Dashboard Overview"
   }
