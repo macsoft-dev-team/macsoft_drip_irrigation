@@ -69,7 +69,9 @@ class _DashboardPageState extends State<DashboardPage> {
           builder: (context, state, _) {
             // Calculations for metrics
             final int totalFields = state.fields.length;
-            final int onlineMasters = state.fields.where((f) => f.masterController?.isOnline ?? false).length;
+            final int onlineMasters = state.fields
+                .where((f) => f.masterController?.isOnline ?? false)
+                .length;
 
             int openValves = 0;
             for (var f in state.fields) {
@@ -78,11 +80,20 @@ class _DashboardPageState extends State<DashboardPage> {
               }
             }
 
-            final int activeAlerts = state.alerts.where((a) => !a.isRead).length;
-            final int todaySchedules = state.schedules.where((s) => s.status == 'active').length;
-            final int runningMotors = state.fields.where((f) => f.masterController?.motorStatus == 'on').length;
+            final int activeAlerts = state.alerts
+                .where((a) => !a.isRead)
+                .length;
+            final int todaySchedules = state.schedules
+                .where((s) => s.status == 'active')
+                .length;
+            final int runningMotors = state.fields
+                .where((f) => f.masterController?.motorStatus == 'on')
+                .length;
 
-            final unreadAlerts = state.alerts.where((a) => !a.isRead).take(3).toList();
+            final unreadAlerts = state.alerts
+                .where((a) => !a.isRead)
+                .take(3)
+                .toList();
 
             return SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -119,7 +130,9 @@ class _DashboardPageState extends State<DashboardPage> {
                           // We can handle this by modifying AppShell index but for now push FieldListScreen
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => const FieldListScreen()),
+                            MaterialPageRoute(
+                              builder: (context) => const FieldListScreen(),
+                            ),
                           );
                         },
                       ),
@@ -149,7 +162,9 @@ class _DashboardPageState extends State<DashboardPage> {
                         onTap: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => const ScheduleListScreen()),
+                            MaterialPageRoute(
+                              builder: (context) => const ScheduleListScreen(),
+                            ),
                           );
                         },
                       ),
@@ -166,7 +181,11 @@ class _DashboardPageState extends State<DashboardPage> {
                   // Quick Actions Row
                   const Text(
                     'Quick Actions',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1E2A1F)),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1E2A1F),
+                    ),
                   ),
                   const SizedBox(height: 12),
                   SizedBox(
@@ -192,7 +211,9 @@ class _DashboardPageState extends State<DashboardPage> {
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => const FieldListScreen()),
+                              MaterialPageRoute(
+                                builder: (context) => const FieldListScreen(),
+                              ),
                             );
                           },
                         ),
@@ -203,7 +224,8 @@ class _DashboardPageState extends State<DashboardPage> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => const ScheduleFormScreen(),
+                                builder: (context) =>
+                                    const ScheduleFormScreen(),
                               ),
                             );
                           },
@@ -214,7 +236,9 @@ class _DashboardPageState extends State<DashboardPage> {
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => const StoreScreen()),
+                              MaterialPageRoute(
+                                builder: (context) => const StoreScreen(),
+                              ),
                             );
                           },
                         ),
@@ -224,7 +248,9 @@ class _DashboardPageState extends State<DashboardPage> {
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => const SupportScreen()),
+                              MaterialPageRoute(
+                                builder: (context) => const SupportScreen(),
+                              ),
                             );
                           },
                         ),
@@ -237,7 +263,11 @@ class _DashboardPageState extends State<DashboardPage> {
                   if (state.activeCommand != null) ...[
                     const Text(
                       'Live Commands',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1E2A1F)),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1E2A1F),
+                      ),
                     ),
                     const SizedBox(height: 12),
                     Container(
@@ -245,7 +275,10 @@ class _DashboardPageState extends State<DashboardPage> {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFE2E8F0), width: 0.8),
+                        border: Border.all(
+                          color: const Color(0xFFE2E8F0),
+                          width: 0.8,
+                        ),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -255,7 +288,10 @@ class _DashboardPageState extends State<DashboardPage> {
                             children: [
                               Text(
                                 'Command UID: ${state.activeCommand!.commandUid}',
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
                               ),
                               StatusChip(status: state.activeCommand!.status),
                             ],
@@ -263,20 +299,29 @@ class _DashboardPageState extends State<DashboardPage> {
                           const SizedBox(height: 8),
                           Text(
                             'Action: ${state.activeCommand!.action.toUpperCase()} ${state.activeCommand!.targetType.toUpperCase()} #${state.activeCommand!.targetId}',
-                            style: const TextStyle(fontSize: 12, color: Color(0xFF546E7A)),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF546E7A),
+                            ),
                           ),
                           const SizedBox(height: 12),
                           const SizedBox(
                             height: 2,
                             child: LinearProgressIndicator(
                               backgroundColor: Color(0xFFECEFF1),
-                              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2D7A3A)),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Color(0xFF2D7A3A),
+                              ),
                             ),
                           ),
                           const SizedBox(height: 8),
                           const Text(
                             'Device status is updating live...',
-                            style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: Color(0xFF8A958A)),
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontStyle: FontStyle.italic,
+                              color: Color(0xFF8A958A),
+                            ),
                           ),
                         ],
                       ),
@@ -290,14 +335,21 @@ class _DashboardPageState extends State<DashboardPage> {
                     children: [
                       const Text(
                         'Recent Alerts',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1E2A1F)),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1E2A1F),
+                        ),
                       ),
                       if (unreadAlerts.isNotEmpty)
                         TextButton(
                           onPressed: () {
                             // Navigate to alerts tab
                           },
-                          child: const Text('View All', style: TextStyle(color: Color(0xFF2D7A3A))),
+                          child: const Text(
+                            'View All',
+                            style: TextStyle(color: Color(0xFF2D7A3A)),
+                          ),
                         ),
                     ],
                   ),
@@ -312,7 +364,10 @@ class _DashboardPageState extends State<DashboardPage> {
                       ),
                       child: const Text(
                         'All clear! No new alerts.',
-                        style: TextStyle(fontSize: 13, color: Color(0xFF8A958A)),
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF8A958A),
+                        ),
                       ),
                     )
                   else
@@ -321,7 +376,11 @@ class _DashboardPageState extends State<DashboardPage> {
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: unreadAlerts.length,
-                        separatorBuilder: (context, i) => const Divider(height: 1, thickness: 0.8, color: Color(0xFFECEFF1)),
+                        separatorBuilder: (context, i) => const Divider(
+                          height: 1,
+                          thickness: 0.8,
+                          color: Color(0xFFECEFF1),
+                        ),
                         itemBuilder: (context, i) {
                           final alert = unreadAlerts[i];
                           return AlertTile(
@@ -449,7 +508,8 @@ class _DashboardPageState extends State<DashboardPage> {
         name: 'Soil Moisture Sensor Pro',
         sku: 'SE-SM-04',
         type: 'spareParts',
-        description: 'Capacitive soil moisture sensor with corrosion resistant probe for high accuracy soil wetting profile.',
+        description:
+            'Capacitive soil moisture sensor with corrosion resistant probe for high accuracy soil wetting profile.',
         price: 1500.0,
         status: 'active',
       ),
@@ -505,7 +565,10 @@ class _DashboardPageState extends State<DashboardPage> {
                   children: [
                     // Badge/Tag
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFF6366F1).withOpacity(0.2),
                         borderRadius: BorderRadius.circular(30),
@@ -537,7 +600,11 @@ class _DashboardPageState extends State<DashboardPage> {
                     ),
                     // Close Button
                     IconButton(
-                      icon: const Icon(Icons.close_rounded, size: 20, color: Colors.white70),
+                      icon: const Icon(
+                        Icons.close_rounded,
+                        size: 20,
+                        color: Colors.white70,
+                      ),
                       onPressed: _dismissAdBanner,
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
@@ -611,7 +678,8 @@ class _DashboardPageState extends State<DashboardPage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => ProductDetailScreen(product: sensorProduct),
+                          builder: (context) =>
+                              ProductDetailScreen(product: sensorProduct),
                         ),
                       );
                     },
@@ -1313,4 +1381,3 @@ class PaddyPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
-
