@@ -1018,7 +1018,9 @@ class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
                 Wrap(
                   spacing: 8,
                   runSpacing: 4,
-                  children: allZones.map((z) {
+                  children: allZones
+                      .where((z) => !_timerSequence.any((item) => item['type'] == 'zone' && item['id'] == z.id))
+                      .map((z) {
                     return ActionChip(
                       avatar: const Icon(Icons.add, size: 14, color: Colors.white),
                       backgroundColor: const Color(0xFF2D7A3A),
@@ -1043,7 +1045,10 @@ class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
                 Wrap(
                   spacing: 8,
                   runSpacing: 4,
-                  children: allZones.expand((z) => z.valves).map((v) {
+                  children: allZones
+                      .expand((z) => z.valves)
+                      .where((v) => !_timerSequence.any((item) => item['type'] == 'valve' && item['id'] == v.id))
+                      .map((v) {
                     return ActionChip(
                       avatar: const Icon(Icons.add, size: 14, color: Colors.white),
                       backgroundColor: Colors.teal,

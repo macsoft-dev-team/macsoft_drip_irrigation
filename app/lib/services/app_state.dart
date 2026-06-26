@@ -597,9 +597,7 @@ class AppState extends ChangeNotifier {
       schedulesError = e.toString().replaceFirst('Exception: ', '');
     }
 
-    if (schedules.isEmpty) {
-      schedules = _getMockSchedules();
-    }
+
 
     schedulesLoading = false;
     notifyListeners();

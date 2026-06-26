@@ -88,50 +88,7 @@ const getTimerSequenceTimes = (startTimeStr, sequence) => {
 };
 
 export default function Schedules({ preselectedZone, setPreselectedZone }) {
-  const [schedules, setSchedules] = useState([
-    { id: 1, name: "Morning Soak", zone: "Front Lawn", time: "06:00 AM", duration: 25, days: ["Mon", "Wed", "Fri"], active: true, scheduleType: "timeBased" },
-    { 
-      id: 2, 
-      name: "Orchard & Lawn Cycle", 
-      zone: "Orchard & Vines", 
-      time: "08:30 AM", 
-      duration: 50, 
-      days: ["Tue", "Thu", "Sat"], 
-      active: true, 
-      scheduleType: "rtcBased",
-      sequenceData: [
-        {
-          zoneId: "z2",
-          zoneName: "Orchard & Vines",
-          valves: [
-            { valveId: "v4", valveName: "Valve OV-1 (Root Soak)", startTime: "08:30", endTime: "08:50" },
-            { valveId: "v5", valveName: "Valve OV-2 (Micro-Sprays)", startTime: "08:50", endTime: "09:05" }
-          ]
-        },
-        {
-          zoneId: "z1",
-          zoneName: "Front Lawn",
-          valves: [
-            { valveId: "v1", valveName: "Valve FL-1 (Spray)", startTime: "09:05", endTime: "09:20" }
-          ]
-        }
-      ]
-    },
-    { 
-      id: 3, 
-      name: "Vegetable Sequence", 
-      zone: "Vegetable Beds", 
-      time: "05:30 PM", 
-      duration: 30, 
-      days: ["Daily"], 
-      active: true, 
-      scheduleType: "timerBased",
-      sequenceData: [
-        { type: "zone", id: "z3", name: "Vegetable Beds", duration: 15 },
-        { type: "valve", id: "v6", name: "Valve VB-1 (Direct Drip)", duration: 15 }
-      ]
-    }
-  ])
+  const [schedules, setSchedules] = useState([])
 
   // Form states
   const [name, setName] = useState("")
@@ -703,7 +660,7 @@ export default function Schedules({ preselectedZone, setPreselectedZone }) {
                     <div className="flex flex-col gap-1.5">
                       <span className="text-[8px] text-muted-foreground uppercase font-bold">Add Zone/Valve to Sequence:</span>
                       <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto p-1 bg-background border border-border rounded-md">
-                        {availableItems.map((item) => (
+                        {availableItems.filter(item => !timerSequence.some(existing => existing.type === item.type && existing.id === item.id)).map((item) => (
                           <button
                             key={`${item.type}-${item.id}`}
                             type="button"
