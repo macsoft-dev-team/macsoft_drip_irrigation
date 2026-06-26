@@ -94,10 +94,13 @@ class _ScheduleListScreenState extends State<ScheduleListScreen> {
                   }
                   targetDisplay = 'RTC Sequence: ${zoneParts.join(' → ')}';
                 } else if (sched.scheduleType == 'timerBased' && sched.sequenceData != null && sched.sequenceData!.isNotEmpty) {
-                  final items = sched.sequenceData!.map((item) {
+                  final calculated = calculateTimerSequenceTimes(sched.startTime, sched.sequenceData!);
+                  final items = calculated.map((item) {
                     final name = item['name'] ?? 'Item ${item['id']}';
+                    final start = item['startTime'] ?? '';
+                    final end = item['endTime'] ?? '';
                     final dur = item['duration'] ?? 0;
-                    return '$name (${dur}m)';
+                    return '$name ($start-$end, ${dur}m)';
                   }).join(' → ');
                   targetDisplay = 'Timer Sequence: $items';
                 } else if (sched.scheduleType == 'timerBased' && sched.zoneIds != null && sched.zoneIds!.isNotEmpty) {
@@ -338,7 +341,9 @@ class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
                 .toList() ??
             [];
       } else if (_scheduleType == 'timerBased') {
-        _timerSequence = List<Map<String, dynamic>>.from(widget.schedule!.sequenceData ?? []);
+        _timerSequence = (widget.schedule!.sequenceData as List<dynamic>?)
+                ?.map((item) => Map<String, dynamic>.from(item as Map))
+                .toList() ?? [];
       }
     } else {
       _scheduleType = 'timeBased';
@@ -1081,52 +1086,82 @@ class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
                         _timerSequence.insert(newIndex, item);
                       });
                     },
-                    children: List.generate(_timerSequence.length, (i) {
-                      final item = _timerSequence[i];
-                      final isZone = item['type'] == 'zone';
-                      return Card(
-                        key: ValueKey('${item['type']}_${item['id']}_$i'),
-                        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        child: ListTile(
-                          leading: const Icon(Icons.drag_indicator_rounded, color: Colors.grey),
-                          title: Row(
-                            children: [
-                              Icon(isZone ? Icons.grid_view : Icons.radio_button_checked, size: 16, color: isZone ? const Color(0xFF2D7A3A) : Colors.teal),
-                              const SizedBox(width: 8),
-                              Expanded(child: Text(item['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold))),
-                            ],
-                          ),
-                          subtitle: Row(
-                            children: [
-                              const Text('Run Duration: '),
-                              SizedBox(
-                                width: 60,
-                                child: TextFormField(
-                                  initialValue: item['duration'].toString(),
-                                  keyboardType: TextInputType.number,
-                                  decoration: const InputDecoration(
-                                    isDense: true,
-                                    contentPadding: EdgeInsets.symmetric(vertical: 4, horizontal: 4),
-                                  ),
-                                  onChanged: (val) {
-                                    item['duration'] = int.tryParse(val) ?? 15;
-                                  },
+                    children: () {
+                      final calculated = calculateTimerSequenceTimes(_startTime, _timerSequence);
+                      return List.generate(calculated.length, (i) {
+                        final item = calculated[i];
+                        final isZone = item['type'] == 'zone';
+                        final start = item['startTime'] ?? '';
+                        final end = item['endTime'] ?? '';
+                        return Card(
+                          key: ValueKey('${item['type']}_${item['id']}_$i'),
+                          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          child: ListTile(
+                            leading: const Icon(Icons.drag_indicator_rounded, color: Colors.grey),
+                            title: Row(
+                              children: [
+                                Icon(isZone ? Icons.grid_view : Icons.radio_button_checked, size: 16, color: isZone ? const Color(0xFF2D7A3A) : Colors.teal),
+                                const SizedBox(width: 8),
+                                Expanded(child: Text(item['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold))),
+                              ],
+                            ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    const Text('Run Duration: ', style: TextStyle(fontSize: 11)),
+                                    SizedBox(
+                                      width: 45,
+                                      child: TextFormField(
+                                        initialValue: item['duration'].toString(),
+                                        keyboardType: TextInputType.number,
+                                        style: const TextStyle(fontSize: 12),
+                                        decoration: const InputDecoration(
+                                          isDense: true,
+                                          contentPadding: EdgeInsets.symmetric(vertical: 2, horizontal: 2),
+                                        ),
+                                        onChanged: (val) {
+                                          setState(() {
+                                            _timerSequence[i]['duration'] = int.tryParse(val) ?? 15;
+                                          });
+                                        },
+                                      ),
+                                    ),
+                                    const Text(' mins', style: TextStyle(fontSize: 11)),
+                                  ],
                                 ),
-                              ),
-                              const Text(' mins'),
-                            ],
+                                const SizedBox(height: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF8B5CF6).withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    'Calculated Run: $start - $end',
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF7C3AED),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.delete_outline, color: Colors.red),
+                              onPressed: () {
+                                setState(() {
+                                  _timerSequence.removeAt(i);
+                                });
+                              },
+                            ),
                           ),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.delete_outline, color: Colors.red),
-                            onPressed: () {
-                              setState(() {
-                                _timerSequence.removeAt(i);
-                              });
-                            },
-                          ),
-                        ),
-                      );
-                    }),
+                        );
+                      });
+                    }(),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -1244,4 +1279,53 @@ class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
       ),
     );
   }
+}
+
+List<Map<String, dynamic>> calculateTimerSequenceTimes(String startTimeStr, List<dynamic> sequence) {
+  if (sequence.isEmpty) return [];
+  
+  int currentHour = 8;
+  int currentMinute = 0;
+  
+  try {
+    final cleanTime = startTimeStr.toUpperCase().replaceAll(RegExp(r'[AP]M'), '').trim();
+    final parts = cleanTime.split(':');
+    if (parts.length >= 2) {
+      currentHour = int.tryParse(parts[0]) ?? 8;
+      currentMinute = int.tryParse(parts[1]) ?? 0;
+    }
+    
+    if (startTimeStr.toUpperCase().contains('PM') && currentHour < 12) {
+      currentHour += 12;
+    } else if (startTimeStr.toUpperCase().contains('AM') && currentHour == 12) {
+      currentHour = 0;
+    }
+  } catch (_) {
+    currentHour = 8;
+    currentMinute = 0;
+  }
+
+  final List<Map<String, dynamic>> result = [];
+  for (var item in sequence) {
+    final mapItem = Map<String, dynamic>.from(item as Map);
+    
+    final startH = currentHour.toString().padLeft(2, '0');
+    final startM = currentMinute.toString().padLeft(2, '0');
+    
+    final duration = mapItem['duration'] as int? ?? 15;
+    currentMinute += duration;
+    while (currentMinute >= 60) {
+      currentHour = (currentHour + 1) % 24;
+      currentMinute -= 60;
+    }
+    
+    final endH = currentHour.toString().padLeft(2, '0');
+    final endM = currentMinute.toString().padLeft(2, '0');
+    
+    mapItem['startTime'] = '$startH:$startM';
+    mapItem['endTime'] = '$endH:$endM';
+    result.add(mapItem);
+  }
+  
+  return result;
 }

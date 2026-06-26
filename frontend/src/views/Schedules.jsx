@@ -39,6 +39,54 @@ const availableItems = [
   { type: "valve", id: "v9", name: "Valve GH-2 (Veg Mist)" },
 ];
 
+const getTimerSequenceTimes = (startTimeStr, sequence) => {
+  if (!startTimeStr || !sequence || sequence.length === 0) return [];
+  
+  let currentHour = 8;
+  let currentMinute = 0;
+  
+  try {
+    const isAmPm = startTimeStr.toUpperCase().includes("AM") || startTimeStr.toUpperCase().includes("PM");
+    let timePart = startTimeStr.split(" ")[0];
+    const parts = timePart.split(":").map(Number);
+    currentHour = parts[0];
+    currentMinute = parts[1];
+    
+    if (isAmPm) {
+      const isPm = startTimeStr.toUpperCase().includes("PM");
+      if (isPm && currentHour < 12) currentHour += 12;
+      if (!isPm && currentHour === 12) currentHour = 0;
+    }
+  } catch (_) {
+    currentHour = 8;
+    currentMinute = 0;
+  }
+
+  const result = [];
+  sequence.forEach(item => {
+    const startH = currentHour.toString().padStart(2, '0');
+    const startM = currentMinute.toString().padStart(2, '0');
+    
+    const duration = parseInt(item.duration) || 15;
+    currentMinute += duration;
+    while (currentMinute >= 60) {
+      currentHour = (currentHour + 1) % 24;
+      currentMinute -= 60;
+    }
+    
+    const endH = currentHour.toString().padStart(2, '0');
+    const endM = currentMinute.toString().padStart(2, '0');
+    
+    result.push({
+      ...item,
+      startTime: `${startH}:${startM}`,
+      endTime: `${endH}:${endM}`
+    });
+  });
+  
+  return result;
+};
+
 export default function Schedules({ preselectedZone, setPreselectedZone }) {
   const [schedules, setSchedules] = useState([
     { id: 1, name: "Morning Soak", zone: "Front Lawn", time: "06:00 AM", duration: 25, days: ["Mon", "Wed", "Fri"], active: true, scheduleType: "timeBased" },
@@ -415,13 +463,13 @@ export default function Schedules({ preselectedZone, setPreselectedZone }) {
                         </div>
                       ) : (
                         <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
-                          {s.sequenceData.map((item, idx) => (
+                          {getTimerSequenceTimes(s.time, s.sequenceData).map((item, idx) => (
                             <React.Fragment key={idx}>
                               <div className="bg-background text-foreground border border-border px-2 py-1 rounded-md flex items-center gap-1 shadow-2xs font-medium">
                                 <span className="text-muted-foreground font-bold">{idx + 1}.</span>
                                 <span>{item.name}</span>
                                 <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-1 rounded text-[9px] font-bold">
-                                  {item.duration}m
+                                  {item.startTime}-{item.endTime} ({item.duration}m)
                                 </span>
                               </div>
                               {idx < s.sequenceData.length - 1 && (
@@ -684,7 +732,7 @@ export default function Schedules({ preselectedZone, setPreselectedZone }) {
                     {timerSequence.length > 0 ? (
                       <div className="flex flex-col gap-2 mt-2 border-t border-border/60 pt-2">
                         <span className="text-[8px] text-muted-foreground uppercase font-bold block mb-1">Drag to reorder runtime sequence:</span>
-                        {timerSequence.map((item, idx) => (
+                        {getTimerSequenceTimes(time, timerSequence).map((item, idx) => (
                           <div 
                             key={idx}
                             draggable
@@ -697,11 +745,16 @@ export default function Schedules({ preselectedZone, setPreselectedZone }) {
                               <GripVertical className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
                               <div className="min-w-0">
                                 <div className="font-bold text-foreground text-[10px] truncate">{item.name}</div>
-                                <span className={`text-[8px] px-1 py-0.2 rounded-md font-bold uppercase ${
-                                  item.type === "zone" ? "bg-emerald-50 text-emerald-700" : "bg-teal-50 text-teal-700"
-                                }`}>
-                                  {item.type}
-                                </span>
+                                <div className="flex items-center gap-1 mt-0.5">
+                                  <span className={`text-[8px] px-1 py-0.2 rounded-md font-bold uppercase ${
+                                    item.type === "zone" ? "bg-emerald-50 text-emerald-700" : "bg-teal-50 text-teal-700"
+                                  }`}>
+                                    {item.type}
+                                  </span>
+                                  <span className="text-[8px] bg-purple-50 text-purple-700 dark:bg-purple-950/40 px-1 py-0.2 rounded-md font-bold font-mono">
+                                    {item.startTime}-{item.endTime}
+                                  </span>
+                                </div>
                               </div>
                             </div>
                             
