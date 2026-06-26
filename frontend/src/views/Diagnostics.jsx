@@ -43,10 +43,10 @@ export default function Diagnostics() {
     <div className="grid gap-6 md:grid-cols-3 text-xs">
       
       {/* Self Test Diagnostics */}
-      <Card className="md:col-span-2 shadow-xs border border-border flex flex-col justify-between">
+      <Card className="md:col-span-2 shadow-[0_8px_30px_rgb(0,0,0,0.02)] border border-border flex flex-col justify-between">
         <CardHeader>
           <CardTitle className="text-sm font-semibold flex items-center gap-1.5">
-            <Wrench className="h-4 w-4 text-blue-500" />
+            <Wrench className="h-4 w-4 text-emerald-500" />
             <span>Interactive Controller Diagnostics</span>
           </CardTitle>
           <CardDescription className="text-[10px]">Run full board loop diagnostics to verify valve relay continuity</CardDescription>
@@ -54,15 +54,15 @@ export default function Diagnostics() {
         <CardContent className="flex-1 flex flex-col gap-4">
           
           {testState === "Idle" && (
-            <div className="flex flex-col items-center justify-center p-8 border border-dashed border-border rounded-lg bg-muted/10 text-center gap-2">
-              <Activity className="h-8 w-8 text-muted-foreground" />
+            <div className="flex flex-col items-center justify-center p-8 border border-dashed border-border rounded-xl bg-muted/10 text-center gap-2">
+              <Activity className="h-8 w-8 text-muted-foreground animate-pulse" />
               <div>
-                <h3 className="font-semibold text-foreground">Self-Test Diagnostic Suite</h3>
+                <h3 className="font-semibold text-foreground text-xs">Self-Test Diagnostic Suite</h3>
                 <p className="text-[10px] text-muted-foreground mt-0.5 max-w-[280px]">Test ESP32 CPU voltages, Wi-Fi mesh latency, and relay continuity.</p>
               </div>
               <button 
                 onClick={runDiagnostics}
-                className="mt-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 py-2 rounded-md transition-all shadow-xs"
+                className="mt-2 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-700 hover:to-teal-600 text-white font-bold px-4 py-2 rounded-lg transition-all shadow-md shadow-emerald-500/10 hover:-translate-y-0.5 active:translate-y-0"
               >
                 Run Hardware Self-Test
               </button>
@@ -77,27 +77,27 @@ export default function Diagnostics() {
                     <CheckCircle2 className="h-4.5 w-4.5 text-emerald-500" />
                     <span>{res.name}</span>
                   </div>
-                  <span className="font-mono text-muted-foreground text-[10px]">{res.result}</span>
+                  <span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold text-[10px]">{res.result}</span>
                 </div>
               ))}
 
               {testState === "Running" && (
                 <div className="flex items-center justify-center gap-2 p-4 text-muted-foreground">
-                  <RefreshCw className="h-4 w-4 animate-spin text-blue-500" />
+                  <RefreshCw className="h-4 w-4 animate-spin text-emerald-500" />
                   <span>Polling hardware pins...</span>
                 </div>
               )}
 
               {testState === "Completed" && (
-                <div className="p-3 bg-emerald-50/50 dark:bg-emerald-950/10 border border-emerald-200/50 dark:border-emerald-950/40 text-emerald-800 dark:text-emerald-400 rounded-lg flex items-center gap-2 mt-2 font-semibold">
+                <div className="p-3 bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-400 rounded-xl flex items-center gap-2 mt-2 font-semibold">
                   <CheckCircle2 className="h-5 w-5 text-emerald-500" />
                   <div>
-                    <h4>All Diagnostics Passed Successfully</h4>
+                    <h4 className="font-bold text-xs">All Diagnostics Passed Successfully</h4>
                     <p className="text-[9px] text-muted-foreground font-normal mt-0.5">Firmware loop returned 0 errors. Relay boards operational.</p>
                   </div>
                   <button 
                     onClick={() => setTestState("Idle")}
-                    className="ml-auto bg-muted dark:bg-card hover:bg-muted/80 text-[10px] px-3 py-1 rounded-md border border-border transition-all"
+                    className="ml-auto bg-card hover:bg-muted/80 text-[10px] font-bold px-3 py-1 rounded-md border border-border transition-all"
                   >
                     Reset
                   </button>
@@ -110,31 +110,31 @@ export default function Diagnostics() {
       </Card>
 
       {/* Latency / Ping utilities */}
-      <Card className="shadow-xs border border-border flex flex-col justify-between">
+      <Card className="shadow-[0_8px_30px_rgb(0,0,0,0.02)] border border-border flex flex-col justify-between">
         <CardHeader>
           <CardTitle className="text-sm font-semibold flex items-center gap-1.5">
-            <Wifi className="h-4 w-4 text-blue-500" />
+            <Wifi className="h-4 w-4 text-emerald-500" />
             <span>Connection Ping</span>
           </CardTitle>
           <CardDescription className="text-[10px]">Verify network connectivity latency</CardDescription>
         </CardHeader>
         <CardContent className="flex-1 flex flex-col items-center justify-center p-6 text-center gap-4">
           <div className="relative flex items-center justify-center">
-            <Zap className={`h-12 w-12 text-blue-500 ${pinging ? "animate-pulse" : ""}`} />
+            <Zap className={`h-12 w-12 text-emerald-500 ${pinging ? "animate-bounce" : ""}`} />
             {pingSpeed && (
-              <span className="absolute -bottom-2 bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 font-mono text-[9px] font-bold px-2 py-0.5 rounded-full border border-emerald-200/40">
+              <span className="absolute -bottom-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono text-[9px] font-bold px-2 py-0.5 rounded-full border border-emerald-500/15">
                 Connected
               </span>
             )}
           </div>
 
           <div>
-            <h3 className="font-semibold text-foreground">Ping Controller</h3>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Test signal response latency to ESP32 board.</p>
+            <h3 className="font-semibold text-foreground text-xs">Ping Controller</h3>
+            <p className="text-[10px] text-muted-foreground mt-0.5 text-center">Test signal response latency to ESP32 board.</p>
           </div>
 
           {pingSpeed !== null && (
-            <div className="font-mono text-xl font-bold text-foreground">
+            <div className="font-mono text-2xl font-bold text-foreground">
               {pingSpeed} <span className="text-xs font-normal text-muted-foreground">ms</span>
             </div>
           )}
@@ -142,7 +142,7 @@ export default function Diagnostics() {
           <button 
             onClick={pingController}
             disabled={pinging}
-            className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 rounded-md transition-all shadow-xs disabled:opacity-50 mt-2"
+            className="w-full bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-700 hover:to-teal-600 text-white font-bold py-2.5 rounded-lg transition-all shadow-md shadow-emerald-500/10 disabled:opacity-50 mt-2 hover:-translate-y-0.5 active:translate-y-0"
           >
             {pinging ? "Pinging ESP32..." : "Ping Now"}
           </button>

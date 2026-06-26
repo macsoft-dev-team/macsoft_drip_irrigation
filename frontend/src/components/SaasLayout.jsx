@@ -11,7 +11,9 @@ import {
   Wrench,
   Plus,
   LogOut,
-  ChevronDown
+  ChevronDown,
+  Users,
+  Package
 } from "lucide-react"
 
 import {
@@ -47,6 +49,8 @@ const navMain = [
   { title: "Zones & Valves", url: "/zones", icon: Droplet },
   { title: "Schedules", url: "/schedules", icon: Calendar },
   { title: "Sensors", url: "/sensors", icon: Activity, badge: "Live" },
+  { title: "Users", url: "/users", icon: Users },
+  { title: "Inventory", url: "/inventory", icon: Package },
 ]
 
 const navSettings = [
@@ -79,6 +83,8 @@ export default function SaasLayout({ children, currentPath = "/dashboard", navig
     if (currentPath === "/settings/alerts") return "Alert Thresholds"
     if (currentPath === "/settings/notifications") return "Notification Preferences"
     if (currentPath === "/diagnostics") return "System Diagnostics"
+    if (currentPath === "/users") return "User Management"
+    if (currentPath === "/inventory") return "Inventory & Stock Management"
     return "Dashboard Overview"
   }
 
@@ -89,12 +95,12 @@ export default function SaasLayout({ children, currentPath = "/dashboard", navig
         <Sidebar>
           
           {/* Header: App Logo / Name */}
-          <SidebarHeader className="p-4">
-            <div className="flex items-center gap-2 font-bold text-lg">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500 text-white">
+          <SidebarHeader className="p-4 border-b border-sidebar-border bg-emerald-500/5 dark:bg-emerald-950/5">
+            <div className="flex items-center gap-2 font-bold text-lg text-emerald-600 dark:text-emerald-400">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-tr from-emerald-500 to-teal-400 text-white shadow-md shadow-emerald-500/20">
                 <Droplet className="h-5 w-5 fill-current" />
               </div>
-              <span>DripAdmin</span>
+              <span className="tracking-wide">DripAdmin</span>
             </div>
           </SidebarHeader>
 
@@ -106,7 +112,7 @@ export default function SaasLayout({ children, currentPath = "/dashboard", navig
               <SidebarGroupLabel>Management</SidebarGroupLabel>
               {/* Quick Action Button on the Group Label */}
               <SidebarGroupAction title="Add Zone" onClick={(e) => handleNavClick(e, "/zones")}>
-                <Plus className="h-4 w-4" />
+                <Plus className="h-4 w-4 hover:text-emerald-500 transition-colors" />
                 <span className="sr-only">Add Zone</span>
               </SidebarGroupAction>
               
@@ -116,15 +122,23 @@ export default function SaasLayout({ children, currentPath = "/dashboard", navig
                     const isActive = currentPath === item.url
                     return (
                       <SidebarMenuItem key={item.title}>
-                        <SidebarMenuButton asChild isActive={isActive}>
+                        <SidebarMenuButton 
+                          asChild 
+                          isActive={isActive}
+                          className={`transition-all duration-200 ${
+                            isActive 
+                              ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border-l-2 border-emerald-500 font-medium" 
+                              : "hover:bg-emerald-50/50 dark:hover:bg-emerald-950/10 hover:text-emerald-600 dark:hover:text-emerald-400 text-muted-foreground"
+                          }`}
+                        >
                           <a href={item.url} onClick={(e) => handleNavClick(e, item.url)}>
-                            <item.icon className="h-4 w-4" />
+                            <item.icon className={`h-4 w-4 ${isActive ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`} />
                             <span>{item.title}</span>
                           </a>
                         </SidebarMenuButton>
                         {/* Badge Example */}
                         {item.badge && (
-                          <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>
+                          <SidebarMenuBadge className="bg-emerald-500 text-white dark:bg-emerald-600 font-semibold">{item.badge}</SidebarMenuBadge>
                         )}
                       </SidebarMenuItem>
                     )
@@ -148,8 +162,15 @@ export default function SaasLayout({ children, currentPath = "/dashboard", navig
                       >
                         <SidebarMenuItem>
                           <CollapsibleTrigger asChild>
-                            <SidebarMenuButton isActive={isAnySubActive}>
-                              {item.icon && <item.icon className="h-4 w-4" />}
+                            <SidebarMenuButton 
+                              isActive={isAnySubActive}
+                              className={`transition-all duration-200 ${
+                                isAnySubActive 
+                                  ? "text-emerald-700 dark:text-emerald-400 font-medium" 
+                                  : "hover:text-emerald-600 dark:hover:text-emerald-400 text-muted-foreground"
+                              }`}
+                            >
+                              {item.icon && <item.icon className={`h-4 w-4 ${isAnySubActive ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`} />}
                               <span>{item.title}</span>
                               <ChevronDown className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
                             </SidebarMenuButton>
@@ -162,9 +183,17 @@ export default function SaasLayout({ children, currentPath = "/dashboard", navig
                                   const isSubActive = currentPath === subItem.url
                                   return (
                                     <SidebarMenuSubItem key={subItem.title}>
-                                      <SidebarMenuButton asChild isActive={isSubActive}>
+                                      <SidebarMenuButton 
+                                        asChild 
+                                        isActive={isSubActive}
+                                        className={`transition-all duration-200 ${
+                                          isSubActive 
+                                            ? "bg-emerald-50/70 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400 font-medium" 
+                                            : "hover:text-emerald-600 dark:hover:text-emerald-400 text-muted-foreground/80"
+                                        }`}
+                                      >
                                         <a href={subItem.url} onClick={(e) => handleNavClick(e, subItem.url)}>
-                                          <subItem.icon className="h-4 w-4 mr-2 text-muted-foreground" />
+                                          <subItem.icon className={`h-4 w-4 mr-2 ${isSubActive ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`} />
                                           <span>{subItem.title}</span>
                                         </a>
                                       </SidebarMenuButton>
@@ -187,9 +216,17 @@ export default function SaasLayout({ children, currentPath = "/dashboard", navig
               <SidebarGroupContent>
                 <SidebarMenu>
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={currentPath === "/diagnostics"}>
+                    <SidebarMenuButton 
+                      asChild 
+                      isActive={currentPath === "/diagnostics"}
+                      className={`transition-all duration-200 ${
+                        currentPath === "/diagnostics" 
+                          ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border-l-2 border-emerald-500 font-medium" 
+                          : "hover:bg-emerald-50/50 dark:hover:bg-emerald-950/10 hover:text-emerald-600 dark:hover:text-emerald-400 text-muted-foreground"
+                      }`}
+                    >
                       <a href="/diagnostics" onClick={(e) => handleNavClick(e, "/diagnostics")}>
-                        <Wrench className="h-4 w-4" />
+                        <Wrench className={`h-4 w-4 ${currentPath === "/diagnostics" ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`} />
                         <span>Diagnostics</span>
                       </a>
                     </SidebarMenuButton>
