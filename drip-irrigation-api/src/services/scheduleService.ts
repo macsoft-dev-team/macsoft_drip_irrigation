@@ -6,15 +6,16 @@ import { fieldService } from "./fieldService";
 const createScheduleSchema = z.object({
   fieldId: z.union([z.string(), z.number()]).transform(val => String(val)),
   name: z.string().min(1).max(150),
-  targetType: z.enum(["valve", "zone"]),
-  targetId: z.union([z.string(), z.number()]).transform(val => String(val)),
+  targetType: z.enum(["valve", "zone"]).optional().default("zone"),
+  targetId: z.union([z.string(), z.number()]).optional().default("0").transform(val => String(val)),
   startTime: z.string().regex(/^\d{2}:\d{2}$/),
   durationMinutes: z.number().int().positive(),
   repeatType: z.enum(["once", "daily", "weekly", "customDays"]).default("daily"),
   repeatDays: z.array(z.string()).nullish(),
   timezone: z.string().default("Asia/Kolkata"),
   scheduleType: z.string().optional().default("timeBased"),
-  zoneIds: z.array(z.union([z.number(), z.string()])).nullish()
+  zoneIds: z.array(z.union([z.number(), z.string()])).nullish(),
+  sequenceData: z.array(z.any()).nullish()
 });
 
 const updateScheduleSchema = createScheduleSchema.partial().extend({
@@ -58,7 +59,8 @@ export const scheduleService = {
         repeatDays: data.repeatDays ?? undefined,
         timezone: data.timezone,
         scheduleType: data.scheduleType,
-        zoneIds: data.zoneIds ? data.zoneIds.map(id => Number(id)) : undefined
+        zoneIds: data.zoneIds ? data.zoneIds.map(id => Number(id)) : undefined,
+        sequenceData: data.sequenceData ? data.sequenceData : undefined
       }
     });
   },
@@ -81,7 +83,8 @@ export const scheduleService = {
         fieldId: data.fieldId ? BigInt(data.fieldId) : undefined,
         targetId: data.targetId ? BigInt(data.targetId) : undefined,
         repeatDays: data.repeatDays ?? undefined,
-        zoneIds: data.zoneIds ? data.zoneIds.map(id => Number(id)) : undefined
+        zoneIds: data.zoneIds ? data.zoneIds.map(id => Number(id)) : undefined,
+        sequenceData: data.sequenceData ? data.sequenceData : undefined
       }
     });
   },
