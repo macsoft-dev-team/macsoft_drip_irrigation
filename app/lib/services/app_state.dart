@@ -616,6 +616,7 @@ class AppState extends ChangeNotifier {
     required List<String> repeatDays,
     String scheduleType = 'timeBased',
     List<String>? zoneIds,
+    List<dynamic>? sequenceData,
   }) async {
     if (api == null) return false;
     try {
@@ -630,6 +631,7 @@ class AppState extends ChangeNotifier {
         repeatDays: repeatDays,
         scheduleType: scheduleType,
         zoneIds: zoneIds,
+        sequenceData: sequenceData,
       );
       schedules.add(newSchedule);
       notifyListeners();
@@ -651,6 +653,7 @@ class AppState extends ChangeNotifier {
         status: 'active',
         scheduleType: scheduleType,
         zoneIds: zoneIds,
+        sequenceData: sequenceData,
       );
       schedules.add(newSchedule);
       notifyListeners();
@@ -667,6 +670,7 @@ class AppState extends ChangeNotifier {
     required List<String> repeatDays,
     String? scheduleType,
     List<String>? zoneIds,
+    List<dynamic>? sequenceData,
   }) async {
     if (api == null) return false;
     try {
@@ -679,6 +683,7 @@ class AppState extends ChangeNotifier {
         repeatDays: repeatDays,
         scheduleType: scheduleType,
         zoneIds: zoneIds,
+        sequenceData: sequenceData,
       );
       final idx = schedules.indexWhere((s) => s.id == scheduleId);
       if (idx != -1) {
@@ -705,6 +710,7 @@ class AppState extends ChangeNotifier {
           status: schedules[idx].status,
           scheduleType: scheduleType ?? schedules[idx].scheduleType,
           zoneIds: zoneIds ?? schedules[idx].zoneIds,
+          sequenceData: sequenceData ?? schedules[idx].sequenceData,
         );
         notifyListeners();
       }
