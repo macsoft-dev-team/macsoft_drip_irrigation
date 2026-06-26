@@ -12,6 +12,7 @@ import Login from "@/views/Login"
 import Users from "@/views/Users"
 import Inventory from "@/views/Inventory"
 
+
 function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname)
   const [preselectedZone, setPreselectedZone] = useState("")
@@ -92,8 +93,8 @@ function App() {
   }
 
   return (
-    <SaasLayout 
-      currentPath={currentPath} 
+    <SaasLayout
+      currentPath={currentPath}
       navigate={navigate}
       onLogout={() => {
         localStorage.removeItem("drip_admin_auth")

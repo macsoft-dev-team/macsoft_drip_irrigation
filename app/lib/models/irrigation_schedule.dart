@@ -14,8 +14,9 @@ class IrrigationSchedule {
   final String repeatType; // once, daily, weekly, customDays
   final List<String> repeatDays; // e.g. ["monday", "tuesday"] or ["1", "2"]
   final String status; // active, paused, deleted
-  final String scheduleType; // timeBased, timerBased
+  final String scheduleType; // timeBased, timerBased, rtcBased
   final List<String>? zoneIds;
+  final List<dynamic>? sequenceData;
 
   const IrrigationSchedule({
     required this.id,
@@ -33,6 +34,7 @@ class IrrigationSchedule {
     required this.status,
     required this.scheduleType,
     this.zoneIds,
+    this.sequenceData,
   });
 
   factory IrrigationSchedule.fromJson(Map<String, dynamic> json) {
@@ -64,6 +66,20 @@ class IrrigationSchedule {
       } catch (_) {}
     }
 
+    List<dynamic>? parsedSequenceData;
+    if (json['sequenceData'] != null) {
+      try {
+        if (json['sequenceData'] is String) {
+          final decoded = jsonDecode(json['sequenceData'] as String);
+          if (decoded is List) {
+            parsedSequenceData = decoded;
+          }
+        } else if (json['sequenceData'] is List) {
+          parsedSequenceData = json['sequenceData'] as List<dynamic>;
+        }
+      } catch (_) {}
+    }
+
     return IrrigationSchedule(
       id: json['id']?.toString() ?? '',
       farmerId: json['farmerId']?.toString() ?? '',
@@ -80,6 +96,7 @@ class IrrigationSchedule {
       status: json['status'] as String? ?? 'active',
       scheduleType: json['scheduleType'] as String? ?? 'timeBased',
       zoneIds: parsedZoneIds,
+      sequenceData: parsedSequenceData,
     );
   }
 
@@ -99,6 +116,7 @@ class IrrigationSchedule {
     'status': status,
     'scheduleType': scheduleType,
     'zoneIds': zoneIds,
+    'sequenceData': sequenceData,
   };
 
   IrrigationSchedule copyWith({
@@ -117,6 +135,7 @@ class IrrigationSchedule {
     String? status,
     String? scheduleType,
     List<String>? zoneIds,
+    List<dynamic>? sequenceData,
   }) {
     return IrrigationSchedule(
       id: id ?? this.id,
@@ -134,6 +153,7 @@ class IrrigationSchedule {
       status: status ?? this.status,
       scheduleType: scheduleType ?? this.scheduleType,
       zoneIds: zoneIds ?? this.zoneIds,
+      sequenceData: sequenceData ?? this.sequenceData,
     );
   }
 

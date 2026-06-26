@@ -479,8 +479,9 @@ model IrrigationSchedule {
   repeatDays      Json?
   status          ScheduleStatus @default(active)
   timezone        String         @default("Asia/Kolkata") @db.VarChar(80)
-  scheduleType    String         @default("timeBased") // "timeBased", "timerBased"
+  scheduleType    String         @default("timeBased") // "timeBased", "timerBased", "rtcBased"
   zoneIds         Json?          // Array of zone IDs: number[]
+  sequenceData    Json?          // Detailed sequence data array
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 

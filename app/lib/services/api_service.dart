@@ -618,6 +618,7 @@ class ApiService {
     required List<String> repeatDays,
     String scheduleType = 'timeBased',
     List<String>? zoneIds,
+    List<dynamic>? sequenceData,
   }) async {
     final res = await http.post(
       Uri.parse('$_baseUrl/schedules'),
@@ -633,6 +634,7 @@ class ApiService {
         'repeatDays': repeatDays,
         'scheduleType': scheduleType,
         'zoneIds': zoneIds,
+        'sequenceData': sequenceData,
       }),
     );
     _check(res);
@@ -648,6 +650,7 @@ class ApiService {
     required List<String> repeatDays,
     String? scheduleType,
     List<String>? zoneIds,
+    List<dynamic>? sequenceData,
   }) async {
     final res = await http.patch(
       Uri.parse('$_baseUrl/schedules/$scheduleId'),
@@ -660,6 +663,7 @@ class ApiService {
         'repeatDays': repeatDays,
         if (scheduleType != null) 'scheduleType': scheduleType,
         if (zoneIds != null) 'zoneIds': zoneIds,
+        if (sequenceData != null) 'sequenceData': sequenceData,
       }),
     );
     _check(res);
