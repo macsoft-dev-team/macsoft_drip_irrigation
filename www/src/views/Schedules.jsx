@@ -55,28 +55,38 @@ export default function Schedules({ preselectedZone, setPreselectedZone }) {
   }
 
   return (
-    <div className="grid gap-6 md:grid-cols-3">
-      {/* Schedule List */}
-      <div className="md:col-span-2 flex flex-col gap-4">
-        <div>
-          <h2 className="text-sm font-semibold tracking-tight">Active Automation Schedules</h2>
-          <p className="text-[11px] text-muted-foreground">Watering rules deployed to the irrigation controller</p>
+    <div className="flex flex-col gap-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/60">
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shadow-xs">
+            <Calendar className="h-6 w-6" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold tracking-tight text-foreground">Watering Schedules</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">Watering rules and automation sequences deployed to the irrigation controller.</p>
+          </div>
         </div>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-3">
+        {/* Schedule List */}
+        <div className="md:col-span-2 flex flex-col gap-4">
 
         <div className="flex flex-col gap-3">
           {schedules.map((s) => (
-            <Card key={s.id} className={`shadow-xs border border-border relative overflow-hidden transition-all duration-200 ${
+            <Card key={s.id} className={`shadow-[0_8px_30px_rgb(0,0,0,0.02)] border border-border relative overflow-hidden transition-all duration-300 hover:shadow-xs hover:border-emerald-500/10 ${
               !s.active ? "opacity-60 bg-muted/20" : ""
             }`}>
               <CardContent className="p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className={`p-2.5 rounded-lg ${s.active ? "bg-blue-50 dark:bg-blue-950/20 text-blue-500" : "bg-muted text-muted-foreground"}`}>
-                    <Clock className="h-4 w-4" />
+                  <div className={`p-2.5 rounded-xl border transition-all ${s.active ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" : "bg-muted text-muted-foreground border-transparent"}`}>
+                    <Clock className="h-4.5 w-4.5" />
                   </div>
                   <div>
                     <h3 className="text-xs font-bold text-foreground">{s.name}</h3>
                     <div className="text-[10px] text-muted-foreground mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5">
-                      <span>Zone: {s.zone}</span>
+                      <span className="font-medium text-emerald-700 dark:text-emerald-400">Zone: {s.zone}</span>
                       <span>•</span>
                       <span>Time: {s.time}</span>
                       <span>•</span>
@@ -87,7 +97,7 @@ export default function Schedules({ preselectedZone, setPreselectedZone }) {
 
                 <div className="flex items-center gap-3">
                   {/* Days pill */}
-                  <span className="text-[9px] font-semibold bg-muted text-muted-foreground px-2 py-0.5 rounded-full uppercase tracking-wider font-mono">
+                  <span className="text-[9px] font-bold bg-muted text-muted-foreground px-2 py-0.5 rounded-md uppercase tracking-wider font-mono">
                     {s.days.join(", ")}
                   </span>
                   
@@ -96,7 +106,7 @@ export default function Schedules({ preselectedZone, setPreselectedZone }) {
                     type="button"
                     onClick={() => toggleSchedule(s.id)}
                     className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-hidden ${
-                      s.active ? "bg-blue-500" : "bg-border"
+                      s.active ? "bg-emerald-500" : "bg-border"
                     }`}
                   >
                     <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
@@ -121,10 +131,10 @@ export default function Schedules({ preselectedZone, setPreselectedZone }) {
 
       {/* Add Schedule Form */}
       <div>
-        <Card className="shadow-xs border border-border">
+        <Card className="shadow-[0_8px_30px_rgb(0,0,0,0.02)] border border-border">
           <CardHeader>
             <CardTitle className="text-sm font-semibold flex items-center gap-1.5">
-              <Calendar className="h-4 w-4 text-blue-500" />
+              <Calendar className="h-4 w-4 text-emerald-500" />
               <span>Create Schedule</span>
             </CardTitle>
             <CardDescription className="text-[10px]">Add irrigation sequence rule</CardDescription>
@@ -137,8 +147,9 @@ export default function Schedules({ preselectedZone, setPreselectedZone }) {
                   type="text" 
                   placeholder="e.g. Mid-day Mist" 
                   value={name} 
+                  required
                   onChange={(e) => setName(e.target.value)}
-                  className="p-2 border border-border rounded-md bg-transparent text-foreground outline-hidden focus:border-blue-500"
+                  className="p-2.5 border border-border rounded-lg bg-background text-foreground outline-hidden focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all placeholder:text-muted-foreground/60"
                 />
               </div>
 
@@ -147,7 +158,7 @@ export default function Schedules({ preselectedZone, setPreselectedZone }) {
                 <select 
                   value={zone} 
                   onChange={(e) => setZone(e.target.value)}
-                  className="p-2 border border-border rounded-md bg-transparent dark:bg-card text-foreground outline-hidden focus:border-blue-500"
+                  className="p-2.5 border border-border rounded-lg bg-background text-foreground outline-hidden focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all"
                 >
                   <option value="Front Lawn">Front Lawn</option>
                   <option value="Orchard & Vines">Orchard & Vines</option>
@@ -164,7 +175,7 @@ export default function Schedules({ preselectedZone, setPreselectedZone }) {
                     placeholder="e.g. 08:00 AM" 
                     value={time} 
                     onChange={(e) => setTime(e.target.value)}
-                    className="p-2 border border-border rounded-md bg-transparent text-foreground outline-hidden focus:border-blue-500"
+                    className="p-2.5 border border-border rounded-lg bg-background text-foreground outline-hidden focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all placeholder:text-muted-foreground/60"
                   />
                 </div>
                 <div className="flex flex-col gap-1">
@@ -173,7 +184,7 @@ export default function Schedules({ preselectedZone, setPreselectedZone }) {
                     type="number" 
                     value={duration} 
                     onChange={(e) => setDuration(e.target.value)}
-                    className="p-2 border border-border rounded-md bg-transparent text-foreground outline-hidden focus:border-blue-500"
+                    className="p-2.5 border border-border rounded-lg bg-background text-foreground outline-hidden focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all"
                   />
                 </div>
               </div>
@@ -185,13 +196,13 @@ export default function Schedules({ preselectedZone, setPreselectedZone }) {
                   placeholder="Daily, or Mon, Wed, Fri" 
                   value={days} 
                   onChange={(e) => setDays(e.target.value)}
-                  className="p-2 border border-border rounded-md bg-transparent text-foreground outline-hidden focus:border-blue-500"
+                  className="p-2.5 border border-border rounded-lg bg-background text-foreground outline-hidden focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all placeholder:text-muted-foreground/60"
                 />
               </div>
 
               <button 
                 type="submit" 
-                className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 rounded-md transition-all flex items-center justify-center gap-1 mt-2 shadow-xs"
+                className="w-full bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-700 hover:to-teal-600 text-white font-bold py-2.5 rounded-lg transition-all flex items-center justify-center gap-1 mt-2 shadow-md shadow-emerald-500/10 hover:-translate-y-0.5 active:translate-y-0"
               >
                 <Plus className="h-4 w-4" />
                 <span>Save Schedule</span>
@@ -199,6 +210,7 @@ export default function Schedules({ preselectedZone, setPreselectedZone }) {
             </form>
           </CardContent>
         </Card>
+      </div>
       </div>
     </div>
   )

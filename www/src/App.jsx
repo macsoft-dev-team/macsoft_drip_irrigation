@@ -9,6 +9,8 @@ import AlertLimits from "@/views/AlertLimits"
 import Notifications from "@/views/Notifications"
 import Diagnostics from "@/views/Diagnostics"
 import Login from "@/views/Login"
+import Users from "@/views/Users"
+import Inventory from "@/views/Inventory"
 
 function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname)
@@ -65,6 +67,10 @@ function App() {
         return <AlertLimits />
       case "/settings/notifications":
         return <Notifications />
+      case "/users":
+        return <Users />
+      case "/inventory":
+        return <Inventory />
       case "/diagnostics":
         return <Diagnostics />
       case "/dashboard":
