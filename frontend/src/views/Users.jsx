@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { Users as UsersIcon, Plus, Pencil, Trash2, X, AlertTriangle } from "lucide-react"
 import {
   Table,
@@ -17,46 +17,22 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
-
-// Initial mock users list
-const initialUsers = [
-    {
-        id: 1,
-        name: "Admin User",
-        email: "admin@macsoft.com",
-        role: "admin",
-        status: "Active",
-        mobile: "+1 555-0101",
-    },
-    {
-        id: 2,
-        name: "Field Engineer",
-        email: "engineer@macsoft.com",
-        role: "field_engineer",
-        status: "Active",
-        mobile: "+1 555-0102",
-    },
-    {
-        id: 3,
-        name: "Farmer John",
-        email: "john@macsoft.com",
-        role: "farmer",
-        status: "Active",
-        mobile: "+1 555-0103",
-    },
-    {
-        id: 4,
-        name: "Inactive User",
-        email: "inactive@macsoft.com",
-        role: "farmer",
-        status: "Inactive",
-        mobile: "+1 555-0104",
-    }
-]
-
+import { initialUsers, initialFields } from "@/lib/mockData"
 
 export default function Users() {
-    const [users, setUsers] = useState(initialUsers)
+    const [users, setUsers] = useState(() => {
+        const saved = localStorage.getItem("drip_users")
+        return saved ? JSON.parse(saved) : initialUsers
+    })
+
+    const [fields] = useState(() => {
+        const saved = localStorage.getItem("drip_fields")
+        return saved ? JSON.parse(saved) : initialFields
+    })
+
+    useEffect(() => {
+        localStorage.setItem("drip_users", JSON.stringify(users))
+    }, [users])
 
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1)
@@ -70,15 +46,22 @@ export default function Users() {
     const [currentUser, setCurrentUser] = useState(null)
 
     // Form state
-    const [formData, setFormData] = useState({ name: "", email: "", role: "Viewer", status: "Active", mobile: "" })
+    const [formData, setFormData] = useState({ name: "", email: "", role: "Farmer", status: "Active", mobile: "", fieldId: "" })
 
     const openModal = (mode, user = null) => {
         setModalMode(mode)
         setCurrentUser(user)
         if (user && mode !== "delete") {
-            setFormData({ name: user.name, email: user.email, role: user.role, status: user.status, mobile: user.mobile || "" })
+            setFormData({
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                status: user.status,
+                mobile: user.mobile || "",
+                fieldId: user.fieldId ? user.fieldId.toString() : ""
+            })
         } else {
-            setFormData({ name: "", email: "", role: "Viewer", status: "Active", mobile: "" })
+            setFormData({ name: "", email: "", role: "Farmer", status: "Active", mobile: "", fieldId: "" })
         }
         setIsModalOpen(true)
     }
@@ -91,14 +74,19 @@ export default function Users() {
     const handleSubmit = (e) => {
         e.preventDefault()
 
+        const userPayload = {
+            ...formData,
+            fieldId: (formData.role.toLowerCase() === "farmer") && formData.fieldId ? Number(formData.fieldId) : undefined
+        }
+
         if (modalMode === "create") {
             const newUser = {
                 id: Math.max(...users.map(u => u.id), 0) + 1,
-                ...formData
+                ...userPayload
             }
             setUsers([...users, newUser])
         } else if (modalMode === "update") {
-            setUsers(users.map(u => u.id === currentUser.id ? { ...u, ...formData } : u))
+            setUsers(users.map(u => u.id === currentUser.id ? { ...u, ...userPayload } : u))
         }
 
         closeModal()
@@ -156,7 +144,14 @@ export default function Users() {
                         ) : (
                             paginatedUsers.map((user) => (
                                 <TableRow key={user.id} className="hover:bg-emerald-500/5 dark:hover:bg-emerald-500/2 transition-colors">
-                                    <TableCell className="font-bold text-foreground">{user.name}</TableCell>
+                                    <TableCell className="font-bold text-foreground">
+                                        <div>{user.name}</div>
+                                        {(user.role?.toLowerCase() === "farmer") && user.fieldId && (
+                                            <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5">
+                                                Field: {fields.find(f => f.id === user.fieldId)?.name || `Field #${user.fieldId}`}
+                                            </div>
+                                        )}
+                                    </TableCell>
                                     <TableCell className="text-muted-foreground font-mono">{user.email}</TableCell>
                                     <TableCell>
                                         <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold border ${
@@ -364,6 +359,24 @@ export default function Users() {
                                         </select>
                                     </div>
                                 </div>
+
+                                {(formData.role.toLowerCase() === "farmer") && (
+                                    <div className="flex flex-col gap-2 animate-in fade-in duration-200">
+                                        <label htmlFor="fieldId" className="text-sm font-semibold text-muted-foreground">Associated Field Sector</label>
+                                        <select
+                                            id="fieldId"
+                                            value={formData.fieldId}
+                                            onChange={(e) => setFormData({ ...formData, fieldId: e.target.value })}
+                                            className="flex h-10 w-full items-center justify-between rounded-lg border border-border bg-background px-3 py-2 text-sm outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all text-foreground"
+                                            required
+                                        >
+                                            <option value="" disabled>Select associated field...</option>
+                                            {fields.map(f => (
+                                                <option key={f.id} value={f.id} className="bg-card text-foreground">{f.name} ({f.location})</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
 
                                 <div className="flex justify-end gap-3 mt-4">
                                     <button
