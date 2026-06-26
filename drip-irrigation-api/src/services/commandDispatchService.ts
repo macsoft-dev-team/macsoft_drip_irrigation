@@ -1,8 +1,6 @@
 import { prisma } from "../db/prisma";
 import { AppError } from "../lib/AppError";
-import { commandTopic } from "../iot/topics";
-import { publishMqtt } from "../iot/mqttClient";
-import { env } from "../config/env";
+import { publishDeviceCommand } from "../iot/mqttUtils";
 
 export const commandDispatchService = {
   async dispatchCommand(commandId: bigint) {
@@ -41,26 +39,7 @@ export const commandDispatchService = {
       return;
     }
 
-    const topic = commandTopic(command.farmerId, command.fieldId, command.masterController.deviceUid);
-
-    const payload = {
-      commandUid: command.commandUid,
-      targetType: command.targetType,
-      targetId: command.targetId.toString(),
-      action: command.action,
-      zoneValveDelaySeconds: env.ZONE_VALVE_DELAY_SECONDS,
-      items: command.items.map((item) => ({
-        commandItemId: item.id.toString(),
-        valveId: item.valveId.toString(),
-        valveNumber: item.valve.valveNumber,
-        action: item.action,
-        sequenceNumber: item.sequenceNumber
-      })),
-      issuedAt: new Date().toISOString(),
-      expiresAt: command.expiresAt?.toISOString()
-    };
-
-    await publishMqtt(topic, payload);
+    await publishDeviceCommand(command);
 
     await prisma.command.update({
       where: { id: command.id },
@@ -80,3 +59,4 @@ export const commandDispatchService = {
     });
   }
 };
+
