@@ -87,10 +87,10 @@ export default function Zones({ navigate, setPreselectedZone }) {
               : "bg-amber-500 shadow-sm shadow-amber-500/25 animate-pulse"
   
             return (
-              <Card key={zone.id} className={`shadow-[0_8px_30px_rgb(0,0,0,0.02)] border border-border relative overflow-hidden transition-all duration-300 ${
+              <Card key={zone.id} className={`shadow-[0_8px_30px_rgb(0,0,0,0.02)] border border-transparent relative overflow-hidden transition-all duration-300 ${
                 isWatering 
                   ? "ring-2 ring-emerald-500/30 border-emerald-500/20 shadow-md shadow-emerald-500/5 hover:scale-[1.01]" 
-                  : "hover:-translate-y-0.5 hover:shadow-md hover:border-emerald-500/15"
+                  : "hover:-translate-y-0.5 hover:shadow-md hover:border-gray-300"
               }`}>
                 {/* Dynamic watering background pulse */}
                 {isWatering && (
@@ -189,7 +189,7 @@ export default function Zones({ navigate, setPreselectedZone }) {
                           navigate("/schedules")
                         }
                       }}
-                      className="py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 border border-border bg-card hover:bg-muted/50 hover:border-emerald-500/20 text-foreground transition-all hover:-translate-y-0.5 active:translate-y-0"
+                      className="py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 border border-transparent bg-card hover:bg-muted/50 hover:border-gray-300 text-foreground transition-all hover:-translate-y-0.5 active:translate-y-0"
                     >
                       <Plus className="h-3.5 w-3.5" />
                       <span>Schedule</span>

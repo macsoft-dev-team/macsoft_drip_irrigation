@@ -46,6 +46,7 @@ import {
 // --- Dummy Data for the Drip Irrigation Admin Panel ---
 const navMain = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+  { title: "Fields", url: "/fields", icon: Sprout },
   { title: "Zones & Valves", url: "/zones", icon: Droplet },
   { title: "Schedules", url: "/schedules", icon: Calendar },
   { title: "Sensors", url: "/sensors", icon: Activity, badge: "Live" },
@@ -76,6 +77,7 @@ export default function SaasLayout({ children, currentPath = "/dashboard", navig
 
   // Get current active view title for page header
   const getHeaderTitle = () => {
+    if (currentPath === "/fields") return "Fields & Sectors"
     if (currentPath === "/zones") return "Zones & Valves"
     if (currentPath === "/schedules") return "Watering Schedules"
     if (currentPath === "/sensors") return "Sensor Telemetry"

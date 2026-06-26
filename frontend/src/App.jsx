@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react"
 import SaasLayout from "@/components/SaasLayout"
 import Dashboard from "@/views/Dashboard"
+import Fields from "@/views/Fields"
 import Zones from "@/views/Zones"
 import Schedules from "@/views/Schedules"
 import Sensors from "@/views/Sensors"
@@ -55,6 +56,8 @@ function App() {
   // Routing switch logic
   const renderView = () => {
     switch (currentPath) {
+      case "/fields":
+        return <Fields navigate={navigate} />
       case "/zones":
         return <Zones navigate={navigate} setPreselectedZone={setPreselectedZone} />
       case "/schedules":
