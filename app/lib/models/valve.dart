@@ -9,6 +9,8 @@ class Valve {
   final DateTime? installedAt;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final String? slaveBoardName;
+  final int? modbusAddress;
 
   const Valve({
     required this.id,
@@ -21,20 +23,31 @@ class Valve {
     this.installedAt,
     this.createdAt,
     this.updatedAt,
+    this.slaveBoardName,
+    this.modbusAddress,
   });
 
   factory Valve.fromJson(Map<String, dynamic> j) {
+    String? sbName;
+    int? mbAddr;
+    if (j['slaveBoard'] != null) {
+      sbName = j['slaveBoard']['name'] as String?;
+      mbAddr = j['slaveBoard']['modbusAddress'] as int?;
+    }
+
     return Valve(
       id: j['id'].toString(),
       zoneId: j['zoneId'].toString(),
       deviceUid: j['deviceUid'] as String? ?? '',
       name: j['name'] as String? ?? '',
-      valveNumber: j['valveNumber'] as int? ?? 1,
+      valveNumber: j['coilAddress'] != null ? (j['coilAddress'] as int) + 1 : (j['valveNumber'] as int? ?? 1),
       status: j['status'] as String? ?? 'unknown',
       lastStatusAt: j['lastStatusAt'] != null ? DateTime.tryParse(j['lastStatusAt'].toString()) : null,
       installedAt: j['installedAt'] != null ? DateTime.tryParse(j['installedAt'].toString()) : null,
       createdAt: j['createdAt'] != null ? DateTime.tryParse(j['createdAt'].toString()) : null,
       updatedAt: j['updatedAt'] != null ? DateTime.tryParse(j['updatedAt'].toString()) : null,
+      slaveBoardName: sbName,
+      modbusAddress: mbAddr,
     );
   }
 
@@ -47,6 +60,8 @@ class Valve {
         'status': status,
         'lastStatusAt': lastStatusAt?.toIso8601String(),
         'installedAt': installedAt?.toIso8601String(),
+        'slaveBoardName': slaveBoardName,
+        'modbusAddress': modbusAddress,
       };
 
   Valve copyWith({
@@ -58,6 +73,8 @@ class Valve {
     String? status,
     DateTime? lastStatusAt,
     DateTime? installedAt,
+    String? slaveBoardName,
+    int? modbusAddress,
   }) {
     return Valve(
       id: id ?? this.id,
@@ -70,6 +87,8 @@ class Valve {
       installedAt: installedAt ?? this.installedAt,
       createdAt: createdAt,
       updatedAt: updatedAt,
+      slaveBoardName: slaveBoardName ?? this.slaveBoardName,
+      modbusAddress: modbusAddress ?? this.modbusAddress,
     );
   }
 }

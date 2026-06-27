@@ -150,6 +150,9 @@ class ValveDetailScreen extends StatelessWidget {
                         _SpecRow(label: 'Valve Number', value: '#${valve.valveNumber}'),
                         _SpecRow(label: 'Device UID', value: valve.deviceUid),
                         _SpecRow(label: 'Zone', value: zone.name),
+                        _SpecRow(label: 'Slave Board', value: valve.slaveBoardName ?? 'N/A'),
+                        _SpecRow(label: 'Modbus Unit ID', value: valve.modbusAddress != null ? '${valve.modbusAddress}' : 'N/A'),
+                        _SpecRow(label: 'Modbus Coil', value: 'Coil #${valve.valveNumber - 1}'),
                         _SpecRow(
                           label: 'Installed At',
                           value: valve.installedAt != null

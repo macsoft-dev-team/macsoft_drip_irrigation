@@ -7,7 +7,8 @@ const createValveSchema = z.object({
   slaveBoardId: z.string().optional(),
   deviceUid: z.string().min(2).max(100),
   name: z.string().min(1).max(150),
-  valveNumber: z.number().int().positive()
+  coilAddress: z.number().int().nonnegative().optional(),
+  valveNumber: z.number().int().positive().optional()
 });
 
 const updateValveSchema = createValveSchema.partial().extend({
@@ -48,7 +49,7 @@ export const valveService = {
 
     return prisma.valve.findMany({
       where: { zoneId },
-      orderBy: { valveNumber: "asc" }
+      orderBy: { coilAddress: "asc" }
     });
   },
 
@@ -115,13 +116,21 @@ export const valveService = {
       }
     }
 
+    let coilAddress = data.coilAddress;
+    if (coilAddress === undefined && data.valveNumber !== undefined) {
+      coilAddress = data.valveNumber - 1;
+    }
+    if (coilAddress === undefined) {
+      throw new AppError(400, "coilAddress or valveNumber is required", "invalidInput");
+    }
+
     return prisma.valve.create({
       data: {
         zoneId,
         slaveBoardId,
         deviceUid: data.deviceUid,
         name: data.name,
-        valveNumber: data.valveNumber
+        coilAddress
       }
     });
   },
@@ -133,11 +142,21 @@ export const valveService = {
     }
 
     const data = updateValveSchema.parse(input);
+    let coilAddress = data.coilAddress;
+    if (coilAddress === undefined && data.valveNumber !== undefined) {
+      coilAddress = data.valveNumber - 1;
+    }
+
+    const { valveNumber, ...rest } = data; // strip valveNumber from rest mapping
+
     return prisma.valve.update({
       where: { id: valveId },
       data: {
-        ...data,
-        slaveBoardId: data.slaveBoardId ? BigInt(data.slaveBoardId) : undefined
+        deviceUid: rest.deviceUid,
+        name: rest.name,
+        coilAddress,
+        status: rest.status,
+        slaveBoardId: rest.slaveBoardId ? BigInt(rest.slaveBoardId) : undefined
       }
     });
   },

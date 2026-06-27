@@ -2,8 +2,8 @@
 ///
 /// Override at build / run time with --dart-define:
 ///   flutter run \
-///     --dart-define=API_BASE_URL=https://pps.macsoftautomations.in/api \
-///     --dart-define=WS_BASE_URL=wss://pps.macsoftautomations.in
+///     --dart-define=API_BASE_URL=https://192.168.1.46/api \
+///     --dart-define=WS_BASE_URL=wss://sunshaft.macsoftautomations.in
 ///
 /// Defaults target the Android emulator loopback alias (10.0.2.2).
 /// For a physical device replace 10.0.2.2 with your machine's LAN IP.

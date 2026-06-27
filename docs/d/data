@@ -1,0 +1,28 @@
+Farmer
+└── John
+
+Field
+└── North Farm
+
+Master
+└── MASTER-001
+
+Slave
+├── Unit ID = 1
+├── Unit ID = 2
+└── Unit ID = 3
+
+Zone
+├── Tomato
+└── Banana
+
+Valve
+
+Tomato
+├── Valve A → Slave 1 → Coil 0
+├── Valve B → Slave 2 → Coil 1
+└── Valve C → Slave 3 → Coil 2
+
+Banana
+├── Valve D → Slave 1 → Coil 1
+└── Valve E → Slave 2 → Coil 0

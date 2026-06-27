@@ -15,6 +15,19 @@ const adapter = new PrismaMariaDb({
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
+  console.log("Cleaning up old command, valve, and device records...");
+  await prisma.supportTicket.deleteMany();
+  await prisma.scheduleRun.deleteMany();
+  await prisma.irrigationSchedule.deleteMany();
+  await prisma.masterHeartbeat.deleteMany();
+  await prisma.valveStatusLog.deleteMany();
+  await prisma.commandItem.deleteMany();
+  await prisma.command.deleteMany();
+  await prisma.valve.deleteMany();
+  await prisma.slaveBoard.deleteMany();
+  await prisma.masterController.deleteMany();
+  await prisma.zone.deleteMany();
+
   const adminPassword = await hashPassword("admin12345");
   const farmerPassword = await hashPassword("farmer12345");
 
@@ -121,9 +134,11 @@ async function main() {
 
   const farmerUser = await prisma.user.upsert({
     where: { phone: "8888888888" },
-    update: {},
+    update: {
+      name: "John"
+    },
     create: {
-      name: "Demo Farmer",
+      name: "John",
       phone: "8888888888",
       passwordHash: farmerPassword,
       role: "farmer",
@@ -144,71 +159,194 @@ async function main() {
 
   const field = await prisma.field.upsert({
     where: { id: BigInt(1) },
-    update: {},
+    update: {
+      name: "North Farm",
+      locationName: "North plot"
+    },
     create: {
+      id: BigInt(1),
       farmerId,
-      name: "Field 1",
+      name: "North Farm",
       locationName: "North plot",
       areaAcres: 2.5
     }
   });
 
   const master = await prisma.masterController.upsert({
-    where: { deviceUid: "master-demo-001" },
-    update: {},
+    where: { deviceUid: "MASTER-001" },
+    update: {
+      status: "online"
+    },
     create: {
       fieldId: field.id,
-      deviceUid: "master-demo-001",
+      deviceUid: "MASTER-001",
       simNumber: "9000000000",
       firmwareVersion: "1.0.0",
       connectionType: "gsm4g",
       tankLevel: 80,
-      motorStatus: "off"
+      motorStatus: "off",
+      status: "online"
     }
   });
 
-  const slaveBoard = await prisma.slaveBoard.upsert({
-    where: { deviceUid: "slave-demo-001" },
-    update: {},
+  // Create Slaves 1-3
+  const slave1 = await prisma.slaveBoard.upsert({
+    where: { deviceUid: "slave-001" },
+    update: {
+      modbusAddress: 1
+    },
     create: {
       masterControllerId: master.id,
-      deviceUid: "slave-demo-001",
+      deviceUid: "slave-001",
       name: "Slave Board 1",
+      modbusAddress: 1,
       status: "active"
     }
   });
 
-  const zoneA = await prisma.zone.upsert({
-    where: { id: BigInt(1) },
-    update: {},
+  const slave2 = await prisma.slaveBoard.upsert({
+    where: { deviceUid: "slave-002" },
+    update: {
+      modbusAddress: 2
+    },
     create: {
-      fieldId: field.id,
-      name: "Zone A"
+      masterControllerId: master.id,
+      deviceUid: "slave-002",
+      name: "Slave Board 2",
+      modbusAddress: 2,
+      status: "active"
     }
   });
 
-  await prisma.valve.upsert({
-    where: { deviceUid: "valve-demo-001" },
-    update: {},
+  const slave3 = await prisma.slaveBoard.upsert({
+    where: { deviceUid: "slave-003" },
+    update: {
+      modbusAddress: 3
+    },
     create: {
-      zoneId: zoneA.id,
-      slaveBoardId: slaveBoard.id,
-      deviceUid: "valve-demo-001",
-      name: "Valve 1",
-      valveNumber: 1,
+      masterControllerId: master.id,
+      deviceUid: "slave-003",
+      name: "Slave Board 3",
+      modbusAddress: 3,
+      status: "active"
+    }
+  });
+
+  // Create Zones Tomato and Banana
+  const zoneTomato = await prisma.zone.upsert({
+    where: { id: BigInt(1) },
+    update: {
+      name: "Tomato"
+    },
+    create: {
+      id: BigInt(1),
+      fieldId: field.id,
+      name: "Tomato",
+      description: "Tomato field section"
+    }
+  });
+
+  const zoneBanana = await prisma.zone.upsert({
+    where: { id: BigInt(2) },
+    update: {
+      name: "Banana"
+    },
+    create: {
+      id: BigInt(2),
+      fieldId: field.id,
+      name: "Banana",
+      description: "Banana field section"
+    }
+  });
+
+  // Tomato Valves (A, B, C)
+  await prisma.valve.upsert({
+    where: { deviceUid: "valve-001" },
+    update: {
+      name: "Valve A",
+      coilAddress: 0,
+      zoneId: zoneTomato.id,
+      slaveBoardId: slave1.id
+    },
+    create: {
+      zoneId: zoneTomato.id,
+      slaveBoardId: slave1.id,
+      deviceUid: "valve-001",
+      name: "Valve A",
+      coilAddress: 0,
       status: "closed"
     }
   });
 
   await prisma.valve.upsert({
-    where: { deviceUid: "valve-demo-002" },
-    update: {},
+    where: { deviceUid: "valve-002" },
+    update: {
+      name: "Valve B",
+      coilAddress: 1,
+      zoneId: zoneTomato.id,
+      slaveBoardId: slave2.id
+    },
     create: {
-      zoneId: zoneA.id,
-      slaveBoardId: slaveBoard.id,
-      deviceUid: "valve-demo-002",
-      name: "Valve 2",
-      valveNumber: 2,
+      zoneId: zoneTomato.id,
+      slaveBoardId: slave2.id,
+      deviceUid: "valve-002",
+      name: "Valve B",
+      coilAddress: 1,
+      status: "closed"
+    }
+  });
+
+  await prisma.valve.upsert({
+    where: { deviceUid: "valve-003" },
+    update: {
+      name: "Valve C",
+      coilAddress: 2,
+      zoneId: zoneTomato.id,
+      slaveBoardId: slave3.id
+    },
+    create: {
+      zoneId: zoneTomato.id,
+      slaveBoardId: slave3.id,
+      deviceUid: "valve-003",
+      name: "Valve C",
+      coilAddress: 2,
+      status: "closed"
+    }
+  });
+
+  // Banana Valves (D, E)
+  await prisma.valve.upsert({
+    where: { deviceUid: "valve-004" },
+    update: {
+      name: "Valve D",
+      coilAddress: 1,
+      zoneId: zoneBanana.id,
+      slaveBoardId: slave1.id
+    },
+    create: {
+      zoneId: zoneBanana.id,
+      slaveBoardId: slave1.id,
+      deviceUid: "valve-004",
+      name: "Valve D",
+      coilAddress: 1,
+      status: "closed"
+    }
+  });
+
+  await prisma.valve.upsert({
+    where: { deviceUid: "valve-005" },
+    update: {
+      name: "Valve E",
+      coilAddress: 0,
+      zoneId: zoneBanana.id,
+      slaveBoardId: slave2.id
+    },
+    create: {
+      zoneId: zoneBanana.id,
+      slaveBoardId: slave2.id,
+      deviceUid: "valve-005",
+      name: "Valve E",
+      coilAddress: 0,
       status: "closed"
     }
   });

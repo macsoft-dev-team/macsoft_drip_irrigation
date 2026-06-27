@@ -11,6 +11,7 @@ import 'field_list_screen.dart';
 import 'schedule_list_screen.dart';
 import 'store_screen.dart';
 import 'support_screen.dart';
+import 'drip_ai_scanner_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -103,6 +104,10 @@ class _DashboardPageState extends State<DashboardPage> {
                 children: [
                   // Weather / Farm scene card
                   _weatherCard(),
+                  const SizedBox(height: 20),
+
+                  // DripAI Leaf Doctor Entry Card
+                  _buildAiDoctorCard(context),
                   const SizedBox(height: 20),
 
                   // Marketing Banner
@@ -397,6 +402,21 @@ class _DashboardPageState extends State<DashboardPage> {
             );
           },
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const DripAiScannerPage()),
+          );
+        },
+        backgroundColor: const Color(0xFF0F172A),
+        foregroundColor: const Color(0xFF00E676),
+        shape: const CircleBorder(
+          side: BorderSide(color: Color(0xFF00E676), width: 1.5),
+        ),
+        elevation: 6,
+        child: const Icon(Icons.psychology_rounded, size: 28),
       ),
     );
   }
@@ -712,6 +732,126 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAiDoctorCard(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF0F172A),
+            Color(0xFF1E293B),
+            Color(0xFF090D16),
+          ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF00E676).withValues(alpha: 0.1),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+        border: Border.all(
+          color: const Color(0xFF00E676).withValues(alpha: 0.3),
+          width: 1.2,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(22),
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const DripAiScannerPage()),
+            );
+          },
+          borderRadius: BorderRadius.circular(22),
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF00E676).withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: const Color(0xFF00E676).withValues(alpha: 0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      Icons.psychology_rounded,
+                      color: Color(0xFF00E676),
+                      size: 26,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Text(
+                            'DripAI Crop Doctor',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF00E5FF).withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: const Color(0xFF00E5FF), width: 0.5),
+                            ),
+                            child: const Text(
+                              'AI ACTIVE',
+                              style: TextStyle(
+                                color: Color(0xFF00E5FF),
+                                fontSize: 8,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Scan crop leaf pathology. Diagnose diseases & optimize drip schedule runtime dynamically.',
+                        style: TextStyle(
+                          color: Color(0xFF94A3B8),
+                          fontSize: 11,
+                          height: 1.3,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                const Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  color: Color(0xFF00E5FF),
+                  size: 16,
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

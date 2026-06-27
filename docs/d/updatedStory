@@ -1,0 +1,134 @@
+# Drip Irrigation System Workflow
+
+## Initial Setup
+
+1. A Sales representative registers a new farmer.
+
+2. The farmer is created in the system.
+
+3. The farmer creates one or more fields.
+
+4. A Master Controller is installed for each field.
+
+5. The Master is registered in the backend.
+
+6. One or more Slave Controllers are connected to the Master using RS485.
+
+7. Each Slave is configured with a unique Modbus Address (Unit ID).
+
+8. The installer adds each Slave to the backend.
+
+9. Each Slave exposes a fixed number of outputs (coils), for example 8 or 16.
+
+10. The installer creates valve records for every physical valve.
+
+11. Each valve is mapped to:
+
+    * Master
+    * Slave
+    * Modbus Address (through the slave)
+    * Coil Address (Output)
+
+12. The installer tests every output individually.
+
+13. When an output is activated, the installer identifies the physical valve that opens.
+
+14. The installer gives the valve a meaningful name.
+
+15. After all valves are configured, the installer creates irrigation zones.
+
+16. A zone is a logical collection of valves.
+
+17. A zone can contain valves connected to different slaves.
+
+18. The relationship between zones and valves is stored in a `zone_valve` mapping table.
+
+19. Irrigation schedules are created for zones.
+
+---
+
+## Irrigation Execution
+
+20. The farmer starts a zone manually or a schedule starts automatically.
+
+21. The backend finds all valves that belong to the selected zone.
+
+22. For every valve, the backend retrieves:
+
+    * Slave
+    * Modbus Address
+    * Coil Address
+
+23. The backend sends a high-level MQTT command to the Master.
+
+Example:
+
+```json
+{
+  "command": "START_ZONE",
+  "zoneId": 5
+}
+```
+
+24. The Master resolves the zone into the list of valves.
+
+Example:
+
+* Slave 1 → Coil 1
+* Slave 2 → Coil 0
+* Slave 3 → Coil 1
+
+25. The Master generates the corresponding Modbus RTU frames.
+
+Example:
+
+Slave 1
+
+```
+01 05 00 01 FF 00 CRC
+```
+
+Slave 2
+
+```
+02 05 00 00 FF 00 CRC
+```
+
+Slave 3
+
+```
+03 05 00 01 FF 00 CRC
+```
+
+26. The Master sends the Modbus frames over the RS485 network.
+
+27. Each Slave checks whether the Modbus Address matches its own Unit ID.
+
+28. If the address matches, the Slave processes the command.
+
+29. The Slave turns the corresponding relay (coil) ON or OFF.
+
+30. The relay energizes or de-energizes the connected solenoid valve.
+
+31. The Slave returns a Modbus response (ACK).
+
+32. The Master waits for the response.
+
+33. If there is no response, the Master retries according to the retry policy.
+
+34. After receiving responses, the Master publishes the execution status to MQTT.
+
+35. The backend updates valve, zone, and irrigation status.
+
+36. The mobile application receives the latest status and displays it to the farmer in real time.
+
+---
+
+## Key Design Principles
+
+* The Backend manages business logic, farmers, fields, zones, schedules, and users.
+* The Master acts as the Modbus RTU Master and MQTT gateway.
+* The Slave only knows Modbus coils and registers; it has no knowledge of farmers, fields, zones, or valve names.
+* Valves are physically connected to Slaves.
+* Zones are logical groups of valves and may contain valves from multiple Slaves.
+* The Master is responsible for translating backend commands into Modbus RTU frames.

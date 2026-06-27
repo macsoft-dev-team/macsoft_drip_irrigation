@@ -1,0 +1,62 @@
+1. Farmer creates an account.
+
+2. Farmer creates one or more fields.
+
+3. A master controller is installed in each field.
+
+4. The master is registered in the system.
+
+5. One or more slave controllers are connected to the master using **RS485 (Modbus RTU)**.
+
+6. Each slave is assigned a unique **Modbus Address (Unit ID)** (e.g., 1, 2, 3...).
+
+7. The installer adds each slave to the system.
+
+8. Each slave has a fixed number of outputs (e.g., 8 or 16 relay outputs).
+
+9. The installer creates valve records in the system.
+
+10. Each valve is mapped to:
+
+    * Master
+    * Slave
+    * Modbus Address
+    * Coil/Output Address
+
+11. The installer tests each output one by one.
+
+12. When an output turns on, the installer identifies the physical valve and gives it a name.
+
+13. After all valves are mapped, the installer creates irrigation zones.
+
+14. Each valve is assigned to exactly one zone.
+
+15. The farmer creates irrigation schedules for zones.
+
+16. When a schedule starts (or the farmer starts a zone manually), the backend finds all valves in that zone.
+
+17. The backend sends a command to the master via MQTT.
+
+18. The master looks up each valve's **Slave Address** and **Coil Address**.
+
+19. The master generates the corresponding Modbus RTU frames.
+
+20. The master sends the Modbus commands over RS485.
+
+21. The target slave receives the command.
+
+22. The slave checks if the Modbus Address matches its own.
+
+23. If it matches, the slave turns the corresponding relay (coil) ON or OFF.
+
+24. The relay energizes the solenoid valve.
+
+25. The slave sends a Modbus response (ACK).
+
+26. The master receives the response.
+
+27. The master publishes the result back to the backend via MQTT.
+
+28. The backend updates the valve and zone status.
+
+29. The mobile app receives the updated status in real time.

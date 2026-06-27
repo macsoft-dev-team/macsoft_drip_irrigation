@@ -10,7 +10,11 @@ export const commandDispatchService = {
         masterController: true,
         items: {
           include: {
-            valve: true
+            valve: {
+              include: {
+                slaveBoard: true
+              }
+            }
           },
           orderBy: { sequenceNumber: "asc" }
         }

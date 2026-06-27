@@ -112,7 +112,7 @@ export const commandService = {
       include: {
         valves: {
           where: { status: { not: "disabled" } },
-          orderBy: { valveNumber: "asc" }
+          orderBy: { coilAddress: "asc" }
         },
         field: {
           include: {

@@ -99,7 +99,7 @@ export const deviceService = {
             name: zone.name,
             valves: zone.valves.map((valve) => ({
               valveId: valve.id.toString(),
-              valveNumber: valve.valveNumber,
+              coilAddress: valve.coilAddress,
               deviceUid: valve.deviceUid,
               name: valve.name
             }))

@@ -1,0 +1,282 @@
+Let's take a complete example.
+
+## Physical Setup
+
+```text
+Master
+│
+├── Slave 1 (Unit ID = 1)
+│      Coil 0 → Valve A
+│      Coil 1 → Valve B
+│      Coil 2 → Valve C
+│
+├── Slave 2 (Unit ID = 2)
+│      Coil 0 → Valve D
+│      Coil 1 → Valve E
+│
+└── Slave 3 (Unit ID = 3)
+       Coil 0 → Valve F
+       Coil 1 → Valve G
+```
+
+---
+
+## Zone Mapping
+
+**Zone: Tomato**
+
+```text
+Valve B  → Slave 1 → Coil 1
+Valve D  → Slave 2 → Coil 0
+Valve G  → Slave 3 → Coil 1
+```
+
+Notice the valves are on **different slaves**.
+
+---
+
+## User Starts "Tomato Zone"
+
+### Step 1 - Backend
+
+Backend sends to the master:
+
+```json
+{
+    "command": "START_ZONE",
+    "zoneId": 5
+}
+```
+
+---
+
+### Step 2 - Master
+
+The master looks up the zone (or receives the valve list from the backend):
+
+```text
+Zone 5
+
+Valve B
+Slave = 1
+Coil = 1
+
+Valve D
+Slave = 2
+Coil = 0
+
+Valve G
+Slave = 3
+Coil = 1
+```
+
+---
+
+### Step 3 - Master Sends Modbus Commands
+
+#### To Slave 1
+
+```
+01 05 00 01 FF 00 CRC
+```
+
+Meaning:
+
+```
+01  -> Slave Address
+05  -> Write Single Coil
+0001 -> Coil 1
+FF00 -> ON
+```
+
+---
+
+#### To Slave 2
+
+```
+02 05 00 00 FF 00 CRC
+```
+
+Meaning:
+
+```
+02 -> Slave Address
+05 -> Write Single Coil
+0000 -> Coil 0
+FF00 -> ON
+```
+
+---
+
+#### To Slave 3
+
+```
+03 05 00 01 FF 00 CRC
+```
+
+Meaning:
+
+```
+03 -> Slave Address
+05 -> Write Single Coil
+0001 -> Coil 1
+FF00 -> ON
+```
+
+---
+
+## Slave Processing
+
+Slave 2 receives:
+
+```
+02 05 00 00 FF 00 CRC
+```
+
+It checks:
+
+```
+Address = 2
+
+✓ That's me.
+```
+
+Then:
+
+```
+Function = 05
+
+↓
+
+Write Coil
+```
+
+Then:
+
+```
+Coil = 0
+
+↓
+
+GPIO16 = HIGH
+
+↓
+
+Relay 1 ON
+
+↓
+
+Valve D Opens
+```
+
+Response:
+
+```
+02 05 00 00 FF 00 CRC
+```
+
+---
+
+## Read Valve Status
+
+Master asks Slave 2:
+
+```
+02 01 00 00 00 02 CRC
+```
+
+Meaning:
+
+```
+Slave 2
+
+Read Coils
+
+Start = 0
+
+Count = 2
+```
+
+Response:
+
+```
+02 01 01 01 CRC
+```
+
+Meaning:
+
+```
+Coil0 = ON
+
+Coil1 = OFF
+```
+
+---
+
+## Read Soil Moisture
+
+```
+02 04 00 00 00 01 CRC
+```
+
+Meaning:
+
+```
+Slave 2
+
+Read Input Register 0
+```
+
+Response:
+
+```
+02 04 02 02 D3 CRC
+```
+
+Suppose:
+
+```
+0x02D3 = 723
+
+↓
+
+72.3 %
+```
+
+---
+
+# Entire Communication Flow
+
+```text
+Mobile App
+      │
+      ▼
+Backend
+      │ MQTT
+      ▼
+Master
+      │
+      ├── 01 05 00 01 FF 00 CRC
+      │
+      ├── 02 05 00 00 FF 00 CRC
+      │
+      └── 03 05 00 01 FF 00 CRC
+             │
+             ▼
+         Slave Devices
+             │
+             ▼
+        Open Valves
+```
+
+## Optimization
+
+If multiple valves belong to the **same slave**, don't send multiple `05` commands. Instead, use **Modbus Function Code 15 (Write Multiple Coils)**.
+
+For example, if **Slave 1** needs to turn on Coil 0, Coil 1, and Coil 2 together, send a single frame such as:
+
+```
+01 0F 00 00 00 03 01 07 CRC
+```
+
+This is more efficient because it updates all three outputs in one Modbus request instead of sending three separate commands. This optimization is commonly used in industrial Modbus systems to reduce RS485 bus traffic.

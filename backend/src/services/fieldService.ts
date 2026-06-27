@@ -39,7 +39,11 @@ export const fieldService = {
         masterController: true,
         zones: {
           include: {
-            valves: true
+            valves: {
+              include: {
+                slaveBoard: true
+              }
+            }
           }
         }
       },
@@ -73,7 +77,15 @@ export const fieldService = {
       where: { id: fieldId },
       include: {
         masterController: true,
-        zones: { include: { valves: true } }
+        zones: {
+          include: {
+            valves: {
+              include: {
+                slaveBoard: true
+              }
+            }
+          }
+        }
       }
     });
   },
