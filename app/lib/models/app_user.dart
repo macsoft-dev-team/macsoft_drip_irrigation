@@ -84,6 +84,24 @@ class AppUser {
   bool get canManageDevices => isAdmin;
   bool get canManageFields => role == UserRole.systemAdmin || role == UserRole.customerAdmin || role == UserRole.customerUser;
 
+  // Feature Access
+  bool get canAccessSchedules => role != UserRole.customer; // Operator cannot access schedules
+  bool get canAccessStore => role == UserRole.systemAdmin; // Only System Admin can access store
+  bool get canAccessUsersPage => role == UserRole.systemAdmin || role == UserRole.customerAdmin; // Admin or Farmer
+  bool get canAccessSupport => role != UserRole.customer; // Operator doesn't get support desk access
+
+  // Hardware/Commissioning Actions
+  bool get canCommissionDevices => role == UserRole.systemAdmin || role == UserRole.customerUser; // Admin or Technician
+  bool get canConfigureModbus => role == UserRole.systemAdmin || role == UserRole.customerUser;
+  bool get canAddValves => role == UserRole.systemAdmin || role == UserRole.customerUser;
+
+  // Irrigation & Configuration Management
+  bool get canCreateZones => role == UserRole.systemAdmin || role == UserRole.customerAdmin || role == UserRole.customerUser;
+  bool get canCreateSchedules => role == UserRole.systemAdmin || role == UserRole.customerAdmin; // Admin or Farmer
+  bool get canOperateIrrigation => true; // All roles can toggle manual irrigation
+  bool get canViewDeviceLogs => role != UserRole.customer; // Operator cannot view logs
+  bool get canPerformOTA => role == UserRole.systemAdmin || role == UserRole.customerUser; // Admin or Technician
+
   String get roleLabel {
     switch (role) {
       case UserRole.systemAdmin:

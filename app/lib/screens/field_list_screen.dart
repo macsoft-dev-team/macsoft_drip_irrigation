@@ -26,65 +26,65 @@ class _FieldListScreenState extends State<FieldListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('My Fields'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add_circle_outline_rounded, color: Color(0xFF2D7A3A), size: 28),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const FieldFormScreen()),
-              );
-            },
-          ),
-        ],
-      ),
-      body: Consumer<AppState>(
-        builder: (context, state, _) {
-          if (state.fieldsLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (state.fields.isEmpty) {
-            return EmptyState(
-              icon: Icons.map_outlined,
-              title: 'No Fields Found',
-              description: 'Start by adding your first agricultural field and linking its master controller.',
-              actionLabel: 'Add Field',
-              onAction: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const FieldFormScreen()),
-                );
-              },
-            );
-          }
-
-          return RefreshIndicator(
-            onRefresh: () => state.loadFields(),
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              itemCount: state.fields.length,
-              itemBuilder: (context, index) {
-                final field = state.fields[index];
-                return FieldCard(
-                  field: field,
-                  onTap: () {
+    return Consumer<AppState>(
+      builder: (context, state, _) {
+        final canAdd = state.user == null || state.user!.canManageFields;
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('My Fields'),
+            actions: [
+              if (canAdd)
+                IconButton(
+                  icon: const Icon(Icons.add_circle_outline_rounded, color: Color(0xFF2D7A3A), size: 28),
+                  onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (context) => FieldDetailScreen(fieldId: field.id),
-                      ),
+                      MaterialPageRoute(builder: (context) => const FieldFormScreen()),
                     );
                   },
-                );
-              },
-            ),
-          );
-        },
-      ),
+                ),
+            ],
+          ),
+          body: state.fieldsLoading
+              ? const Center(child: CircularProgressIndicator())
+              : state.fields.isEmpty
+                  ? EmptyState(
+                      icon: Icons.map_outlined,
+                      title: 'No Fields Found',
+                      description: 'Start by adding your first agricultural field and linking its master controller.',
+                      actionLabel: canAdd ? 'Add Field' : null,
+                      onAction: canAdd
+                          ? () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => const FieldFormScreen()),
+                              );
+                            }
+                          : null,
+                    )
+                  : RefreshIndicator(
+                      onRefresh: () => state.loadFields(),
+                      child: ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                        itemCount: state.fields.length,
+                        itemBuilder: (context, index) {
+                          final field = state.fields[index];
+                          return FieldCard(
+                            field: field,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => FieldDetailScreen(fieldId: field.id),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      ),
+                    ),
+        );
+      },
     );
   }
 }

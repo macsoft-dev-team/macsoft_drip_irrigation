@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../services/app_state.dart';
 import '../widgets/confirm_action_dialog.dart';
 import 'support_screen.dart';
+import 'users_page.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -121,6 +122,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   },
                 ),
                 const Divider(height: 1, thickness: 0.8),
+                if (user?.canAccessUsersPage == true) ...[
+                  ListTile(
+                    leading: const Icon(Icons.people_outline, color: Color(0xFF2D7A3A)),
+                    title: const Text('Manage Farm Users', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Color(0xFFCBD5E1)),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const UsersPage()),
+                      );
+                    },
+                  ),
+                  const Divider(height: 1, thickness: 0.8),
+                ],
                 ListTile(
                   leading: const Icon(Icons.help_outline, color: Color(0xFF2D7A3A)),
                   title: const Text('Help Desk & FAQ', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),

@@ -44,7 +44,7 @@ async function main() {
 
   const distributorPassword = await hashPassword("distributor12345");
   const distributorUser = await prisma.user.upsert({
-    where: { phone: "7777777777" },
+    where: { phone: "9876543211" },
     update: {},
     create: {
       name: "Demo Distributor",
@@ -64,7 +64,7 @@ async function main() {
 
   const dealerPassword = await hashPassword("dealer12345");
   const dealerUser = await prisma.user.upsert({
-    where: { phone: "6666666666" },
+    where: { phone: "9876543212" },
     update: {},
     create: {
       name: "Demo Dealer",
@@ -85,7 +85,7 @@ async function main() {
 
   const salesPassword = await hashPassword("sales12345");
   await prisma.user.upsert({
-    where: { phone: "5555555555" },
+    where: { phone: "9876543213" },
     update: {},
     create: {
       name: "Demo Sales",
@@ -97,7 +97,7 @@ async function main() {
 
   const csPassword = await hashPassword("support12345");
   await prisma.user.upsert({
-    where: { phone: "4444444444" },
+    where: { phone: "9876543214" },
     update: {},
     create: {
       name: "Demo Support",
@@ -109,7 +109,7 @@ async function main() {
 
   const techPassword = await hashPassword("tech12345");
   await prisma.user.upsert({
-    where: { phone: "3333333333" },
+    where: { phone: "9876543215" },
     update: {},
     create: {
       name: "Demo Technician",
@@ -121,11 +121,11 @@ async function main() {
 
   const tenantAdminPassword = await hashPassword("tenant12345");
   await prisma.user.upsert({
-    where: { phone: "2222222222" },
+    where: { phone: "9876543215" },
     update: {},
     create: {
       name: "Demo Tenant Admin",
-      phone: "9876543216",
+      phone: "9876543215",
       passwordHash: tenantAdminPassword,
       role: "tenant_admin",
       belongsToDistributorId: distributorUser.distributor!.id
@@ -133,7 +133,7 @@ async function main() {
   });
 
   const farmerUser = await prisma.user.upsert({
-    where: { phone: "8888888888" },
+    where: { phone: "9876543217" },
     update: {
       name: "John"
     },

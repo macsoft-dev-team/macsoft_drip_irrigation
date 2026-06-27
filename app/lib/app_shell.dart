@@ -73,26 +73,38 @@ class _AppShellState extends State<AppShell> {
   Widget build(BuildContext context) {
     return Consumer<AppState>(
       builder: (context, state, _) {
-        final pages = [
+        final user = state.user;
+        final pages = <Widget>[
           const DashboardPage(),
           const FieldListScreen(),
-          const ScheduleListScreen(),
-          const StoreScreen(),
-          const SupportScreen(),
         ];
+
+        final navItems = <AppNavItem>[
+          const AppNavItem(icon: Icons.home_rounded, label: 'Home'),
+          const AppNavItem(icon: Icons.map_outlined, label: 'Fields'),
+        ];
+
+        if (user == null || user.canAccessSchedules) {
+          pages.add(const ScheduleListScreen());
+          navItems.add(const AppNavItem(icon: Icons.calendar_month_outlined, label: 'Schedules'));
+        }
+
+        if (user == null || user.canAccessStore) {
+          pages.add(const StoreScreen());
+          navItems.add(const AppNavItem(icon: Icons.shopping_bag_outlined, label: 'Store'));
+        }
+
+        if (user == null || user.canAccessSupport) {
+          pages.add(const SupportScreen());
+          navItems.add(const AppNavItem(icon: Icons.support_agent_rounded, label: 'Support'));
+        }
 
         final safeIndex = selectedIndex.clamp(0, pages.length - 1).toInt();
 
         return AppLayout(
           title: '',
           currentIndex: safeIndex,
-          navItems: const [
-            AppNavItem(icon: Icons.home_rounded, label: 'Home'),
-            AppNavItem(icon: Icons.map_outlined, label: 'Fields'),
-            AppNavItem(icon: Icons.calendar_month_outlined, label: 'Schedules'),
-            AppNavItem(icon: Icons.shopping_bag_outlined, label: 'Store'),
-            AppNavItem(icon: Icons.support_agent_rounded, label: 'Support'),
-          ],
+          navItems: navItems,
           onNavTap: (i) => setState(() => selectedIndex = i),
           onAddTap: () {
             // Action handled locally if needed, e.g. open side menu or details

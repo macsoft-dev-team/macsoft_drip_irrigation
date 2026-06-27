@@ -192,24 +192,26 @@ class FieldDetailScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => CommissioningWizardPage(field: field),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.build_rounded, size: 18),
-                  label: const Text('Device Commissioning Wizard'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2D7A3A),
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size(double.infinity, 44),
+                if (state.user == null || state.user!.canCommissionDevices) ...[
+                  const SizedBox(height: 12),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => CommissioningWizardPage(field: field),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.build_rounded, size: 18),
+                    label: const Text('Device Commissioning Wizard'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2D7A3A),
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size(double.infinity, 44),
+                    ),
                   ),
-                ),
+                ],
                 if (field.masterController != null) ...[
                   const SizedBox(height: 12),
                   _buildMotorCard(context, state, field),
@@ -280,19 +282,20 @@ class FieldDetailScreen extends StatelessWidget {
                       'Irrigation Zones (${field.zones.length})',
                       style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1E2A1F)),
                     ),
-                    TextButton.icon(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ZoneFormScreen(fieldId: field.id),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.add, size: 16),
-                      label: const Text('Add Zone', style: TextStyle(fontSize: 12)),
-                      style: TextButton.styleFrom(foregroundColor: const Color(0xFF2D7A3A)),
-                    ),
+                    if (state.user == null || state.user!.canCreateZones)
+                      TextButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ZoneFormScreen(fieldId: field.id),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.add, size: 16),
+                        label: const Text('Add Zone', style: TextStyle(fontSize: 12)),
+                        style: TextButton.styleFrom(foregroundColor: const Color(0xFF2D7A3A)),
+                      ),
                   ],
                 ),
                 const SizedBox(height: 8),
