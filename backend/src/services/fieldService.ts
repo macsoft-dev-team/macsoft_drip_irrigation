@@ -1,6 +1,7 @@
 import { z } from "zod";
-import { prisma } from "../db/prisma";
-import { AppError } from "../lib/AppError";
+import { prisma } from "../db/prisma.js";
+import { AppError } from "../lib/AppError.js";
+import { activityLogService } from "./activityLogService.js";
 
 const createFieldSchema = z.object({
   name: z.string().min(1).max(150),
@@ -51,10 +52,12 @@ export const fieldService = {
     });
   },
 
-  async createField(farmerId: bigint, input: unknown) {
+  async createField(auth: Express.Request["auth"], input: unknown) {
+    if (!auth) throw new AppError(401, "Authentication required", "authRequired");
+    const farmerId = auth.role === "farmer" ? auth.farmerId! : BigInt(input && typeof input === "object" && "farmerId" in input ? (input as any).farmerId : 1);
     const data = createFieldSchema.parse(input);
 
-    return prisma.field.create({
+    const field = await prisma.field.create({
       data: {
         farmerId,
         name: data.name,
@@ -64,6 +67,9 @@ export const fieldService = {
         areaAcres: data.areaAcres
       }
     });
+
+    await activityLogService.log(auth.userId, "create", "field", field.id, { name: field.name });
+    return field;
   },
 
   async getField(auth: Express.Request["auth"], fieldId: bigint) {
@@ -99,13 +105,19 @@ export const fieldService = {
 
     const data = updateFieldSchema.parse(input);
 
-    return prisma.field.update({
+    const updated = await prisma.field.update({
       where: { id: fieldId },
       data
     });
+
+    await activityLogService.log(auth.userId, "update", "field", updated.id, { name: updated.name });
+    return updated;
   },
 
   async deleteField(auth: Express.Request["auth"], fieldId: bigint) {
-    return this.updateField(auth, fieldId, { status: "inactive" });
+    if (!auth) throw new AppError(401, "Authentication required", "authRequired");
+    const deleted = await this.updateField(auth, fieldId, { status: "inactive" });
+    await activityLogService.log(auth.userId, "delete", "field", fieldId);
+    return deleted;
   }
 };

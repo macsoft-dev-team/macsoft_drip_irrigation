@@ -7,8 +7,7 @@ export const fieldController = {
   list: asyncHandler(async (req, res) => ok(res, await fieldService.listFields(req.auth))),
 
   create: asyncHandler(async (req, res) => {
-    const farmerId = req.auth!.farmerId ?? BigInt(req.body.farmerId);
-    return created(res, await fieldService.createField(farmerId, req.body));
+    return created(res, await fieldService.createField(req.auth, req.body));
   }),
 
   get: asyncHandler(async (req, res) => ok(res, await fieldService.getField(req.auth, parseBigIntId(req.params.fieldId, "fieldId")))),

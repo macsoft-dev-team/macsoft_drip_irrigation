@@ -291,13 +291,17 @@ class _DashboardPageState extends State<DashboardPage> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
-                                'Command UID: ${state.activeCommand!.commandUid}',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
+                              Expanded(
+                                child: Text(
+                                  'UID: ${state.activeCommand!.commandUid}',
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
                                 ),
                               ),
+                              const SizedBox(width: 8),
                               StatusChip(status: state.activeCommand!.status),
                             ],
                           ),

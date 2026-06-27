@@ -1,8 +1,9 @@
-import { prisma } from "../db/prisma";
-import { AppError } from "../lib/AppError";
-import { uid } from "../lib/ids";
-import { env } from "../config/env";
-import { enqueueCommand } from "../queues/commandQueue";
+import { prisma } from "../db/prisma.js";
+import { AppError } from "../lib/AppError.js";
+import { uid } from "../lib/ids.js";
+import { env } from "../config/env.js";
+import { enqueueCommand } from "../queues/commandQueue.js";
+import { activityLogService } from "./activityLogService.js";
 
 type Action = "open" | "close";
 type Source = "app" | "adminPanel" | "schedule" | "support" | "deviceHttp";
@@ -101,6 +102,8 @@ export const commandService = {
       await enqueueCommand(command.id);
     }
 
+    await activityLogService.log(auth.userId, "trigger", "command", command.id, { targetType: "valve", targetId: valve.id.toString(), action });
+
     return command;
   },
 
@@ -175,6 +178,8 @@ export const commandService = {
       await enqueueCommand(command.id);
     }
 
+    await activityLogService.log(auth.userId, "trigger", "command", command.id, { targetType: "zone", targetId: zone.id.toString(), action });
+
     return command;
   },
 
@@ -221,6 +226,8 @@ export const commandService = {
     if (isMasterOnline(master.status)) {
       await enqueueCommand(command.id);
     }
+
+    await activityLogService.log(auth.userId, "trigger", "command", command.id, { targetType: "motor", targetId: master.id.toString(), action });
 
     return command;
   },

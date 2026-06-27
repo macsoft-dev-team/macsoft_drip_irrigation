@@ -212,6 +212,7 @@ model User {
   requestedCommands      Command[]   @relation("requestedCommands")
   assignedTickets        SupportTicket[] @relation("assignedTickets")
   createdOrders          Order[]     @relation("createdOrders")
+  activityLogs           ActivityLog[]
 
   @@index([belongsToDistributorId])
   @@index([belongsToDealerId])
@@ -667,4 +668,20 @@ model InventoryItem {
   @@unique([productId, distributorId])
   @@unique([productId, dealerId])
   @@map("inventoryItems")
+}
+
+model ActivityLog {
+  id         BigInt   @id @default(autoincrement())
+  userId     BigInt
+  action     String   @db.VarChar(100) // "create", "update", "delete", "trigger"
+  entityType String   @db.VarChar(100) // "field", "zone", "valve", "schedule", "command"
+  entityId   BigInt
+  details    String?  @db.Text
+  createdAt  DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@map("activityLogs")
 }

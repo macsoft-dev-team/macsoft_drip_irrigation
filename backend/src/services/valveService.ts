@@ -2,6 +2,7 @@ import { z } from "zod";
 import { prisma } from "../db/prisma";
 import { AppError } from "../lib/AppError";
 import { zoneService } from "./zoneService";
+import { activityLogService } from "./activityLogService";
 
 const createValveSchema = z.object({
   slaveBoardId: z.string().optional(),
@@ -124,7 +125,7 @@ export const valveService = {
       throw new AppError(400, "coilAddress or valveNumber is required", "invalidInput");
     }
 
-    return prisma.valve.create({
+    const valve = await prisma.valve.create({
       data: {
         zoneId,
         slaveBoardId,
@@ -133,6 +134,9 @@ export const valveService = {
         coilAddress
       }
     });
+
+    await activityLogService.log(auth.userId, "create", "valve", valve.id, { name: valve.name, coilAddress: valve.coilAddress });
+    return valve;
   },
 
   async update(auth: Express.Request["auth"], valveId: bigint, input: unknown) {
@@ -149,7 +153,7 @@ export const valveService = {
 
     const { valveNumber, ...rest } = data; // strip valveNumber from rest mapping
 
-    return prisma.valve.update({
+    const valve = await prisma.valve.update({
       where: { id: valveId },
       data: {
         deviceUid: rest.deviceUid,
@@ -159,9 +163,15 @@ export const valveService = {
         slaveBoardId: rest.slaveBoardId ? BigInt(rest.slaveBoardId) : undefined
       }
     });
+
+    await activityLogService.log(auth.userId, "update", "valve", valve.id, { name: valve.name, coilAddress: valve.coilAddress, status: valve.status });
+    return valve;
   },
 
   async delete(auth: Express.Request["auth"], valveId: bigint) {
-    return this.update(auth, valveId, { status: "disabled" });
+    if (!auth) throw new AppError(401, "Authentication required", "authRequired");
+    const valve = await this.update(auth, valveId, { status: "disabled" });
+    await activityLogService.log(auth.userId, "delete", "valve", valveId);
+    return valve;
   }
 };

@@ -12,7 +12,7 @@ import Diagnostics from "@/views/Diagnostics"
 import Login from "@/views/Login"
 import Users from "@/views/Users"
 import Inventory from "@/views/Inventory"
-
+import ActivityLogs from "@/views/ActivityLogs"
 
 function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname)
@@ -77,6 +77,8 @@ function App() {
         return <Inventory />
       case "/diagnostics":
         return <Diagnostics />
+      case "/activity-logs":
+        return <ActivityLogs />
       case "/dashboard":
       default:
         return <Dashboard />

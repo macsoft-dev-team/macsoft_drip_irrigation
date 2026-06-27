@@ -1,7 +1,8 @@
 import { z } from "zod";
-import { prisma } from "../db/prisma";
-import { AppError } from "../lib/AppError";
-import { fieldService } from "./fieldService";
+import { prisma } from "../db/prisma.js";
+import { AppError } from "../lib/AppError.js";
+import { fieldService } from "./fieldService.js";
+import { activityLogService } from "./activityLogService.js";
 
 const createScheduleSchema = z.object({
   fieldId: z.union([z.string(), z.number()]).transform(val => String(val)),
@@ -46,7 +47,7 @@ export const scheduleService = {
       await fieldService.assertFarmerOwnsField(auth.farmerId!, fieldId);
     }
 
-    return prisma.irrigationSchedule.create({
+    const schedule = await prisma.irrigationSchedule.create({
       data: {
         farmerId,
         fieldId,
@@ -63,6 +64,9 @@ export const scheduleService = {
         sequenceData: data.sequenceData ? data.sequenceData : undefined
       }
     });
+
+    await activityLogService.log(auth.userId, "create", "schedule", schedule.id, { name: schedule.name, targetType: schedule.targetType });
+    return schedule;
   },
 
   async update(auth: Express.Request["auth"], scheduleId: bigint, input: unknown) {
@@ -76,7 +80,7 @@ export const scheduleService = {
 
     const data = updateScheduleSchema.parse(input);
 
-    return prisma.irrigationSchedule.update({
+    const updated = await prisma.irrigationSchedule.update({
       where: { id: scheduleId },
       data: {
         ...data,
@@ -87,6 +91,9 @@ export const scheduleService = {
         sequenceData: data.sequenceData ? data.sequenceData : undefined
       }
     });
+
+    await activityLogService.log(auth.userId, "update", "schedule", updated.id, { name: updated.name, status: updated.status });
+    return updated;
   },
 
   async pause(auth: Express.Request["auth"], scheduleId: bigint) {
@@ -98,10 +105,13 @@ export const scheduleService = {
       throw new AppError(403, "Forbidden", "forbidden");
     }
 
-    return prisma.irrigationSchedule.update({
+    const updated = await prisma.irrigationSchedule.update({
       where: { id: scheduleId },
       data: { status: "paused" }
     });
+
+    await activityLogService.log(auth.userId, "update", "schedule", updated.id, { status: "paused" });
+    return updated;
   },
 
   async resume(auth: Express.Request["auth"], scheduleId: bigint) {
@@ -113,13 +123,19 @@ export const scheduleService = {
       throw new AppError(403, "Forbidden", "forbidden");
     }
 
-    return prisma.irrigationSchedule.update({
+    const updated = await prisma.irrigationSchedule.update({
       where: { id: scheduleId },
       data: { status: "active" }
     });
+
+    await activityLogService.log(auth.userId, "update", "schedule", updated.id, { status: "active" });
+    return updated;
   },
 
   async delete(auth: Express.Request["auth"], scheduleId: bigint) {
-    return this.update(auth, scheduleId, { status: "deleted" });
+    if (!auth) throw new AppError(401, "Authentication required", "authRequired");
+    const schedule = await this.update(auth, scheduleId, { status: "deleted" });
+    await activityLogService.log(auth.userId, "delete", "schedule", scheduleId);
+    return schedule;
   }
 };

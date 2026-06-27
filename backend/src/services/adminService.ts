@@ -69,5 +69,26 @@ export const adminService = {
       orderBy: { id: "desc" },
       take: 200
     });
+  },
+
+  async listActivityLogs(auth: Express.Request["auth"]) {
+    if (!auth || !["admin", "technician"].includes(auth.role)) {
+      throw new AppError(403, "Forbidden", "forbidden");
+    }
+
+    return prisma.activityLog.findMany({
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+            role: true
+          }
+        }
+      },
+      orderBy: { id: "desc" },
+      take: 500
+    });
   }
 };

@@ -13,7 +13,8 @@ import {
   LogOut,
   ChevronDown,
   Users,
-  Package
+  Package,
+  History
 } from "lucide-react"
 
 import {
@@ -52,6 +53,7 @@ const navMain = [
   { title: "Sensors", url: "/sensors", icon: Activity, badge: "Live" },
   { title: "Users", url: "/users", icon: Users },
   { title: "Inventory", url: "/inventory", icon: Package },
+  { title: "Activity Logs", url: "/activity-logs", icon: History },
 ]
 
 const navSettings = [
@@ -87,6 +89,7 @@ export default function SaasLayout({ children, currentPath = "/dashboard", navig
     if (currentPath === "/diagnostics") return "System Diagnostics"
     if (currentPath === "/users") return "User Management"
     if (currentPath === "/inventory") return "Inventory & Stock Management"
+    if (currentPath === "/activity-logs") return "System Activity Logs"
     return "Dashboard Overview"
   }
 

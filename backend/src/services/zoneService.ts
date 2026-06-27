@@ -1,7 +1,8 @@
 import { z } from "zod";
-import { prisma } from "../db/prisma";
-import { AppError } from "../lib/AppError";
-import { fieldService } from "./fieldService";
+import { prisma } from "../db/prisma.js";
+import { AppError } from "../lib/AppError.js";
+import { fieldService } from "./fieldService.js";
+import { activityLogService } from "./activityLogService.js";
 
 const createZoneSchema = z.object({
   name: z.string().min(1).max(150),
@@ -47,13 +48,16 @@ export const zoneService = {
     }
 
     const data = createZoneSchema.parse(input);
-    return prisma.zone.create({
+    const zone = await prisma.zone.create({
       data: {
         fieldId,
         name: data.name,
         description: data.description
       }
     });
+
+    await activityLogService.log(auth.userId, "create", "zone", zone.id, { name: zone.name });
+    return zone;
   },
 
   async update(auth: Express.Request["auth"], zoneId: bigint, input: unknown) {
@@ -63,13 +67,19 @@ export const zoneService = {
     }
 
     const data = updateZoneSchema.parse(input);
-    return prisma.zone.update({
+    const zone = await prisma.zone.update({
       where: { id: zoneId },
       data
     });
+
+    await activityLogService.log(auth.userId, "update", "zone", zone.id, { name: zone.name, status: zone.status });
+    return zone;
   },
 
   async delete(auth: Express.Request["auth"], zoneId: bigint) {
-    return this.update(auth, zoneId, { status: "inactive" });
+    if (!auth) throw new AppError(401, "Authentication required", "authRequired");
+    const zone = await this.update(auth, zoneId, { status: "inactive" });
+    await activityLogService.log(auth.userId, "delete", "zone", zoneId);
+    return zone;
   }
 };
