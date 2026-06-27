@@ -530,14 +530,13 @@ class ApiService {
     required String targetId,
     required String action, // open, close
   }) async {
+    final path = targetType == 'zone'
+        ? '$_baseUrl/commands/zones/$targetId/$action'
+        : '$_baseUrl/commands/valves/$targetId/$action';
+
     final res = await http.post(
-      Uri.parse('$_baseUrl/commands'),
+      Uri.parse(path),
       headers: _headers,
-      body: jsonEncode({
-        'targetType': targetType,
-        'targetId': int.parse(targetId),
-        'action': action,
-      }),
     );
     _check(res);
     return Command.fromJson(_unwrap(jsonDecode(res.body) as Map<String, dynamic>));
