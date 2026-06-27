@@ -1,8 +1,8 @@
 import { z } from "zod";
-import { prisma } from "../db/prisma";
-import { AppError } from "../lib/AppError";
-import { zoneService } from "./zoneService";
-import { activityLogService } from "./activityLogService";
+import { prisma } from "../db/prisma.js";
+import { AppError } from "../lib/AppError.js";
+import { zoneService } from "./zoneService.js";
+import { activityLogService } from "./activityLogService.js";
 
 const createValveSchema = z.object({
   slaveBoardId: z.string().optional(),
@@ -13,14 +13,15 @@ const createValveSchema = z.object({
 });
 
 const updateValveSchema = createValveSchema.partial().extend({
-  status: z.enum(["open", "closed", "unknown", "error", "disabled"]).optional()
+  status: z.enum(["open", "closed", "unknown", "error", "disabled"]).optional(),
+  zoneId: z.string().nullable().optional()
 });
 
 async function assertFarmerOwnsValve(farmerId: bigint, valveId: bigint) {
   const valve = await prisma.valve.findFirst({
     where: {
       id: valveId,
-      zone: { field: { farmerId } }
+      slaveBoard: { masterController: { field: { farmerId } } }
     },
     include: {
       zone: {
@@ -28,6 +29,15 @@ async function assertFarmerOwnsValve(farmerId: bigint, valveId: bigint) {
           field: {
             include: {
               masterController: true
+            }
+          }
+        }
+      },
+      slaveBoard: {
+        include: {
+          masterController: {
+            include: {
+              field: true
             }
           }
         }
@@ -54,9 +64,27 @@ export const valveService = {
     });
   },
 
-  async create(auth: Express.Request["auth"], zoneId: bigint, input: unknown) {
+  async listBySlaveBoard(auth: Express.Request["auth"], slaveBoardId: bigint) {
     if (!auth) throw new AppError(401, "Authentication required", "authRequired");
-    if (auth.role === "farmer") {
+    const sb = await prisma.slaveBoard.findUnique({
+      where: { id: slaveBoardId },
+      include: { masterController: { include: { field: true } } }
+    });
+    if (!sb) throw new AppError(404, "Slave board not found", "slaveBoardNotFound");
+    
+    if (auth.role === "farmer" && sb.masterController.field.farmerId !== auth.farmerId) {
+      throw new AppError(403, "Forbidden", "forbidden");
+    }
+
+    return prisma.valve.findMany({
+      where: { slaveBoardId },
+      orderBy: { coilAddress: "asc" }
+    });
+  },
+
+  async create(auth: Express.Request["auth"], zoneId: bigint | null, input: unknown) {
+    if (!auth) throw new AppError(401, "Authentication required", "authRequired");
+    if (auth.role === "farmer" && zoneId) {
       await zoneService.assertFarmerOwnsZone(auth.farmerId!, zoneId);
     }
 
@@ -65,26 +93,18 @@ export const valveService = {
     let slaveBoardId: bigint;
     if (data.slaveBoardId) {
       slaveBoardId = BigInt(data.slaveBoardId);
-      const zone = await prisma.zone.findUnique({
-        where: { id: zoneId },
-        include: {
-          field: {
-            include: {
-              masterController: {
-                include: { slaveBoards: true }
-              }
-            }
-          }
-        }
+      const slaveBoard = await prisma.slaveBoard.findUnique({
+        where: { id: slaveBoardId },
+        include: { masterController: { include: { field: true } } }
       });
-      if (!zone || !zone.field.masterController) {
-        throw new AppError(400, "Zone/Field must have a Master Controller before adding a valve", "masterControllerRequired");
-      }
-      const boardExists = zone.field.masterController.slaveBoards.some(sb => sb.id === slaveBoardId);
-      if (!boardExists) {
-        throw new AppError(400, "The specified Slave Board does not belong to this field", "invalidSlaveBoard");
+      if (!slaveBoard) throw new AppError(404, "Slave board not found", "slaveBoardNotFound");
+      if (auth.role === "farmer" && slaveBoard.masterController.field.farmerId !== auth.farmerId) {
+        throw new AppError(403, "Forbidden", "forbidden");
       }
     } else {
+      if (!zoneId) {
+        throw new AppError(400, "slaveBoardId is required if zoneId is not specified", "invalidInput");
+      }
       const zone = await prisma.zone.findUnique({
         where: { id: zoneId },
         include: {
@@ -125,9 +145,20 @@ export const valveService = {
       throw new AppError(400, "coilAddress or valveNumber is required", "invalidInput");
     }
 
+    // Check if the coil address is already taken on this slave board
+    const existingValve = await prisma.valve.findFirst({
+      where: {
+        slaveBoardId,
+        coilAddress
+      }
+    });
+    if (existingValve) {
+      throw new AppError(409, "Coil address already configured on this Slave Board", "coilAddressConflict");
+    }
+
     const valve = await prisma.valve.create({
       data: {
-        zoneId,
+        zoneId: zoneId || undefined,
         slaveBoardId,
         deviceUid: data.deviceUid,
         name: data.name,
@@ -151,7 +182,27 @@ export const valveService = {
       coilAddress = data.valveNumber - 1;
     }
 
-    const { valveNumber, ...rest } = data; // strip valveNumber from rest mapping
+    const { valveNumber, ...rest } = data;
+
+    if (coilAddress !== undefined) {
+      // Find current valve to get the slaveBoardId
+      const currentValve = await prisma.valve.findUnique({
+        where: { id: valveId }
+      });
+      if (currentValve) {
+        const targetSlaveBoardId = rest.slaveBoardId ? BigInt(rest.slaveBoardId) : currentValve.slaveBoardId;
+        const existingValve = await prisma.valve.findFirst({
+          where: {
+            slaveBoardId: targetSlaveBoardId,
+            coilAddress,
+            id: { not: valveId }
+          }
+        });
+        if (existingValve) {
+          throw new AppError(409, "Coil address already configured on this Slave Board", "coilAddressConflict");
+        }
+      }
+    }
 
     const valve = await prisma.valve.update({
       where: { id: valveId },
@@ -160,7 +211,8 @@ export const valveService = {
         name: rest.name,
         coilAddress,
         status: rest.status,
-        slaveBoardId: rest.slaveBoardId ? BigInt(rest.slaveBoardId) : undefined
+        slaveBoardId: rest.slaveBoardId ? BigInt(rest.slaveBoardId) : undefined,
+        zoneId: rest.zoneId !== undefined ? (rest.zoneId ? BigInt(rest.zoneId) : null) : undefined
       }
     });
 
@@ -173,5 +225,18 @@ export const valveService = {
     const valve = await this.update(auth, valveId, { status: "disabled" });
     await activityLogService.log(auth.userId, "delete", "valve", valveId);
     return valve;
+  },
+
+  async assignToZone(auth: Express.Request["auth"], valveId: bigint, zoneId: bigint) {
+    if (!auth) throw new AppError(401, "Authentication required", "authRequired");
+    if (auth.role === "farmer") {
+      await zoneService.assertFarmerOwnsZone(auth.farmerId!, zoneId);
+      await assertFarmerOwnsValve(auth.farmerId!, valveId);
+    }
+    
+    return prisma.valve.update({
+      where: { id: valveId },
+      data: { zoneId }
+    });
   }
 };

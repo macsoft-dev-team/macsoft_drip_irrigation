@@ -8,6 +8,7 @@ import 'master_controller_detail_screen.dart';
 import 'zone_detail_screen.dart';
 import 'schedule_list_screen.dart';
 import 'command_status_screen.dart';
+import 'commissioning_wizard_page.dart';
 import '../models/master_controller.dart';
 
 class FieldDetailScreen extends StatelessWidget {
@@ -189,6 +190,24 @@ class FieldDetailScreen extends StatelessWidget {
                           ),
                       ],
                     ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CommissioningWizardPage(field: field),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.build_rounded, size: 18),
+                  label: const Text('Device Commissioning Wizard'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2D7A3A),
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(double.infinity, 44),
                   ),
                 ),
                 if (field.masterController != null) ...[

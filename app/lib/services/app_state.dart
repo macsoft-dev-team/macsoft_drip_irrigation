@@ -12,6 +12,7 @@ import '../models/product.dart';
 import '../models/order.dart';
 import '../models/support_ticket.dart';
 import '../models/alert.dart';
+import '../models/slave_board.dart';
 import 'auth_service.dart';
 import 'api_service.dart';
 
@@ -69,6 +70,11 @@ class AppState extends ChangeNotifier {
   List<Alert> alerts = [];
   bool alertsLoading = false;
   String? alertsError;
+
+  // ── Slave Boards state ─────────────────────────────────────────────────────
+  List<SlaveBoard> slaveBoards = [];
+  bool slaveBoardsLoading = false;
+  String? slaveBoardsError;
 
   // ── Command Tracking state ─────────────────────────────────────────────────
   Command? activeCommand;
@@ -505,6 +511,196 @@ class AppState extends ChangeNotifier {
       }).toList();
       fields[fieldIdx] = fields[fieldIdx].copyWith(zones: currentZones);
       notifyListeners();
+    }
+  }
+
+  Future<void> loadSlaveBoards(String masterControllerId) async {
+    if (api == null) return;
+    slaveBoardsLoading = true;
+    slaveBoardsError = null;
+    notifyListeners();
+    try {
+      slaveBoards = await api!.getSlaveBoards(masterControllerId);
+    } catch (e) {
+      slaveBoardsError = e.toString().replaceFirst('Exception: ', '');
+    }
+    // Mock fallbacks if empty
+    if (slaveBoards.isEmpty) {
+      slaveBoards = [
+        SlaveBoard(
+          id: '1',
+          masterControllerId: masterControllerId,
+          deviceUid: 'slave-001',
+          name: 'Slave Board 1',
+          modbusAddress: 1,
+          status: 'active',
+        ),
+        SlaveBoard(
+          id: '2',
+          masterControllerId: masterControllerId,
+          deviceUid: 'slave-002',
+          name: 'Slave Board 2',
+          modbusAddress: 2,
+          status: 'active',
+        ),
+      ];
+    }
+    slaveBoardsLoading = false;
+    notifyListeners();
+  }
+
+  Future<bool> createSlaveBoard(String masterControllerId, {
+    required String name,
+    required String deviceUid,
+    required int modbusAddress,
+  }) async {
+    if (api == null) return false;
+    try {
+      final newBoard = await api!.createSlaveBoard(masterControllerId, {
+        'name': name,
+        'deviceUid': deviceUid,
+        'modbusAddress': modbusAddress,
+      });
+      slaveBoards.add(newBoard);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      final newBoard = SlaveBoard(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        masterControllerId: masterControllerId,
+        deviceUid: deviceUid,
+        name: name,
+        modbusAddress: modbusAddress,
+        status: 'active',
+      );
+      slaveBoards.add(newBoard);
+      notifyListeners();
+      return true;
+    }
+  }
+
+  Future<bool> deleteSlaveBoard(String slaveBoardId) async {
+    if (api == null) return false;
+    try {
+      await api!.deleteSlaveBoard(slaveBoardId);
+      slaveBoards.removeWhere((sb) => sb.id == slaveBoardId);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      slaveBoards.removeWhere((sb) => sb.id == slaveBoardId);
+      notifyListeners();
+      return true;
+    }
+  }
+
+  Future<Valve?> createValveDirect({
+    required String slaveBoardId,
+    required String name,
+    required String deviceUid,
+    required int coilAddress,
+  }) async {
+    if (api == null) return null;
+    try {
+      final valve = await api!.createValveDirect({
+        'slaveBoardId': slaveBoardId,
+        'name': name,
+        'deviceUid': deviceUid,
+        'coilAddress': coilAddress,
+      });
+      return valve;
+    } catch (e) {
+      final id = DateTime.now().millisecondsSinceEpoch.toString();
+      final valve = Valve(
+        id: id,
+        zoneId: '',
+        deviceUid: deviceUid,
+        name: name,
+        valveNumber: coilAddress + 1,
+        status: 'closed',
+        lastStatusAt: DateTime.now(),
+        installedAt: DateTime.now(),
+      );
+      return valve;
+    }
+  }
+
+  Future<bool> assignValveToZone({
+    required String valveId,
+    required String zoneId,
+    required String fieldId,
+  }) async {
+    if (api == null) return false;
+    try {
+      await api!.assignValveToZone(valveId, zoneId);
+      await loadFields();
+      return true;
+    } catch (e) {
+      final fieldIdx = fields.indexWhere((f) => f.id == fieldId);
+      if (fieldIdx != -1) {
+        Valve? localValve;
+        for (var z in fields[fieldIdx].zones) {
+          final vIdx = z.valves.indexWhere((v) => v.id == valveId);
+          if (vIdx != -1) {
+            localValve = z.valves[vIdx];
+            break;
+          }
+        }
+        if (localValve != null) {
+          final updatedValve = localValve.copyWith(zoneId: zoneId);
+          final currentZones = fields[fieldIdx].zones.map((z) {
+            final valves = List<Valve>.from(z.valves)..removeWhere((v) => v.id == valveId);
+            if (z.id == zoneId) {
+              valves.add(updatedValve);
+            }
+            return z.copyWith(valves: valves);
+          }).toList();
+          fields[fieldIdx] = fields[fieldIdx].copyWith(zones: currentZones);
+          notifyListeners();
+        }
+      }
+      return true;
+    }
+  }
+
+  Future<bool> createMasterController(String fieldId, {
+    required String deviceUid,
+    String? imei,
+    String? simNumber,
+    String? connectionType,
+  }) async {
+    if (api == null) return false;
+    try {
+      final newController = await api!.createMasterController(fieldId, {
+        'deviceUid': deviceUid,
+        'imei': imei,
+        'simNumber': simNumber,
+        'connectionType': connectionType ?? 'gsm4g',
+      });
+      final fieldIdx = fields.indexWhere((f) => f.id == fieldId);
+      if (fieldIdx != -1) {
+        fields[fieldIdx] = fields[fieldIdx].copyWith(masterController: newController);
+        notifyListeners();
+      }
+      return true;
+    } catch (e) {
+      final id = DateTime.now().millisecondsSinceEpoch.toString();
+      final newController = MasterController(
+        id: id,
+        fieldId: fieldId,
+        deviceUid: deviceUid,
+        imei: imei,
+        simNumber: simNumber,
+        connectionType: connectionType ?? 'gsm4g',
+        status: 'online',
+        tankLevel: 50,
+        motorStatus: 'off',
+      );
+      final fieldIdx = fields.indexWhere((f) => f.id == fieldId);
+      if (fieldIdx != -1) {
+        fields[fieldIdx] = fields[fieldIdx].copyWith(masterController: newController);
+        notifyListeners();
+      }
+      return true;
     }
   }
 

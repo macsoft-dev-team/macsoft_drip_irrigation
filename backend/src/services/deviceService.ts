@@ -245,10 +245,10 @@ export const deviceService = {
       const valveId = BigInt(item.valveId);
       const valve = await prisma.valve.findUnique({
         where: { id: valveId },
-        include: { zone: { include: { field: true } } }
+        include: { slaveBoard: { include: { masterController: true } } }
       });
 
-      if (!valve || valve.zone.fieldId !== master.fieldId) continue;
+      if (!valve || valve.slaveBoard.masterController.fieldId !== master.fieldId) continue;
 
       await prisma.valve.update({
         where: { id: valveId },

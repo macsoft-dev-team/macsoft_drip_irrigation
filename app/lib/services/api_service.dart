@@ -12,6 +12,7 @@ import '../models/irrigation_schedule.dart';
 import '../models/product.dart';
 import '../models/order.dart';
 import '../models/support_ticket.dart';
+import '../models/slave_board.dart';
 
 const String _baseUrl = Env.apiBaseUrl;
 
@@ -391,6 +392,16 @@ class ApiService {
     final res = await http.get(
       Uri.parse('$_baseUrl/masterControllers/$masterControllerId'),
       headers: _headers,
+    );
+    _check(res);
+    return MasterController.fromJson(_unwrap(jsonDecode(res.body) as Map<String, dynamic>));
+  }
+
+  Future<MasterController> createMasterController(String fieldId, Map<String, dynamic> data) async {
+    final res = await http.post(
+      Uri.parse('$_baseUrl/fields/$fieldId/masterController'),
+      headers: _headers,
+      body: jsonEncode(data),
     );
     _check(res);
     return MasterController.fromJson(_unwrap(jsonDecode(res.body) as Map<String, dynamic>));
@@ -810,6 +821,63 @@ class ApiService {
     );
     _check(res);
     return SupportTicket.fromJson(_unwrap(jsonDecode(res.body) as Map<String, dynamic>));
+  }
+
+  Future<List<SlaveBoard>> getSlaveBoards(String masterControllerId) async {
+    final res = await http.get(
+      Uri.parse('$_baseUrl/masterControllers/$masterControllerId/slaveBoards'),
+      headers: _headers,
+    );
+    _check(res);
+    final list = jsonDecode(res.body) as List;
+    return list.map((item) => SlaveBoard.fromJson(item as Map<String, dynamic>)).toList();
+  }
+
+  Future<SlaveBoard> createSlaveBoard(String masterControllerId, Map<String, dynamic> data) async {
+    final res = await http.post(
+      Uri.parse('$_baseUrl/masterControllers/$masterControllerId/slaveBoards'),
+      headers: _headers,
+      body: jsonEncode(data),
+    );
+    _check(res);
+    return SlaveBoard.fromJson(_unwrap(jsonDecode(res.body) as Map<String, dynamic>));
+  }
+
+  Future<SlaveBoard> updateSlaveBoard(String slaveBoardId, Map<String, dynamic> data) async {
+    final res = await http.patch(
+      Uri.parse('$_baseUrl/slaveBoards/$slaveBoardId'),
+      headers: _headers,
+      body: jsonEncode(data),
+    );
+    _check(res);
+    return SlaveBoard.fromJson(_unwrap(jsonDecode(res.body) as Map<String, dynamic>));
+  }
+
+  Future<void> deleteSlaveBoard(String slaveBoardId) async {
+    final res = await http.delete(
+      Uri.parse('$_baseUrl/slaveBoards/$slaveBoardId'),
+      headers: _headers,
+    );
+    _check(res);
+  }
+
+  Future<Valve> createValveDirect(Map<String, dynamic> data) async {
+    final res = await http.post(
+      Uri.parse('$_baseUrl/valves'),
+      headers: _headers,
+      body: jsonEncode(data),
+    );
+    _check(res);
+    return Valve.fromJson(_unwrap(jsonDecode(res.body) as Map<String, dynamic>));
+  }
+
+  Future<void> assignValveToZone(String valveId, String zoneId) async {
+    final res = await http.patch(
+      Uri.parse('$_baseUrl/valves/$valveId/assignZone'),
+      headers: _headers,
+      body: jsonEncode({'zoneId': zoneId}),
+    );
+    _check(res);
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────

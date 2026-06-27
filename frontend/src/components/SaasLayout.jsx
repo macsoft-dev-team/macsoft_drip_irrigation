@@ -51,6 +51,7 @@ const navMain = [
   { title: "Zones & Valves", url: "/zones", icon: Droplet },
   { title: "Schedules", url: "/schedules", icon: Calendar },
   { title: "Sensors", url: "/sensors", icon: Activity, badge: "Live" },
+  { title: "Farmers / Customers", url: "/customers", icon: Users },
   { title: "Users", url: "/users", icon: Users },
   { title: "Inventory", url: "/inventory", icon: Package },
   { title: "Activity Logs", url: "/activity-logs", icon: History },

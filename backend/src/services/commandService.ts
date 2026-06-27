@@ -39,11 +39,15 @@ export const commandService = {
     const valve = await prisma.valve.findUnique({
       where: { id: valveId },
       include: {
-        zone: {
+        slaveBoard: {
           include: {
-            field: {
+            masterController: {
               include: {
-                masterController: true
+                field: {
+                  include: {
+                    masterController: true
+                  }
+                }
               }
             }
           }
@@ -55,7 +59,7 @@ export const commandService = {
       throw new AppError(404, "Valve not found", "valveNotFound");
     }
 
-    const field = valve.zone.field;
+    const field = valve.slaveBoard.masterController.field;
 
     if (auth.role === "farmer" && field.farmerId !== auth.farmerId) {
       throw new AppError(403, "Forbidden", "forbidden");

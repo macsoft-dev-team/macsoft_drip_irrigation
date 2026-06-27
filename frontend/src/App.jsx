@@ -13,6 +13,7 @@ import Login from "@/views/Login"
 import Users from "@/views/Users"
 import Inventory from "@/views/Inventory"
 import ActivityLogs from "@/views/ActivityLogs"
+import Customers from "@/views/Customers"
 
 function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname)
@@ -73,6 +74,8 @@ function App() {
         return <Notifications />
       case "/users":
         return <Users />
+      case "/customers":
+        return <Customers />
       case "/inventory":
         return <Inventory />
       case "/diagnostics":

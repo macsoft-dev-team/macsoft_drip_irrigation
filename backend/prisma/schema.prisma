@@ -353,7 +353,7 @@ model Zone {
 
 model Valve {
   id           BigInt      @id @default(autoincrement())
-  zoneId       BigInt
+  zoneId       BigInt?
   slaveBoardId BigInt
   deviceUid    String      @unique @db.VarChar(100)
   name         String      @db.VarChar(150)
@@ -364,7 +364,7 @@ model Valve {
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
-  zone         Zone        @relation(fields: [zoneId], references: [id])
+  zone         Zone?       @relation(fields: [zoneId], references: [id])
   slaveBoard   SlaveBoard  @relation(fields: [slaveBoardId], references: [id])
   commandItems CommandItem[]
   statusLogs   ValveStatusLog[]

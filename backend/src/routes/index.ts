@@ -16,12 +16,14 @@ import { userRoutes } from "./userRoutes";
 import { inventoryRoutes } from "./inventoryRoutes";
 import { reportRoutes } from "./reportRoutes";
 import { settingsRoutes } from "./settingsRoutes";
+import { slaveBoardRoutes } from "./slaveBoardRoutes";
 
 export const apiRoutes = Router();
 
 apiRoutes.use("/auth", authRoutes);
 apiRoutes.use("/fields", fieldRoutes);
 apiRoutes.use("/masterControllers", masterControllerRoutes);
+apiRoutes.use("/", slaveBoardRoutes);
 apiRoutes.use("/zones", zoneRoutes);
 apiRoutes.use("/valves", valveRoutes);
 apiRoutes.use("/commands", commandRoutes);
