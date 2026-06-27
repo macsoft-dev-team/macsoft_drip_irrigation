@@ -55,7 +55,9 @@ class _CommissioningWizardPageState extends State<CommissioningWizardPage> {
       _connectionType = widget.field.masterController!.connectionType;
       // Skip master registration if master already exists
       _currentStep = 1;
-      _loadSlaves();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadSlaves();
+      });
     }
   }
 
@@ -212,46 +214,45 @@ class _CommissioningWizardPageState extends State<CommissioningWizardPage> {
             color: Colors.white,
             padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
             child: Row(
-              children: List.generate(7, (index) {
-                final isCompleted = index < _currentStep;
-                final isCurrent = index == _currentStep;
-                return Expanded(
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 24,
-                        height: 24,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: isCompleted
-                              ? const Color(0xFF10B981)
-                              : isCurrent
-                                  ? const Color(0xFF2D7A3A)
-                                  : Colors.grey[300],
-                        ),
-                        child: Center(
-                          child: isCompleted
-                              ? const Icon(Icons.check, size: 14, color: Colors.white)
-                              : Text(
-                                  '${index + 1}',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    color: isCurrent || isCompleted ? Colors.white : Colors.grey[600],
-                                  ),
-                                ),
-                        ),
-                      ),
-                      if (index < 6)
-                        Expanded(
-                          child: Container(
-                            height: 2,
-                            color: isCompleted ? const Color(0xFF10B981) : Colors.grey[300],
-                          ),
-                        ),
-                    ],
-                  ),
-                );
+              children: List.generate(13, (index) {
+                if (index.isEven) {
+                  final stepIndex = index ~/ 2;
+                  final isCompleted = stepIndex < _currentStep;
+                  final isCurrent = stepIndex == _currentStep;
+                  return Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isCompleted
+                          ? const Color(0xFF10B981)
+                          : isCurrent
+                              ? const Color(0xFF2D7A3A)
+                              : Colors.grey[300],
+                    ),
+                    child: Center(
+                      child: isCompleted
+                          ? const Icon(Icons.check, size: 14, color: Colors.white)
+                          : Text(
+                              '${stepIndex + 1}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: isCurrent || isCompleted ? Colors.white : Colors.grey[600],
+                              ),
+                            ),
+                    ),
+                  );
+                } else {
+                  final lineIndex = index ~/ 2;
+                  final isCompleted = lineIndex < _currentStep;
+                  return Expanded(
+                    child: Container(
+                      height: 2,
+                      color: isCompleted ? const Color(0xFF10B981) : Colors.grey[300],
+                    ),
+                  );
+                }
               }),
             ),
           ),
@@ -270,18 +271,20 @@ class _CommissioningWizardPageState extends State<CommissioningWizardPage> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                if (_currentStep > 0)
+                if (_currentStep > 0) ...[
                   OutlinedButton(
                     onPressed: _isLoading ? null : _prevStep,
                     child: const Text('Back'),
-                  )
-                else
-                  const SizedBox(),
+                  ),
+                  const SizedBox(width: 16),
+                ],
                 _isLoading
                     ? const CircularProgressIndicator(color: Color(0xFF2D7A3A))
-                    : PrimaryButton(
-                        text: _currentStep == 6 ? 'Finish' : 'Next',
-                        onPressed: _nextStep,
+                    : Expanded(
+                        child: PrimaryButton(
+                          label: _currentStep == 6 ? 'Finish' : 'Next',
+                          onPressed: _nextStep,
+                        ),
                       ),
               ],
             ),
@@ -330,19 +333,19 @@ class _CommissioningWizardPageState extends State<CommissioningWizardPage> {
         AppTextField(
           controller: _deviceUidCtrl,
           label: 'Device UID / Serial Number',
-          hintText: 'e.g., MASTER-001',
+          hint: 'e.g., MASTER-001',
         ),
         const SizedBox(height: 16),
         AppTextField(
           controller: _imeiCtrl,
           label: 'SIM IMEI (Optional)',
-          hintText: '15-digit number',
+          hint: '15-digit number',
         ),
         const SizedBox(height: 16),
         AppTextField(
           controller: _simCtrl,
           label: 'SIM Card Phone Number (Optional)',
-          hintText: 'Include country code',
+          hint: 'Include country code',
         ),
         const SizedBox(height: 16),
         const Text('Connection Type', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -388,19 +391,19 @@ class _CommissioningWizardPageState extends State<CommissioningWizardPage> {
               children: [
                 const Text('Register New Slave Board', style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 12),
-                AppTextField(controller: _slaveNameCtrl, label: 'Slave Board Name', hintText: 'e.g., Relays East'),
+                AppTextField(controller: _slaveNameCtrl, label: 'Slave Board Name', hint: 'e.g., Relays East'),
                 const SizedBox(height: 12),
-                AppTextField(controller: _slaveUidCtrl, label: 'Device UID', hintText: 'e.g., SLAVE-001'),
+                AppTextField(controller: _slaveUidCtrl, label: 'Device UID', hint: 'e.g., SLAVE-001'),
                 const SizedBox(height: 12),
                 AppTextField(
                   controller: _slaveAddrCtrl,
                   label: 'Modbus Unit ID / Address',
-                  hintText: '1 to 247',
+                  hint: '1 to 247',
                   keyboardType: TextInputType.number,
                 ),
                 const SizedBox(height: 16),
                 PrimaryButton(
-                  text: 'Add Board',
+                  label: 'Add Board',
                   onPressed: () async {
                     if (_slaveNameCtrl.text.isEmpty || _slaveUidCtrl.text.isEmpty) return;
                     final addr = int.tryParse(_slaveAddrCtrl.text.trim()) ?? 1;
@@ -565,7 +568,7 @@ class _CommissioningWizardPageState extends State<CommissioningWizardPage> {
             children: [
               Expanded(
                 child: PrimaryButton(
-                  text: _isTestingCoil ? 'Testing Pulse...' : 'Pulse Test Output',
+                  label: _isTestingCoil ? 'Testing Pulse...' : 'Pulse Test Output',
                   onPressed: _isTestingCoil
                       ? null
                       : () async {
@@ -639,7 +642,7 @@ class _CommissioningWizardPageState extends State<CommissioningWizardPage> {
                       AppTextField(
                         controller: _valveNameControllers[key]!,
                         label: 'Valve Friendly Name',
-                        hintText: 'e.g., Tomato Block Front',
+                        hint: 'e.g., Tomato Block Front',
                       ),
                     ],
                   ),
@@ -675,13 +678,13 @@ class _CommissioningWizardPageState extends State<CommissioningWizardPage> {
         AppTextField(
           controller: _zoneNameCtrl,
           label: 'Zone Name',
-          hintText: 'e.g., Tomatoes Area',
+          hint: 'e.g., Tomatoes Area',
         ),
         const SizedBox(height: 12),
         AppTextField(
           controller: _zoneDescCtrl,
           label: 'Description / Notes',
-          hintText: 'e.g., Solenoids for tomato drip blocks',
+          hint: 'e.g., Solenoids for tomato drip blocks',
         ),
         const SizedBox(height: 20),
         const Text('Select Valves to include in this Zone:', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -748,13 +751,24 @@ class _CommissioningWizardPageState extends State<CommissioningWizardPage> {
                     child: const Text('TEST ZONE'),
                     onPressed: () async {
                       final state = context.read<AppState>();
-                      final ok = await state.controlZone(z.id, 'open');
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(ok ? 'Test command dispatched successfully!' : 'Failed to dispatch command.'),
-                          backgroundColor: ok ? const Color(0xFF2D7A3A) : const Color(0xFFDC2626),
-                        ),
-                      );
+                      bool ok = true;
+                      try {
+                        await state.executeCommand(
+                          targetType: 'zone',
+                          targetId: z.id,
+                          action: 'open',
+                        );
+                      } catch (_) {
+                        ok = false;
+                      }
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(ok ? 'Test command dispatched successfully!' : 'Failed to dispatch command.'),
+                            backgroundColor: ok ? const Color(0xFF2D7A3A) : const Color(0xFFDC2626),
+                          ),
+                        );
+                      }
                     },
                   ),
                 ),

@@ -36,7 +36,7 @@ async function main() {
     update: {},
     create: {
       name: "Admin",
-      phone: "9999999999",
+      phone: "9876543210",
       passwordHash: adminPassword,
       role: "admin"
     }
@@ -48,7 +48,7 @@ async function main() {
     update: {},
     create: {
       name: "Demo Distributor",
-      phone: "7777777777",
+      phone: "9876543211",
       passwordHash: distributorPassword,
       role: "distributor",
       distributor: {
@@ -68,7 +68,7 @@ async function main() {
     update: {},
     create: {
       name: "Demo Dealer",
-      phone: "6666666666",
+      phone: "9876543212",
       passwordHash: dealerPassword,
       role: "dealer",
       hasWholesalePricing: true, // Optional wholesale enabled
@@ -89,7 +89,7 @@ async function main() {
     update: {},
     create: {
       name: "Demo Sales",
-      phone: "5555555555",
+      phone: "9876543213",
       passwordHash: salesPassword,
       role: "sales"
     }
@@ -101,7 +101,7 @@ async function main() {
     update: {},
     create: {
       name: "Demo Support",
-      phone: "4444444444",
+      phone: "9876543214",
       passwordHash: csPassword,
       role: "customer_service"
     }
@@ -113,7 +113,7 @@ async function main() {
     update: {},
     create: {
       name: "Demo Technician",
-      phone: "3333333333",
+      phone: "9876543215",
       passwordHash: techPassword,
       role: "technician"
     }
@@ -125,7 +125,7 @@ async function main() {
     update: {},
     create: {
       name: "Demo Tenant Admin",
-      phone: "2222222222",
+      phone: "9876543216",
       passwordHash: tenantAdminPassword,
       role: "tenant_admin",
       belongsToDistributorId: distributorUser.distributor!.id
@@ -139,7 +139,7 @@ async function main() {
     },
     create: {
       name: "John",
-      phone: "8888888888",
+      phone: "9876543217",
       passwordHash: farmerPassword,
       role: "farmer",
       farmer: {
