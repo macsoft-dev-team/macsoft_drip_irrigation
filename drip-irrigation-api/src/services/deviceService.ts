@@ -2,6 +2,8 @@ import { prisma } from "../db/prisma";
 import { AppError } from "../lib/AppError";
 import { commandService } from "./commandService";
 import { emitAdminEvent, emitFarmerEvent, emitFieldEvent } from "../realtime/socket";
+import { configTopic } from "../iot/topics";
+import { publishMqtt } from "../iot/mqttClient";
 
 type HeartbeatInput = {
   firmwareVersion?: string;
@@ -42,12 +44,15 @@ export const deviceService = {
     if (!master) throw new AppError(404, "Master controller not found", "masterNotFound");
 
     const wasOffline = master.status !== "online";
+    const now = new Date();
+    const lastHeartbeat = master.lastHeartbeatAt;
+    const isFirstHeartbeatToday = !lastHeartbeat || lastHeartbeat.toDateString() !== now.toDateString();
 
     const updated = await prisma.masterController.update({
       where: { id: master.id },
       data: {
         status: "online",
-        lastHeartbeatAt: new Date(),
+        lastHeartbeatAt: now,
         firmwareVersion: input.firmwareVersion ?? master.firmwareVersion,
         tankLevel: input.tankLevel !== undefined ? Number(input.tankLevel) : undefined,
         motorStatus: input.motorStatus !== undefined ? String(input.motorStatus) : undefined
@@ -65,6 +70,49 @@ export const deviceService = {
         rawPayload: input as any
       }
     });
+
+    if (isFirstHeartbeatToday) {
+      try {
+        const zones = await prisma.zone.findMany({
+          where: {
+            fieldId: master.fieldId,
+            status: "active"
+          },
+          include: {
+            valves: {
+              where: {
+                slaveBoard: {
+                  masterControllerId: master.id
+                },
+                status: { not: "disabled" }
+              }
+            }
+          }
+        });
+
+        const configPayload = {
+          fieldId: master.fieldId.toString(),
+          masterControllerId: master.id.toString(),
+          deviceUid: master.deviceUid,
+          zones: zones.map((zone) => ({
+            zoneId: zone.id.toString(),
+            name: zone.name,
+            valves: zone.valves.map((valve) => ({
+              valveId: valve.id.toString(),
+              valveNumber: valve.valveNumber,
+              deviceUid: valve.deviceUid,
+              name: valve.name
+            }))
+          }))
+        };
+
+        const topic = configTopic(master.field.farmerId, master.fieldId, master.deviceUid);
+        await publishMqtt(topic, configPayload);
+        console.log(`Successfully sent daily configuration to master controller ${master.deviceUid}`);
+      } catch (configError) {
+        console.error("Failed to query or send configuration to master controller", master.deviceUid, configError);
+      }
+    }
 
     if (wasOffline) {
       await commandService.queuePendingForMaster(master.id);

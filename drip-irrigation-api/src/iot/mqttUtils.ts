@@ -1,15 +1,11 @@
-import { Command, CommandItem, Valve } from "../../generated/prisma/client";
+import { Command } from "../../generated/prisma/client";
 import { commandTopic } from "./topics";
 import { publishMqtt } from "./mqttClient";
-import { env } from "../config/env";
 
 export interface CommandWithRelations extends Command {
   masterController: {
     deviceUid: string;
   };
-  items: (CommandItem & {
-    valve: Valve;
-  })[];
 }
 
 /**
@@ -20,20 +16,12 @@ export async function publishDeviceCommand(command: CommandWithRelations): Promi
 
   const payload = {
     commandUid: command.commandUid,
+    fieldId: command.fieldId.toString(),
     targetType: command.targetType,
     targetId: command.targetId.toString(),
-    action: command.action,
-    zoneValveDelaySeconds: env.ZONE_VALVE_DELAY_SECONDS,
-    items: command.items.map((item) => ({
-      commandItemId: item.id.toString(),
-      valveId: item.valveId.toString(),
-      valveNumber: item.valve.valveNumber,
-      action: item.action,
-      sequenceNumber: item.sequenceNumber
-    })),
-    issuedAt: new Date().toISOString(),
-    expiresAt: command.expiresAt?.toISOString()
+    action: command.action
   };
 
   await publishMqtt(topic, payload);
 }
+

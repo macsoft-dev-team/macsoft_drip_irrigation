@@ -2,6 +2,10 @@ export function commandTopic(farmerId: bigint, fieldId: bigint, deviceUid: strin
   return `farm/${farmerId.toString()}/field/${fieldId.toString()}/master/${deviceUid}/command`;
 }
 
+export function configTopic(farmerId: bigint, fieldId: bigint, deviceUid: string) {
+  return `farm/${farmerId.toString()}/field/${fieldId.toString()}/master/${deviceUid}/config`;
+}
+
 export function ackSubscriptionTopic() {
   return "farm/+/field/+/master/+/ack";
 }
