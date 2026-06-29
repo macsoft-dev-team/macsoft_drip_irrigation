@@ -342,33 +342,59 @@ class _FarmerDetailScreenState extends State<FarmerDetailScreen> {
 
     return Column(
       children: [
-        // Search Bar
+        // Search Bar & Add Button
         Container(
           color: Colors.white,
           padding: const EdgeInsets.all(12),
-          child: TextField(
-            controller: _searchCtrl,
-            onChanged: (val) {
-              setState(() {
-                _searchQuery = val;
-              });
-            },
-            decoration: InputDecoration(
-              hintText: 'Search fields by name or location...',
-              prefixIcon: const Icon(Icons.search, size: 20),
-              suffixIcon: _searchCtrl.text.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.close, size: 18),
-                      onPressed: () {
-                        _searchCtrl.clear();
-                        setState(() {
-                          _searchQuery = '';
-                        });
-                      },
-                    )
-                  : null,
-              contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
-            ),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _searchCtrl,
+                  onChanged: (val) {
+                    setState(() {
+                      _searchQuery = val;
+                    });
+                  },
+                  decoration: InputDecoration(
+                    hintText: 'Search fields by name or location...',
+                    prefixIcon: const Icon(Icons.search, size: 20),
+                    suffixIcon: _searchCtrl.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.close, size: 18),
+                            onPressed: () {
+                              _searchCtrl.clear();
+                              setState(() {
+                                _searchQuery = '';
+                              });
+                            },
+                          )
+                        : null,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+                  ),
+                ),
+              ),
+              if (isAdmin) ...[
+                const SizedBox(width: 10),
+                IconButton.filled(
+                  icon: const Icon(Icons.add_location_alt_rounded),
+                  style: IconButton.styleFrom(
+                    backgroundColor: const Color(0xFF2D7A3A),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.all(12),
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => FieldFormScreen(farmerId: widget.farmer.tenantId),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ],
           ),
         ),
 

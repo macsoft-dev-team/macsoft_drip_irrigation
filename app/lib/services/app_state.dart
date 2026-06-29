@@ -278,10 +278,11 @@ class AppState extends ChangeNotifier {
     required double latitude,
     required double longitude,
     required double areaAcres,
+    String? farmerId,
   }) async {
     if (api == null) return false;
     try {
-      final cId = user?.tenantId;
+      final cId = farmerId ?? user?.tenantId;
       final newField = await api!.createField(
         name: name,
         locationName: locationName,
@@ -298,7 +299,7 @@ class AppState extends ChangeNotifier {
       final id = DateTime.now().millisecondsSinceEpoch.toString();
       final newField = Field(
         id: id,
-        farmerId: user?.tenantId ?? '1',
+        farmerId: farmerId ?? user?.tenantId ?? '1',
         name: name,
         locationName: locationName,
         latitude: latitude,

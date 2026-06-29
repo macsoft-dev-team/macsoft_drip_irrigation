@@ -627,7 +627,8 @@ class _FieldListScreenState extends State<FieldListScreen> {
 
 class FieldFormScreen extends StatefulWidget {
   final Field? field;
-  const FieldFormScreen({super.key, this.field});
+  final String? farmerId;
+  const FieldFormScreen({super.key, this.field, this.farmerId});
 
   @override
   State<FieldFormScreen> createState() => _FieldFormScreenState();
@@ -684,6 +685,7 @@ class _FieldFormScreenState extends State<FieldFormScreen> {
         latitude: latitude,
         longitude: longitude,
         areaAcres: areaAcres,
+        farmerId: widget.farmerId,
       );
     } else {
       ok = await state.updateField(
