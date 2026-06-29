@@ -91,6 +91,7 @@ class _MasterControllerDetailScreenState extends State<MasterControllerDetailScr
 
         final isPumpRunning = controller.motorStatus == 'on';
         final isOnline = controller.isOnline;
+        final isAdmin = state.user?.isAdmin ?? false;
 
         return Scaffold(
           backgroundColor: const Color(0xFFF4F6FA),
@@ -297,7 +298,6 @@ class _MasterControllerDetailScreenState extends State<MasterControllerDetailScr
                     ),
                   ),
                 ),
-                final isAdmin = state.user?.isAdmin ?? false;
 
                 if (isAdmin) ...[
                   const SizedBox(height: 16),
