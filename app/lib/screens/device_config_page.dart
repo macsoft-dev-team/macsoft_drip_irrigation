@@ -95,14 +95,6 @@ class _DeviceConfigPageState extends State<DeviceConfigPage>
   String? _configError;
 
   static const _numericKeys = [
-    '3LV',
-    '3HV',
-    '3DR',
-    '3OL',
-    '2LV',
-    '2HV',
-    '2DR',
-    '2OL',
     'ONT',
     'OFT',
     'ON1',
@@ -509,122 +501,12 @@ class _DeviceConfigPageState extends State<DeviceConfigPage>
                   title: 'Operation Mode',
                   color: const Color(0xFF059669),
                   icon: Icons.bolt_rounded,
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: _ToggleField(
-                          label: 'Run Mode (RMD)',
-                          fieldKey: 'RMD',
-                          cfg: _cfg,
-                          options: const [(0, 'Manual'), (1, 'Auto')],
-                          onChanged: _set,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _ToggleField(
-                          label: 'Phase Mode (PMD)',
-                          fieldKey: 'PMD',
-                          cfg: _cfg,
-                          options: const [(0, '3-Phase'), (1, '2-Phase')],
-                          onChanged: _set,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                // ── 3-Phase Protection ────────────────────────────
-                _Section(
-                  title: '3-Phase Protection',
-                  color: const Color(0xFF2563EB),
-                  icon: Icons.shield_rounded,
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _NumField(
-                              label: 'Low Voltage — 3LV (V)',
-                              ctrl: _ctrl['3LV']!,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _NumField(
-                              label: 'High Voltage — 3HV (V)',
-                              ctrl: _ctrl['3HV']!,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _NumField(
-                              label: 'Dry Run — 3DR (A)',
-                              ctrl: _ctrl['3DR']!,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _NumField(
-                              label: 'Overload — 3OL (A)',
-                              ctrl: _ctrl['3OL']!,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                // ── 2-Phase Protection ────────────────────────────
-                _Section(
-                  title: '2-Phase Protection',
-                  color: const Color(0xFFD97706),
-                  icon: Icons.shield_rounded,
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _NumField(
-                              label: 'Low Voltage — 2LV (V)',
-                              ctrl: _ctrl['2LV']!,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _NumField(
-                              label: 'High Voltage — 2HV (V)',
-                              ctrl: _ctrl['2HV']!,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _NumField(
-                              label: 'Dry Run — 2DR (A)',
-                              ctrl: _ctrl['2DR']!,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _NumField(
-                              label: 'Overload — 2OL (A)',
-                              ctrl: _ctrl['2OL']!,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                  child: _ToggleField(
+                    label: 'Run Mode (RMD)',
+                    fieldKey: 'RMD',
+                    cfg: _cfg,
+                    options: const [(0, 'Manual'), (1, 'Auto')],
+                    onChanged: _set,
                   ),
                 ),
                 const SizedBox(height: 12),

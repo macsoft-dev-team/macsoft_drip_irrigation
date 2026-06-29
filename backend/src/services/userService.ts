@@ -106,7 +106,17 @@ export const userService = {
         role: data.role,
         hasWholesalePricing: data.hasWholesalePricing,
         belongsToDistributorId,
-        belongsToDealerId
+        belongsToDealerId,
+        ...(data.role === "farmer"
+            ? {
+                farmer: {
+                  create: {} // Create empty farmer profile
+                }
+              }
+            : {})
+      },
+      include: {
+        farmer: true
       }
     });
   },

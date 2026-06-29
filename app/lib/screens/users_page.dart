@@ -427,11 +427,22 @@ class _UserFormState extends State<_UserForm> {
     });
     try {
       final api = ApiService(token: token);
+      String backendRole = 'farmer';
+      if (_role == UserRole.systemAdmin) {
+        backendRole = 'admin';
+      } else if (_role == UserRole.customerAdmin) {
+        backendRole = 'tenant_admin';
+      } else if (_role == UserRole.customerUser) {
+        backendRole = 'technician';
+      } else if (_role == UserRole.customer) {
+        backendRole = 'farmer';
+      }
+
       final data = <String, dynamic>{
         'name': _nameCtrl.text.trim(),
         'email': _emailCtrl.text.trim(),
         'phone': _phoneCtrl.text.trim(),
-        'role': _role.name.toUpperCase(),
+        'role': backendRole,
         if (_pwCtrl.text.isNotEmpty) 'password': _pwCtrl.text,
       };
       if (widget.user == null) {

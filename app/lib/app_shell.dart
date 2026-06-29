@@ -10,6 +10,7 @@ import 'screens/field_list_screen.dart';
 import 'screens/schedule_list_screen.dart';
 import 'screens/store_screen.dart';
 import 'screens/support_screen.dart';
+import 'screens/users_page.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -97,6 +98,11 @@ class _AppShellState extends State<AppShell> {
         if (user == null || user.canAccessSupport) {
           pages.add(const SupportScreen());
           navItems.add(const AppNavItem(icon: Icons.support_agent_rounded, label: 'Support'));
+        }
+
+        if (user == null || user.isAdmin) {
+          pages.add(const UsersPage());
+          navItems.add(const AppNavItem(icon: Icons.people_rounded, label: 'Users'));
         }
 
         final safeIndex = selectedIndex.clamp(0, pages.length - 1).toInt();

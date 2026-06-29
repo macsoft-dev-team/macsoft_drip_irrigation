@@ -12,6 +12,7 @@ import '../widgets/app_loading_button.dart';
 import '../widgets/app_text_field.dart';
 import 'field_detail_screen.dart';
 import 'farmer_detail_screen.dart';
+import 'users_page.dart';
 
 class HierarchicalFarmer {
   final AppUser farmer;
@@ -335,6 +336,15 @@ class _FieldListScreenState extends State<FieldListScreen> {
                   : Colors.grey,
             ),
             onPressed: _showFilterDialog,
+          ),
+          IconButton(
+            icon: const Icon(Icons.people_rounded, color: Color(0xFF2D7A3A)),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const UsersPage()),
+              );
+            },
           ),
         ],
       ),
