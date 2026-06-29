@@ -549,6 +549,26 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<List<Valve>> getValvesBySlaveBoard(String slaveBoardId) async {
+    if (api == null) return [];
+    try {
+      return await api!.getValvesBySlaveBoard(slaveBoardId);
+    } catch (_) {
+      // Fallback: search locally in loaded fields zones
+      final List<Valve> sbValves = [];
+      for (var f in fields) {
+        for (var z in f.zones) {
+          for (var v in z.valves) {
+            if (v.deviceUid.contains(slaveBoardId) || v.slaveBoardName != null) {
+              sbValves.add(v);
+            }
+          }
+        }
+      }
+      return sbValves;
+    }
+  }
+
   Future<bool> createSlaveBoard(String masterControllerId, {
     required String name,
     required String deviceUid,

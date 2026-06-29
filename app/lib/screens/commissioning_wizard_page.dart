@@ -45,26 +45,54 @@ class _CommissioningWizardPageState extends State<CommissioningWizardPage> {
   final _zoneDescCtrl = TextEditingController();
   final Map<String, bool> _selectedValvesForZone = {};
 
+  // Custom configuration tracking
+  final List<Valve> _wizardCreatedValves = [];
+  final Map<String, List<Valve>> _slaveValves = {};
+
   @override
   void initState() {
     super.initState();
-    if (widget.field.masterController != null) {
-      _deviceUidCtrl.text = widget.field.masterController!.deviceUid;
-      _imeiCtrl.text = widget.field.masterController!.imei ?? '';
-      _simCtrl.text = widget.field.masterController!.simNumber ?? '';
-      _connectionType = widget.field.masterController!.connectionType;
-      // Skip master registration if master already exists
-      _currentStep = 1;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _loadSlaves();
-      });
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final state = context.read<AppState>();
+      final currentField = state.fields.firstWhere((f) => f.id == widget.field.id, orElse: () => widget.field);
+      if (currentField.masterController != null) {
+        setState(() {
+          _deviceUidCtrl.text = currentField.masterController!.deviceUid;
+          _imeiCtrl.text = currentField.masterController!.imei ?? '';
+          _simCtrl.text = currentField.masterController!.simNumber ?? '';
+          _connectionType = currentField.masterController!.connectionType;
+          _currentStep = 1;
+        });
+        await _loadSlaves();
+      }
+    });
   }
 
   Future<void> _loadSlaves() async {
     final state = context.read<AppState>();
-    if (widget.field.masterController != null) {
-      await state.loadSlaveBoards(widget.field.masterController!.id);
+    final currentField = state.fields.firstWhere((f) => f.id == widget.field.id, orElse: () => widget.field);
+    if (currentField.masterController != null) {
+      await state.loadSlaveBoards(currentField.masterController!.id);
+      
+      // Load valves for each slave board
+      _slaveValves.clear();
+      for (var sb in state.slaveBoards) {
+        try {
+          final valves = await state.getValvesBySlaveBoard(sb.id);
+          _slaveValves[sb.id] = valves;
+        } catch (_) {
+          final List<Valve> sbValves = [];
+          for (var z in currentField.zones) {
+            for (var v in z.valves) {
+              if (v.deviceUid.contains(sb.deviceUid) || v.slaveBoardName == sb.name) {
+                sbValves.add(v);
+              }
+            }
+          }
+          _slaveValves[sb.id] = sbValves;
+        }
+      }
+
       if (state.slaveBoards.isNotEmpty) {
         setState(() {
           _selectedTestBoard = state.slaveBoards.first;
@@ -124,17 +152,21 @@ class _CommissioningWizardPageState extends State<CommissioningWizardPage> {
         setState(() => _currentStep = 4);
       } else if (_currentStep == 4) {
         // Step 5: Name Valves & Save to database
+        _wizardCreatedValves.clear();
         for (var vDetails in _newValves) {
           final ctrl = _valveNameControllers[vDetails['key']];
           final name = ctrl?.text.trim() ?? '';
           if (name.isEmpty) throw Exception('Please name all discovered valves.');
           
-          await state.createValveDirect(
+          final createdValve = await state.createValveDirect(
             slaveBoardId: vDetails['slaveBoardId'],
             name: name,
             deviceUid: vDetails['deviceUid'],
             coilAddress: vDetails['coilAddress'],
           );
+          if (createdValve != null) {
+            _wizardCreatedValves.add(createdValve);
+          }
         }
         await state.loadFields();
         // Initialize step 6 valve selections
@@ -317,6 +349,7 @@ class _CommissioningWizardPageState extends State<CommissioningWizardPage> {
 
   // --- STEP 1: REGISTER MASTER ---
   Widget _stepRegisterMaster() {
+    final mc = widget.field.masterController;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -329,7 +362,41 @@ class _CommissioningWizardPageState extends State<CommissioningWizardPage> {
           'Please input the unique identifier and details from the physical Master Controller box.',
           style: TextStyle(color: Colors.grey),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
+        if (mc != null) ...[
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.green.shade50,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.green.shade200, width: 1),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.check_circle_rounded, color: Colors.green, size: 28),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Previously Configured Device',
+                        style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1B5E20), fontSize: 13),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'UID: ${mc.deviceUid}\nIMEI: ${mc.imei ?? "N/A"}\nSIM: ${mc.simNumber ?? "N/A"}\nConnection: ${mc.connectionType.toUpperCase()}',
+                        style: const TextStyle(fontSize: 11, color: Colors.black87, height: 1.4),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+        ],
         AppTextField(
           controller: _deviceUidCtrl,
           label: 'Device UID / Serial Number',
@@ -439,15 +506,40 @@ class _CommissioningWizardPageState extends State<CommissioningWizardPage> {
             itemCount: state.slaveBoards.length,
             itemBuilder: (context, idx) {
               final sb = state.slaveBoards[idx];
-              return ListTile(
-                title: Text(sb.name),
-                subtitle: Text('UID: ${sb.deviceUid} | Modbus Address: ${sb.modbusAddress}'),
-                trailing: IconButton(
-                  icon: const Icon(Icons.delete_rounded, color: Colors.red),
-                  onPressed: () async {
-                    await state.deleteSlaveBoard(sb.id);
-                    _loadSlaves();
-                  },
+              return Card(
+                color: Colors.white,
+                margin: const EdgeInsets.only(bottom: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(color: Colors.grey.shade200),
+                ),
+                child: ListTile(
+                  dense: true,
+                  leading: const Icon(Icons.developer_board_rounded, color: Color(0xFF2D7A3A)),
+                  title: Text(sb.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: Text('UID: ${sb.deviceUid} | Address: ${sb.modbusAddress}'),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.green.shade200),
+                        ),
+                        child: const Text('ACTIVE', style: TextStyle(fontSize: 8, color: Colors.green, fontWeight: FontWeight.bold)),
+                      ),
+                      const SizedBox(width: 4),
+                      IconButton(
+                        icon: const Icon(Icons.delete_rounded, color: Colors.red, size: 20),
+                        onPressed: () async {
+                          await state.deleteSlaveBoard(sb.id);
+                          _loadSlaves();
+                        },
+                      ),
+                    ],
+                  ),
                 ),
               );
             },
@@ -542,20 +634,46 @@ class _CommissioningWizardPageState extends State<CommissioningWizardPage> {
           const SizedBox(height: 16),
           const Text('Select Output Relay (Coil Address):', style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
-          GridView.builder(
+           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 4,
+              crossAxisCount: 3,
               crossAxisSpacing: 8,
               mainAxisSpacing: 8,
-              childAspectRatio: 1.5,
+              childAspectRatio: 1.25,
             ),
             itemCount: 8, // Support testing first 8 coils for discovery
             itemBuilder: (context, coil) {
               final isSel = _selectedCoil == coil;
+              final isAlreadyMapped = _selectedTestBoard != null &&
+                  (_slaveValves[_selectedTestBoard!.id]?.any((v) => v.valveNumber - 1 == coil) ?? false);
+              final mappedValve = isAlreadyMapped
+                  ? _slaveValves[_selectedTestBoard!.id]!.firstWhere((v) => v.valveNumber - 1 == coil)
+                  : null;
+
               return ChoiceChip(
-                label: Text('Coil $coil'),
+                label: SizedBox(
+                  width: double.infinity,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Coil $coil',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                      if (isAlreadyMapped && mappedValve != null)
+                        Text(
+                          mappedValve.name,
+                          style: const TextStyle(fontSize: 8, color: Colors.blueGrey, overflow: TextOverflow.ellipsis),
+                          maxLines: 1,
+                        ),
+                    ],
+                  ),
+                ),
                 selected: isSel,
                 onSelected: (val) {
                   if (val) setState(() => _selectedCoil = coil);
@@ -656,10 +774,27 @@ class _CommissioningWizardPageState extends State<CommissioningWizardPage> {
 
   // --- STEP 6: CREATE ZONES ---
   Widget _stepCreateZones(Field field) {
-    // Gather all valves currently in the field
     final List<Valve> allValves = [];
+    
+    // 1. Gather previously configured valves from all zones
     for (var z in field.zones) {
       allValves.addAll(z.valves);
+    }
+    
+    // 2. Gather unassigned/configured valves from all slave boards
+    _slaveValves.forEach((sbId, valvesList) {
+      for (var v in valvesList) {
+        if (!allValves.any((el) => el.id == v.id)) {
+          allValves.add(v);
+        }
+      }
+    });
+
+    // 3. Gather newly created valves during this wizard session
+    for (var v in _wizardCreatedValves) {
+      if (!allValves.any((el) => el.id == v.id)) {
+        allValves.add(v);
+      }
     }
 
     return Column(
@@ -699,9 +834,35 @@ class _CommissioningWizardPageState extends State<CommissioningWizardPage> {
             itemBuilder: (context, idx) {
               final v = allValves[idx];
               final isChecked = _selectedValvesForZone[v.id] ?? false;
+              
+              String zoneInfo = '';
+              for (var z in field.zones) {
+                if (z.valves.any((el) => el.id == v.id)) {
+                  zoneInfo = ' (Assigned to: ${z.name})';
+                  break;
+                }
+              }
+
               return CheckboxListTile(
-                title: Text(v.name),
-                subtitle: Text('Coil: ${v.valveNumber - 1} | Board: ${v.slaveBoardName ?? 'N/A'}'),
+                title: Row(
+                  children: [
+                    Text(v.name),
+                    if (zoneInfo.isNotEmpty)
+                      Container(
+                        margin: const EdgeInsets.only(left: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade50,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          'ASSIGNED',
+                          style: TextStyle(fontSize: 8, color: Colors.blue.shade700, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                  ],
+                ),
+                subtitle: Text('Coil: ${v.valveNumber - 1} | Board: ${v.slaveBoardName ?? 'N/A'}$zoneInfo'),
                 value: isChecked,
                 onChanged: (val) {
                   if (val != null) {

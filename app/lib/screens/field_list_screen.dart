@@ -10,6 +10,7 @@ import '../widgets/empty_state.dart';
 import '../widgets/app_loading_button.dart';
 import '../widgets/app_text_field.dart';
 import 'field_detail_screen.dart';
+import 'farmer_detail_screen.dart';
 
 class HierarchicalFarmer {
   final AppUser farmer;
@@ -363,6 +364,7 @@ class _FieldListScreenState extends State<FieldListScreen> {
 
   Widget _buildFarmerCard(HierarchicalFarmer hFarmer) {
     final farmer = hFarmer.farmer;
+    final fieldsCount = hFarmer.fields.length;
     return Card(
       elevation: 0,
       margin: const EdgeInsets.only(bottom: 12),
@@ -370,36 +372,39 @@ class _FieldListScreenState extends State<FieldListScreen> {
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(color: Colors.grey.shade200),
       ),
-      child: Theme(
-        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
-          leading: CircleAvatar(
-            backgroundColor: const Color(0xFF2D7A3A).withValues(alpha: 0.1),
-            child: const Icon(Icons.person_rounded, color: Color(0xFF2D7A3A)),
-          ),
-          title: Text(
-            farmer.name ?? 'Unknown Farmer',
-            style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E2A1F), fontSize: 16),
-          ),
-          subtitle: Text(
-            farmer.phone ?? 'No Phone',
-            style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-          ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        leading: CircleAvatar(
+          backgroundColor: const Color(0xFF2D7A3A).withValues(alpha: 0.1),
+          child: const Icon(Icons.person_rounded, color: Color(0xFF2D7A3A)),
+        ),
+        title: Text(
+          farmer.name ?? 'Unknown Farmer',
+          style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E2A1F), fontSize: 16),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (hFarmer.fields.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Text('No fields found for this farmer.', style: TextStyle(color: Colors.grey, fontSize: 13)),
-              )
-            else
-              Padding(
-                padding: const EdgeInsets.only(left: 12, right: 12, bottom: 12),
-                child: Column(
-                  children: hFarmer.fields.map((hf) => _buildFieldTile(hf)).toList(),
-                ),
-              ),
+            Text(
+              farmer.phone ?? 'No Phone',
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              '$fieldsCount ${fieldsCount == 1 ? "Field" : "Fields"} linked',
+              style: const TextStyle(color: Color(0xFF2D7A3A), fontWeight: FontWeight.w600, fontSize: 11),
+            ),
           ],
         ),
+        trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.grey),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => FarmerDetailScreen(farmer: farmer),
+            ),
+          );
+        },
       ),
     );
   }
