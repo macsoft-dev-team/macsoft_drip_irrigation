@@ -263,10 +263,7 @@ class AppState extends ChangeNotifier {
       fieldsError = e.toString().replaceFirst('Exception: ', '');
     }
 
-    // Fallback Mock data if empty
-    if (fields.isEmpty) {
-      fields = _getMockFields();
-    }
+
 
     fieldsLoading = false;
     notifyListeners();
@@ -525,27 +522,7 @@ class AppState extends ChangeNotifier {
     } catch (e) {
       slaveBoardsError = e.toString().replaceFirst('Exception: ', '');
     }
-    // Mock fallbacks if empty
-    if (slaveBoards.isEmpty) {
-      slaveBoards = [
-        SlaveBoard(
-          id: '1',
-          masterControllerId: masterControllerId,
-          deviceUid: 'slave-001',
-          name: 'Slave Board 1',
-          modbusAddress: 1,
-          status: 'active',
-        ),
-        SlaveBoard(
-          id: '2',
-          masterControllerId: masterControllerId,
-          deviceUid: 'slave-002',
-          name: 'Slave Board 2',
-          modbusAddress: 2,
-          status: 'active',
-        ),
-      ];
-    }
+
     slaveBoardsLoading = false;
     notifyListeners();
   }
@@ -986,9 +963,7 @@ class AppState extends ChangeNotifier {
       productsError = e.toString().replaceFirst('Exception: ', '');
     }
 
-    if (products.isEmpty) {
-      products = _getMockProducts();
-    }
+
 
     productsLoading = false;
     notifyListeners();
@@ -1116,9 +1091,7 @@ class AppState extends ChangeNotifier {
       ticketsError = e.toString().replaceFirst('Exception: ', '');
     }
 
-    if (tickets.isEmpty) {
-      tickets = _getMockTickets();
-    }
+
 
     ticketsLoading = false;
     notifyListeners();
@@ -1172,9 +1145,7 @@ class AppState extends ChangeNotifier {
     alertsLoading = true;
     notifyListeners();
     await Future.delayed(const Duration(milliseconds: 400));
-    if (alerts.isEmpty) {
-      alerts = _getMockAlerts();
-    }
+
     alertsLoading = false;
     notifyListeners();
   }
