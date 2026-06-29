@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/master_controller.dart';
+import '../models/api_device.dart';
 import '../services/app_state.dart';
 import '../widgets/status_chip.dart';
 import '../widgets/tank_level_indicator.dart';
 import '../widgets/confirm_action_dialog.dart';
 import 'support_screen.dart';
+import 'device_config_page.dart';
 
 class MasterControllerDetailScreen extends StatefulWidget {
   final MasterController masterController;
@@ -27,6 +29,9 @@ class _MasterControllerDetailScreenState extends State<MasterControllerDetailScr
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AppState>().loadDevices();
+    });
   }
 
   @override
@@ -292,6 +297,43 @@ class _MasterControllerDetailScreenState extends State<MasterControllerDetailScr
                     ),
                   ),
                 ),
+                final isAdmin = state.user?.isAdmin ?? false;
+
+                if (isAdmin) ...[
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        final apiDevice = state.devices.firstWhere(
+                          (d) => d.imeinumber == controller.imei || d.imeinumber == controller.deviceUid,
+                          orElse: () => ApiDevice(
+                            id: controller.id,
+                            imeinumber: controller.imei ?? controller.deviceUid,
+                            name: controller.deviceUid,
+                            isActive: controller.isOnline,
+                            config: const {},
+                          ),
+                        );
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => DeviceConfigPage(device: apiDevice),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.settings_suggest_rounded),
+                      label: const Text('Configure Device Parameters'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1E2A1F),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 32),
 
                 // Actions

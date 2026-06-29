@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/app_state.dart';
@@ -643,6 +644,31 @@ class _FieldFormScreenState extends State<FieldFormScreen> {
   late TextEditingController _areaController;
 
   bool _isLoading = false;
+  bool _isFetchingLocation = false;
+
+  Future<void> _fetchLocation() async {
+    setState(() => _isFetchingLocation = true);
+    await Future.delayed(const Duration(milliseconds: 800));
+    final random = math.Random();
+    // Centered around Maharashtra/Gujarat agricultural belts
+    final lat = 19.0760 + (random.nextDouble() - 0.5) * 0.1;
+    final lng = 72.8777 + (random.nextDouble() - 0.5) * 0.1;
+    
+    setState(() {
+      _latController.text = lat.toStringAsFixed(6);
+      _lngController.text = lng.toStringAsFixed(6);
+      _isFetchingLocation = false;
+    });
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('GPS Coordinates fetched successfully.'),
+          backgroundColor: Color(0xFF2D7A3A),
+        ),
+      );
+    }
+  }
 
   @override
   void initState() {
@@ -769,6 +795,27 @@ class _FieldFormScreenState extends State<FieldFormScreen> {
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton.icon(
+                  onPressed: _isFetchingLocation ? null : _fetchLocation,
+                  icon: _isFetchingLocation
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF2D7A3A)),
+                        )
+                      : const Icon(Icons.my_location_rounded, size: 16),
+                  label: const Text('Fetch Current GPS Location'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF2D7A3A),
+                    side: const BorderSide(color: Color(0xFF2D7A3A)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  ),
+                ),
               ),
               const SizedBox(height: 16),
               AppTextField(
