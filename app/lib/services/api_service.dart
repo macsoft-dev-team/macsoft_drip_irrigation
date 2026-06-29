@@ -881,6 +881,23 @@ class ApiService {
     _check(res);
   }
 
+  Future<List<Valve>> getValvesBySlaveBoard(String slaveBoardId) async {
+    final res = await http.get(
+      Uri.parse('$_baseUrl/slaveBoards/$slaveBoardId/valves'),
+      headers: _headers,
+    );
+    _check(res);
+    final body = jsonDecode(res.body);
+    final List<dynamic> list;
+    if (body is List) {
+      list = body;
+    } else {
+      list = (body['valves'] ?? body['data'] ?? []) as List<dynamic>;
+    }
+    return list.map((e) => Valve.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+
   // ── Helpers ────────────────────────────────────────────────────────────────
 
   static Map<String, dynamic> _unwrap(Map<String, dynamic> body) {

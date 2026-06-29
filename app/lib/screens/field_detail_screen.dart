@@ -192,7 +192,7 @@ class FieldDetailScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (state.user == null || state.user!.canCommissionDevices) ...[
+                if (state.user != null && state.user!.isAdmin) ...[
                   const SizedBox(height: 12),
                   ElevatedButton.icon(
                     onPressed: () {
