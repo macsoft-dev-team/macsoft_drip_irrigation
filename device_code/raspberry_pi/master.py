@@ -10,10 +10,10 @@ import paho.mqtt.client as mqtt
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
 # --- Configuration ---
-MQTT_BROKER = "localhost"  # Update with your cloud/local broker IP
+MQTT_BROKER = "mqtt.macsoftautomations.in"  # Update with your cloud/local broker IP
 MQTT_PORT = 1883
-MQTT_USER = None
-MQTT_PASSWORD = None
+MQTT_USER = "drip_admin"
+MQTT_PASSWORD = "admin"
 DEVICE_UID = "MASTER-001"
 FARM_ID = "1"
 FIELD_ID = "1"

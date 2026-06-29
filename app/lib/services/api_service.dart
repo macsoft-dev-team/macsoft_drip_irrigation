@@ -244,7 +244,9 @@ class ApiService {
     );
     _check(res);
     final body = jsonDecode(res.body) as Map<String, dynamic>;
-    final list = (body['users'] as List<dynamic>? ?? [])
+    final unwrapped = _unwrap(body);
+    final List<dynamic> rawList = unwrapped is List ? (unwrapped as List<dynamic>) : (body['users'] as List<dynamic>? ?? []);
+    final list = rawList
         .map((e) => AppUser.fromJson(e as Map<String, dynamic>))
         .toList();
     return (

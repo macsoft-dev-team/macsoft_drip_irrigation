@@ -4,12 +4,12 @@ services:
     container_name: dripMysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: rootPassword
-      MYSQL_DATABASE: dripIrrigation
+      MYSQL_ROOT_PASSWORD: Welcome123!
+      MYSQL_DATABASE: dripirrigation
       MYSQL_USER: drip
       MYSQL_PASSWORD: dripPassword
     ports:
-      - "3306:3306"
+      - "3309:3306"
     volumes:
       - dripMysqlData:/var/lib/mysql
     command: ["mysqld", "--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
@@ -19,7 +19,7 @@ services:
     container_name: dripRedis
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "6380:6379"
 
   mqtt:
     image: eclipse-mosquitto:2

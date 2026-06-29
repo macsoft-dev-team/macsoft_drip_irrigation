@@ -36,7 +36,7 @@ async function main() {
     update: {},
     create: {
       name: "Admin",
-      phone: "9876543210",
+      phone: "9999999999",
       passwordHash: adminPassword,
       role: "admin"
     }
@@ -121,11 +121,11 @@ async function main() {
 
   const tenantAdminPassword = await hashPassword("tenant12345");
   await prisma.user.upsert({
-    where: { phone: "9876543215" },
+    where: { phone: "9876543216" },
     update: {},
     create: {
       name: "Demo Tenant Admin",
-      phone: "9876543215",
+      phone: "9876543216",
       passwordHash: tenantAdminPassword,
       role: "tenant_admin",
       belongsToDistributorId: distributorUser.distributor!.id
@@ -133,13 +133,13 @@ async function main() {
   });
 
   const farmerUser = await prisma.user.upsert({
-    where: { phone: "9876543217" },
+    where: { phone: "8888888888" },
     update: {
       name: "John"
     },
     create: {
       name: "John",
-      phone: "9876543217",
+      phone: "8888888888",
       passwordHash: farmerPassword,
       role: "farmer",
       farmer: {

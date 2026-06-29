@@ -21,6 +21,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
 
   // Text Controllers
   final _phoneController = TextEditingController();
+  final _passwordController = TextEditingController();
   final _otpController = TextEditingController();
   final _nameController = TextEditingController();
   final _villageController = TextEditingController();
@@ -145,6 +146,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
   void dispose() {
     _introController.dispose();
     _phoneController.dispose();
+    _passwordController.dispose();
     _otpController.dispose();
     _nameController.dispose();
     _villageController.dispose();
@@ -152,6 +154,44 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     _stateController.dispose();
     _pincodeController.dispose();
     super.dispose();
+  }
+
+  Future<void> _login() async {
+    final phone = _phoneController.text.trim();
+    final password = _passwordController.text.trim();
+    if (phone.isEmpty || phone.length < 8) {
+      setState(() => _errorMessage = 'Please enter a valid phone number');
+      return;
+    }
+    if (password.isEmpty) {
+      setState(() => _errorMessage = 'Please enter your password');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    final success = await context.read<AppState>().login(
+      any: phone,
+      password: password,
+    );
+    if (!mounted) return;
+
+    setState(() => _isLoading = false);
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Logged in successfully.'),
+          backgroundColor: Color(0xFF2D7A3A),
+        ),
+      );
+    } else {
+      final error = context.read<AppState>().authError;
+      setState(() => _errorMessage = error ?? 'Login failed. Please check your credentials.');
+    }
   }
 
   Future<void> _sendOtp() async {
@@ -413,7 +453,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
               ),
               const SizedBox(height: 6),
               const Text(
-                'Enter your phone number to get started with smart drip irrigation control.',
+                'Enter your phone number and password to login.',
                 style: TextStyle(fontSize: 13, color: Color(0xFF4A5D4E), fontWeight: FontWeight.w500),
               ),
               const SizedBox(height: 24),
@@ -424,57 +464,12 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                 keyboardType: TextInputType.phone,
                 prefixIcon: const Icon(Icons.phone_outlined, size: 20, color: Color(0xFF8A958A)),
               ),
-              if (_errorMessage != null) ...[
-                const SizedBox(height: 12),
-                Text(
-                  _errorMessage!,
-                  style: const TextStyle(color: Color(0xFFDC2626), fontSize: 13, fontWeight: FontWeight.w600),
-                ),
-              ],
-              const SizedBox(height: 24),
-              AppLoadingButton(
-                label: 'Send OTP',
-                isLoading: _isLoading,
-                onPressed: _sendOtp,
-                color: const Color(0xFF2D7A3A),
-              ),
-            ],
-          ),
-        );
-
-      case AuthStep.otpInput:
-        return _buildGlassContainer(
-          key: const ValueKey('otpInput'),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_ios, size: 18, color: Color(0xFF2D7A3A)),
-                    onPressed: () => setState(() => _currentStep = AuthStep.phoneInput),
-                  ),
-                  const Text(
-                    'Verify Code',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF1E2A1F),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Enter the 6-digit OTP code sent to ${_phoneController.text}.',
-                style: const TextStyle(fontSize: 13, color: Color(0xFF4A5D4E), fontWeight: FontWeight.w500),
-              ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
               AppTextField(
-                label: 'OTP Code',
-                hint: 'Enter 6-digit OTP',
-                controller: _otpController,
-                keyboardType: TextInputType.number,
+                label: 'Password',
+                hint: 'Enter your password',
+                controller: _passwordController,
+                obscureText: true,
                 prefixIcon: const Icon(Icons.lock_outline, size: 20, color: Color(0xFF8A958A)),
               ),
               if (_errorMessage != null) ...[
@@ -486,24 +481,18 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
               ],
               const SizedBox(height: 24),
               AppLoadingButton(
-                label: 'Verify OTP',
+                label: 'Login',
                 isLoading: _isLoading,
-                onPressed: _verifyOtp,
+                onPressed: _login,
                 color: const Color(0xFF2D7A3A),
-              ),
-              const SizedBox(height: 12),
-              Center(
-                child: TextButton(
-                  onPressed: _isLoading ? null : _sendOtp,
-                  child: const Text(
-                    'Resend OTP',
-                    style: TextStyle(color: Color(0xFF2D7A3A), fontWeight: FontWeight.bold),
-                  ),
-                ),
               ),
             ],
           ),
         );
+
+      case AuthStep.otpInput:
+        // OTP flow commented/skipped for now
+        return const SizedBox.shrink();
 
       case AuthStep.profileSetup:
         return _buildGlassContainer(

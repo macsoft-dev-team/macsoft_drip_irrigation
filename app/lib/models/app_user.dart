@@ -57,13 +57,17 @@ class AppUser {
   }
 
   factory AppUser.fromJson(Map<String, dynamic> j) {
+    final farmerId = j['farmer'] != null ? j['farmer']['id'] : null;
+    final distributorId = j['distributor'] != null ? j['distributor']['id'] : null;
+    final dealerId = j['dealer'] != null ? j['dealer']['id'] : null;
+
     return AppUser(
       id: j['id'].toString(),
       name: j['name'] as String?,
       email: j['email'] as String?,
       phone: j['phone'] as String?,
       role: _parseRole(j['role'] as String?),
-      tenantId: (j['tenantId'] ?? j['customerId'])?.toString(),
+      tenantId: (j['tenantId'] ?? j['customerId'] ?? farmerId ?? distributorId ?? dealerId)?.toString(),
     );
   }
 

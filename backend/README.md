@@ -46,7 +46,11 @@ npm run prisma:generate
 npm run prisma:migrate
 npm run prisma:seed
 npm run dev
+docker ps -a
+docker logs dripMqtt
+docker compose down
 ```
+
 
 For production you should normally bundle the API with a build tool such as tsup or run it through your process manager using `npm start`.
 
