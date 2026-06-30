@@ -224,7 +224,9 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
                     ),
                     Container(
                       padding: const EdgeInsets.all(8),
-                      border: Border(top: BorderSide(color: Colors.grey.shade100)),
+                      decoration: BoxDecoration(
+                        border: Border(top: BorderSide(color: Colors.grey.shade100)),
+                      ),
                       child: Row(
                         children: [
                           Expanded(

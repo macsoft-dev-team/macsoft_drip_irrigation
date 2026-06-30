@@ -138,7 +138,16 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
 
 class ScheduleFormScreen extends StatefulWidget {
   final IrrigationSchedule? schedule;
-  const ScheduleFormScreen({super.key, this.schedule});
+  final String? initialFieldId;
+  final String? initialTargetType;
+  final String? initialTargetId;
+  const ScheduleFormScreen({
+    super.key,
+    this.schedule,
+    this.initialFieldId,
+    this.initialTargetType,
+    this.initialTargetId,
+  });
 
   @override
   State<ScheduleFormScreen> createState() => _ScheduleFormScreenState();
@@ -171,9 +180,11 @@ class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
       _repeatDays = List.from(s.repeatDays);
     } else {
       _name = "New Drip Schedule";
-      _fieldId = state.fields.isNotEmpty ? state.fields.first.id : "";
-      final activeField = state.fields.isNotEmpty ? state.fields.first : null;
-      _zoneId = (activeField != null && activeField.zones.isNotEmpty) ? activeField.zones.first.id : "";
+      _fieldId = widget.initialFieldId ?? (state.fields.isNotEmpty ? state.fields.first.id : "");
+      final activeField = _fieldId.isNotEmpty
+          ? state.fields.firstWhere((f) => f.id == _fieldId, orElse: () => state.fields.first)
+          : (state.fields.isNotEmpty ? state.fields.first : null);
+      _zoneId = widget.initialTargetId ?? ((activeField != null && activeField.zones.isNotEmpty) ? activeField.zones.first.id : "");
       _startTime = "06:00";
       _durationMinutes = 15;
       _repeatDays = ["monday", "wednesday", "friday"];

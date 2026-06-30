@@ -211,14 +211,14 @@ class _IrrigationScreenState extends State<IrrigationScreen> {
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [15, 30, 45, 60].map((t) {
+            children: [15, 30, 45, 60].map<Widget>((t) {
               bool isSel = _selectedDuration == t;
               return ChoiceChip(
                 label: Text("$t min"),
                 selected: isSel,
                 selectedColor: const Color(0xFF2D7A3A),
                 labelStyle: TextStyle(color: isSel ? Colors.white : Colors.black87, fontWeight: FontWeight.bold),
-                onPressed: () {
+                onSelected: (bool selected) {
                   setState(() {
                     _selectedDuration = t;
                   });

@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import '../services/app_state.dart';
 import '../models/field.dart';
 import '../models/zone.dart';
+import '../models/alert.dart';
 import '../widgets/tank_level_indicator.dart';
 import '../widgets/animated_farm_scene.dart';
 import 'field_details_screen.dart';
