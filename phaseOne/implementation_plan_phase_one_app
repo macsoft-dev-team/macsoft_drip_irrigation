@@ -1,0 +1,88 @@
+# Implementation Plan - Phase 1 Farmer Mobile App
+
+The goal of this plan is to design and implement a visually stunning, highly interactive Flutter mobile app for **Phase 1 (Farmer Mobile)**. 
+
+To answer the core question: **"Can I monitor and control my farm from my phone?"** without requiring complex hardware setup, the app will include a local state engine that simulates real-time monitoring and control. Tapping "Start Irrigation" will immediately transition the app state, update the dashboard telemetry, trigger notifications, and reflect running zone details on the field detail page.
+
+---
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Self-Contained Architecture vs. Multi-File modularity**:
+> We propose organizing the entire app in `lib/main.dart` or a minimal structure (`lib/main.dart` with auxiliary state/model files). Putting everything in a single, well-structured file is highly recommended for Phase 1 as it facilitates zero-setup execution, makes previews flawless, and avoids nested importing issues. We will structure it with clearly commented sections (Models, State, Theme, Screens, Custom Widgets).
+>
+> **Interactive State Engine**:
+> To make the app "live," we will build a `FarmerAppState` class (using `ChangeNotifier` and `Provider` or standard Flutter state management) which stores:
+> - User Info & Authentication state (Login, Forgot Password, OTP).
+> - Active fields (North Farm, South Farm, East Farm) and their zones.
+> - Current running zone, remaining time (counting down in real-time), and simulated values (flow rate, moisture %, tank level %).
+> - Irrigation Schedules (create/edit/delete/pause).
+> - Support Tickets (create/list).
+> - Custom Alerts & Notifications list.
+
+---
+
+## Proposed Changes
+
+### Mobile App - Phase 1
+
+#### [MODIFY] [main.dart](file:///c:/workspace/macsoft_drip_irrigation/phaseOne/mobile/lib/main.dart)
+We will rewrite `main.dart` to implement:
+
+1. **Design System & Styling**:
+   - **Vibrant Color Palette**: Deep Emerald Green (`0xFF1B5E20`), Light Mint (`0xFF00E676`), Charcoal/Graphite Backgrounds, and White Glassmorphism Cards.
+   - **Modern Typography & Icons**: Semi-rounded buttons, subtle gradients, and clean icon-labels.
+   - **Visual Effects**: Soft drop-shadows, rounded containers (16px/24px border radius), and smooth page transitions.
+
+2. **Authentication Pages**:
+   - **Login**: Clean form with validation.
+   - **Forgot Password**: Form to input phone number/email.
+   - **OTP Verification**: Styled code inputs with verification actions.
+
+3. **Home Dashboard**:
+   - **Greeting Banner**: "Good Morning, John" and select current Farm (North Farm, South Farm).
+   - **Master Status Card**: Shows master controller connection status (`Online` / `Offline`) and global status.
+   - **Telemetry Cards**: Live indicators for Tank Level (82%), Soil Moisture (46%), Today's Water (1200 L), and Running Zone (Tomato - 18 Min remaining).
+   - **Quick Start Card (UX Recommendation)**: Directly select a Field, Zone, and Duration (slider/chips) and tap "Start" to run instantly.
+   - **Recent Alerts Card**: Live list of active alarms.
+   - **AI recommendation widget**: "Increase irrigation by 10 min today" with an "Apply" button that updates schedules.
+
+4. **Fields Screen**:
+   - List of fields (North Farm, South Farm, East Farm).
+   - **Field Details Screen**: Tabs for *Overview*, *Zones*, *Monitoring*, *Schedules*, and *History*.
+   - **Zone Details Screen**: Details of the zone (e.g., Tomato), status, remaining time, valve statuses (Valves A, D, G), and Start/Stop toggle button.
+
+5. **Irrigation Screen**:
+   - Step-by-step form: Select Field ➔ Select Zone ➔ Duration ➔ Start.
+   - Displays real-time Running state with active countdown timer, current water pressure, flow rate, and a large **Emergency Stop** button.
+
+6. **Schedule Screen**:
+   - List of schedules (Morning, Evening, Weekend).
+   - Actions to Pause, Resume, Edit, and Delete schedules.
+   - Create/Edit Schedule form: Field, Zone, Start Time, Duration, Repeat Days, and Save.
+
+7. **AI Assistant Screen**:
+   - Today's Recommendation detail with Confidence rating (92%) and Apply/Ignore buttons.
+   - **Leaf Scan Demo**: Simulation of camera capture, upload, diagnosis, and crop treatment recommendations.
+   - **Chat with AI**: Chat interface with pre-loaded and interactive query-response loops.
+
+8. **Notifications Screen**:
+   - List of historical and active alerts (e.g., Master Offline, Tank Low, Schedule Started). Tapping triggers navigation or clears them.
+
+9. **Support Screen**:
+   - List of open tickets, form to create a ticket, and "Contact Support" options.
+
+10. **Profile Screen**:
+    - Farm Info, App Settings, Change Password, and Logout.
+
+---
+
+## Verification Plan
+
+### Automated Tests
+- Since this is a UI prototype focused on answering the user question, we will verify correct compilation of `lib/main.dart` by running Flutter's build tool or checker.
+
+### Manual Verification
+- We will launch the Flutter app in web-server mode using `flutter run -d web-server` (if Flutter SDK is available on PATH or can be invoked) or build it, and check layout using the browser subagent.
+- Alternatively, we will perform static code analysis to guarantee a 100% error-free build.
