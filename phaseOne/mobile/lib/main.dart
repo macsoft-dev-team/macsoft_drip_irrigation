@@ -40,7 +40,7 @@ class MyApp extends StatelessWidget {
               fontWeight: FontWeight.bold,
             ),
           ),
-          cardTheme: CardTheme(
+          cardTheme: CardThemeData(
             color: Colors.white,
             elevation: 2,
             shadowColor: Colors.black.withOpacity(0.04),
@@ -1346,7 +1346,7 @@ class HomeScreen extends StatelessWidget {
                   children: [
                     if (isFarmRunning)
                       Container(
-                        margin: const EdgeInsets.right(8),
+                        margin: const EdgeInsets.only(right: 8),
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: Colors.green.withOpacity(0.2),
@@ -2329,14 +2329,14 @@ class _IrrigationScreenState extends State<IrrigationScreen> {
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [5, 10, 15, 30, 45, 60].map((t) {
+            children: [5, 10, 15, 30, 45, 60].map<Widget>((t) {
               bool isSel = _selectedMins == t;
               return ChoiceChip(
                 label: Text("$t Min"),
                 selected: isSel,
                 selectedColor: MyApp.primaryColor,
                 labelStyle: TextStyle(color: isSel ? Colors.white : Colors.black87, fontWeight: FontWeight.bold),
-                onPressed: () {
+                onSelected: (bool selected) {
                   setState(() {
                     _selectedMins = t;
                   });
@@ -2974,7 +2974,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
                               const SizedBox(height: 12),
                               Text(
                                 state.leafRecommendation ?? "",
-                                style: const TextStyle(fontSize: 14, color: Colors.black70),
+                                style: const TextStyle(fontSize: 14, color: Colors.black87),
                                 textAlign: TextAlign.center,
                               ),
                             ],
