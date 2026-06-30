@@ -300,7 +300,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
                               const SizedBox(height: 16),
                               Text(
                                 _leafRecommendation!,
-                                style: const TextStyle(fontSize: 14, color: Colors.black70),
+                                style: const TextStyle(fontSize: 14, color: Colors.black87),
                                 textAlign: TextAlign.center,
                               ),
                             ],

@@ -63,7 +63,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    "Role: ${(user?.role ?? 'FARMER').toUpperCase()}",
+                    "Role: ${(user?.role?.toString() ?? 'FARMER').toUpperCase()}",
                     style: const TextStyle(color: Color(0xFF1E4D2B), fontSize: 11, fontWeight: FontWeight.bold),
                   ),
                 ),
