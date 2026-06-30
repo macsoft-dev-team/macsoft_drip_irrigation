@@ -1,0 +1,687 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma/client"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum UserRole {
+  admin
+  tenant_admin
+  sales
+  technician
+  customer_service
+  warehouse_manager
+  distributor
+  dealer
+  farmer
+}
+
+enum UserStatus {
+  active
+  blocked
+  deleted
+}
+
+enum FieldStatus {
+  active
+  inactive
+}
+
+enum ControllerConnectionType {
+  gsm4g
+  gsm5g
+  wifi
+  loraGateway
+}
+
+enum ControllerStatus {
+  online
+  offline
+  error
+  disabled
+}
+
+enum ZoneStatus {
+  active
+  inactive
+}
+
+enum ValveStatus {
+  open
+  closed
+  unknown
+  error
+  disabled
+}
+
+enum CommandTargetType {
+  valve
+  zone
+  field
+  motor
+}
+
+enum CommandAction {
+  open
+  close
+}
+
+enum CommandStatus {
+  created
+  queued
+  sent
+  partialSuccess
+  acknowledged
+  failed
+  timeout
+  expired
+}
+
+enum CommandSource {
+  app
+  adminPanel
+  schedule
+  support
+  deviceHttp
+}
+
+enum CommandItemStatus {
+  pending
+  sent
+  acknowledged
+  failed
+  timeout
+  skipped
+}
+
+enum PowerSource {
+  mainPower
+  battery
+  solar
+}
+
+enum ValveStatusSource {
+  masterController
+  appCommand
+  adminCommand
+  schedule
+  support
+}
+
+enum ScheduleAction {
+  openThenClose
+}
+
+enum RepeatType {
+  once
+  daily
+  weekly
+  customDays
+}
+
+enum ScheduleStatus {
+  active
+  paused
+  deleted
+}
+
+enum ScheduleRunStatus {
+  pending
+  running
+  completed
+  failed
+  skipped
+}
+
+enum ProductType {
+  masterController
+  valve
+  accessory
+  serviceFee
+}
+
+enum ProductStatus {
+  active
+  inactive
+}
+
+enum PaymentStatus {
+  pending
+  paid
+  failed
+  refunded
+}
+
+enum OrderStatus {
+  created
+  confirmed
+  dispatched
+  delivered
+  cancelled
+}
+
+enum BillingType {
+  oneTime
+  monthly
+  yearly
+  bundled
+}
+
+enum ServicePlanStatus {
+  active
+  expired
+  cancelled
+}
+
+enum TicketPriority {
+  low
+  medium
+  high
+  critical
+}
+
+enum TicketStatus {
+  open
+  inProgress
+  resolved
+  closed
+}
+
+model User {
+  id                     BigInt      @id @default(autoincrement())
+  name                   String      @db.VarChar(150)
+  phone                  String      @unique @db.VarChar(20)
+  email                  String?     @unique @db.VarChar(150)
+  passwordHash           String      @db.VarChar(255)
+  role                   UserRole
+  status                 UserStatus  @default(active)
+  hasWholesalePricing    Boolean     @default(false)
+  belongsToDistributorId BigInt?
+  belongsToDealerId      BigInt?
+  createdAt              DateTime    @default(now())
+  updatedAt              DateTime    @updatedAt
+
+  farmer                 Farmer?
+  distributor            Distributor?
+  dealer                 Dealer?     @relation("dealerProfile")
+  belongsToDistributor   Distributor? @relation("distributorUsers", fields: [belongsToDistributorId], references: [id])
+  belongsToDealer        Dealer?     @relation("dealerUsers", fields: [belongsToDealerId], references: [id])
+  requestedCommands      Command[]   @relation("requestedCommands")
+  assignedTickets        SupportTicket[] @relation("assignedTickets")
+  createdOrders          Order[]     @relation("createdOrders")
+  activityLogs           ActivityLog[]
+
+  @@index([belongsToDistributorId])
+  @@index([belongsToDealerId])
+  @@map("users")
+}
+
+model Farmer {
+  id            BigInt   @id @default(autoincrement())
+  userId        BigInt   @unique
+  distributorId BigInt?
+  dealerId      BigInt?
+  address       String?  @db.Text
+  village       String?  @db.VarChar(150)
+  district      String?  @db.VarChar(150)
+  state         String?  @db.VarChar(150)
+  pincode       String?  @db.VarChar(20)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User     @relation(fields: [userId], references: [id])
+  distributor   Distributor? @relation(fields: [distributorId], references: [id])
+  dealer        Dealer?  @relation(fields: [dealerId], references: [id])
+  fields        Field[]
+  commands      Command[]
+  schedules     IrrigationSchedule[]
+  orders        Order[]
+  servicePlans  FarmerServicePlan[]
+  supportTickets SupportTicket[]
+
+  @@index([distributorId])
+  @@index([dealerId])
+  @@map("farmers")
+}
+
+model Distributor {
+  id           BigInt     @id @default(autoincrement())
+  userId       BigInt     @unique
+  businessName String     @db.VarChar(200)
+  gstNumber    String?    @db.VarChar(50)
+  address      String?    @db.Text
+  status       UserStatus @default(active)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  user         User       @relation(fields: [userId], references: [id])
+  users        User[]     @relation("distributorUsers")
+  farmers      Farmer[]
+  orders       Order[]
+  inventoryItems InventoryItem[]
+
+  @@map("distributors")
+}
+
+model Field {
+  id           BigInt      @id @default(autoincrement())
+  farmerId     BigInt
+  name         String      @db.VarChar(150)
+  locationName String?     @db.VarChar(255)
+  latitude     Decimal?    @db.Decimal(10, 7)
+  longitude    Decimal?    @db.Decimal(10, 7)
+  areaAcres    Decimal?    @db.Decimal(10, 2)
+  status       FieldStatus @default(active)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  farmer       Farmer      @relation(fields: [farmerId], references: [id])
+  masterController MasterController?
+  zones        Zone[]
+  commands     Command[]
+  schedules    IrrigationSchedule[]
+  supportTickets SupportTicket[]
+
+  @@index([farmerId])
+  @@map("fields")
+}
+
+model MasterController {
+  id               BigInt    @id @default(autoincrement())
+  fieldId          BigInt    @unique
+  deviceUid        String    @unique @db.VarChar(100)
+  imei             String?   @db.VarChar(50)
+  simNumber        String?   @db.VarChar(30)
+  firmwareVersion  String?   @db.VarChar(50)
+  connectionType   ControllerConnectionType @default(gsm4g)
+  status           ControllerStatus @default(offline)
+  tankLevel        Int?      @default(50)
+  motorStatus      String    @default("off")
+  lastHeartbeatAt  DateTime?
+  lastIp           String?   @db.VarChar(100)
+  installedAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  field            Field     @relation(fields: [fieldId], references: [id])
+  commands         Command[]
+  heartbeats       MasterHeartbeat[]
+  supportTickets   SupportTicket[]
+  slaveBoards      SlaveBoard[]
+
+  @@index([status])
+  @@index([lastHeartbeatAt])
+  @@map("masterControllers")
+}
+
+model SlaveBoard {
+  id                 BigInt           @id @default(autoincrement())
+  masterControllerId BigInt
+  deviceUid          String           @unique @db.VarChar(100)
+  name               String           @db.VarChar(150)
+  modbusAddress      Int              @default(1)
+  status             String           @default("active") // "active", "inactive"
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  masterController   MasterController @relation(fields: [masterControllerId], references: [id])
+  valves             Valve[]
+
+  @@unique([masterControllerId, modbusAddress])
+  @@index([masterControllerId])
+  @@map("slaveBoards")
+}
+
+model Zone {
+  id          BigInt     @id @default(autoincrement())
+  fieldId     BigInt
+  name        String     @db.VarChar(150)
+  description String?    @db.Text
+  status      ZoneStatus @default(active)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  field       Field      @relation(fields: [fieldId], references: [id])
+  valves      Valve[]
+
+  @@index([fieldId])
+  @@map("zones")
+}
+
+model Valve {
+  id           BigInt      @id @default(autoincrement())
+  zoneId       BigInt?
+  slaveBoardId BigInt
+  deviceUid    String      @unique @db.VarChar(100)
+  name         String      @db.VarChar(150)
+  coilAddress  Int
+  status       ValveStatus @default(unknown)
+  lastStatusAt DateTime?
+  installedAt  DateTime?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  zone         Zone?       @relation(fields: [zoneId], references: [id])
+  slaveBoard   SlaveBoard  @relation(fields: [slaveBoardId], references: [id])
+  commandItems CommandItem[]
+  statusLogs   ValveStatusLog[]
+  supportTickets SupportTicket[]
+
+  @@unique([slaveBoardId, coilAddress])
+  @@index([zoneId])
+  @@index([slaveBoardId])
+  @@map("valves")
+}
+
+model Command {
+  id                 BigInt      @id @default(autoincrement())
+  commandUid         String      @unique @db.VarChar(100)
+  farmerId           BigInt
+  fieldId            BigInt
+  masterControllerId BigInt
+  requestedByUserId  BigInt
+  targetType         CommandTargetType
+  targetId           BigInt
+  action             CommandAction
+  status             CommandStatus @default(created)
+  source             CommandSource @default(app)
+  retryCount         Int           @default(0)
+  maxRetries         Int           @default(3)
+  expiresAt          DateTime?
+  sentAt             DateTime?
+  acknowledgedAt     DateTime?
+  failedReason       String?       @db.Text
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  farmer             Farmer       @relation(fields: [farmerId], references: [id])
+  field              Field        @relation(fields: [fieldId], references: [id])
+  masterController   MasterController @relation(fields: [masterControllerId], references: [id])
+  requestedByUser    User         @relation("requestedCommands", fields: [requestedByUserId], references: [id])
+  items              CommandItem[]
+  valveStatusLogs    ValveStatusLog[]
+  scheduleOpenRuns   ScheduleRun[] @relation("openCommand")
+  scheduleCloseRuns  ScheduleRun[] @relation("closeCommand")
+
+  @@index([farmerId, createdAt])
+  @@index([masterControllerId, status])
+  @@index([status, expiresAt])
+  @@map("commands")
+}
+
+model CommandItem {
+  id             BigInt            @id @default(autoincrement())
+  commandId      BigInt
+  valveId        BigInt
+  sequenceNumber Int
+  action         CommandAction
+  status         CommandItemStatus @default(pending)
+  sentAt         DateTime?
+  acknowledgedAt DateTime?
+  failedReason   String?           @db.Text
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  command        Command           @relation(fields: [commandId], references: [id])
+  valve          Valve             @relation(fields: [valveId], references: [id])
+
+  @@unique([commandId, valveId])
+  @@index([commandId])
+  @@index([valveId])
+  @@map("commandItems")
+}
+
+model MasterHeartbeat {
+  id                 BigInt      @id @default(autoincrement())
+  masterControllerId BigInt
+  signalStrength     Int?
+  batteryVoltage     Decimal?    @db.Decimal(6, 2)
+  powerSource        PowerSource?
+  firmwareVersion    String?     @db.VarChar(50)
+  rawPayload         Json?
+  createdAt          DateTime    @default(now())
+
+  masterController   MasterController @relation(fields: [masterControllerId], references: [id])
+
+  @@index([masterControllerId, createdAt])
+  @@map("masterHeartbeats")
+}
+
+model ValveStatusLog {
+  id          BigInt      @id @default(autoincrement())
+  valveId     BigInt
+  commandId   BigInt?
+  oldStatus   ValveStatus?
+  newStatus   ValveStatus
+  source      ValveStatusSource
+  rawPayload  Json?
+  createdAt   DateTime    @default(now())
+
+  valve       Valve       @relation(fields: [valveId], references: [id])
+  command     Command?    @relation(fields: [commandId], references: [id])
+
+  @@index([valveId, createdAt])
+  @@index([commandId])
+  @@map("valveStatusLogs")
+}
+
+model IrrigationSchedule {
+  id              BigInt         @id @default(autoincrement())
+  farmerId        BigInt
+  fieldId         BigInt
+  name            String         @db.VarChar(150)
+  targetType      CommandTargetType
+  targetId        BigInt
+  action          ScheduleAction @default(openThenClose)
+  startTime       String         @db.VarChar(5)
+  durationMinutes Int
+  repeatType      RepeatType     @default(daily)
+  repeatDays      Json?
+  status          ScheduleStatus @default(active)
+  timezone        String         @default("Asia/Kolkata") @db.VarChar(80)
+  scheduleType    String         @default("timeBased") // "timeBased", "timerBased", "rtcBased"
+  zoneIds         Json?          // Array of zone IDs: number[]
+  sequenceData    Json?          // Detailed sequence data array
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  farmer          Farmer         @relation(fields: [farmerId], references: [id])
+  field           Field          @relation(fields: [fieldId], references: [id])
+  runs            ScheduleRun[]
+
+  @@index([farmerId, status])
+  @@index([fieldId])
+  @@map("irrigationSchedules")
+}
+
+model ScheduleRun {
+  id             BigInt            @id @default(autoincrement())
+  scheduleId     BigInt
+  openCommandId  BigInt?
+  closeCommandId BigInt?
+  status         ScheduleRunStatus @default(pending)
+  scheduledFor   DateTime
+  startedAt      DateTime?
+  completedAt    DateTime?
+  failedReason   String?           @db.Text
+  metadata       Json?             // state tracker for sequential scheduling
+  createdAt      DateTime          @default(now())
+
+  schedule       IrrigationSchedule @relation(fields: [scheduleId], references: [id])
+  openCommand    Command? @relation("openCommand", fields: [openCommandId], references: [id])
+  closeCommand   Command? @relation("closeCommand", fields: [closeCommandId], references: [id])
+
+  @@index([scheduleId, scheduledFor])
+  @@map("scheduleRuns")
+}
+
+model Product {
+  id             BigInt        @id @default(autoincrement())
+  name           String        @db.VarChar(200)
+  sku            String        @unique @db.VarChar(100)
+  type           ProductType
+  description    String?       @db.Text
+  price          Decimal       @db.Decimal(10, 2)
+  wholesalePrice Decimal       @default(0) @db.Decimal(10, 2)
+  status         ProductStatus @default(active)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  orderItems     OrderItem[]
+  inventoryItems InventoryItem[]
+
+  @@map("products")
+}
+
+model Order {
+  id            BigInt        @id @default(autoincrement())
+  farmerId      BigInt
+  distributorId BigInt?
+  dealerId      BigInt?
+  createdById   BigInt?
+  orderNumber   String        @unique @db.VarChar(100)
+  subtotal      Decimal       @default(0) @db.Decimal(10, 2)
+  platformFee   Decimal       @default(0) @db.Decimal(10, 2)
+  taxAmount     Decimal       @default(0) @db.Decimal(10, 2)
+  totalAmount   Decimal       @default(0) @db.Decimal(10, 2)
+  paymentStatus PaymentStatus @default(pending)
+  orderStatus   OrderStatus   @default(created)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  farmer        Farmer        @relation(fields: [farmerId], references: [id])
+  distributor   Distributor?  @relation(fields: [distributorId], references: [id])
+  dealer        Dealer?       @relation(fields: [dealerId], references: [id])
+  createdBy     User?         @relation("createdOrders", fields: [createdById], references: [id])
+  items         OrderItem[]
+
+  @@index([farmerId])
+  @@index([distributorId])
+  @@index([dealerId])
+  @@index([createdById])
+  @@map("orders")
+}
+
+model OrderItem {
+  id         BigInt   @id @default(autoincrement())
+  orderId    BigInt
+  productId  BigInt
+  quantity   Int
+  unitPrice  Decimal  @db.Decimal(10, 2)
+  totalPrice Decimal  @db.Decimal(10, 2)
+  createdAt  DateTime @default(now())
+
+  order      Order    @relation(fields: [orderId], references: [id])
+  product    Product  @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+  @@index([productId])
+  @@map("orderItems")
+}
+
+model FarmerServicePlan {
+  id                   BigInt            @id @default(autoincrement())
+  farmerId             BigInt
+  planName             String            @db.VarChar(150)
+  billingType          BillingType       @default(bundled)
+  feeAmount            Decimal           @default(0) @db.Decimal(10, 2)
+  remoteSupportEnabled Boolean           @default(true)
+  monitoringEnabled    Boolean           @default(true)
+  status               ServicePlanStatus @default(active)
+  startsAt             DateTime
+  endsAt               DateTime?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+
+  farmer               Farmer            @relation(fields: [farmerId], references: [id])
+
+  @@index([farmerId, status])
+  @@map("farmerServicePlans")
+}
+
+enum TicketType {
+  installation
+  service
+}
+
+model SupportTicket {
+  id                 BigInt         @id @default(autoincrement())
+  farmerId           BigInt
+  fieldId            BigInt?
+  masterControllerId BigInt?
+  valveId            BigInt?
+  assignedToUserId   BigInt?
+  title              String         @db.VarChar(200)
+  description        String?        @db.Text
+  priority           TicketPriority @default(medium)
+  status             TicketStatus   @default(open)
+  ticketType         TicketType     @default(service)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  farmer             Farmer         @relation(fields: [farmerId], references: [id])
+  field              Field?         @relation(fields: [fieldId], references: [id])
+  masterController   MasterController? @relation(fields: [masterControllerId], references: [id])
+  valve              Valve?         @relation(fields: [valveId], references: [id])
+  assignedToUser     User?          @relation("assignedTickets", fields: [assignedToUserId], references: [id])
+
+  @@index([farmerId, status])
+  @@index([assignedToUserId])
+  @@map("supportTickets")
+}
+
+model Dealer {
+  id           BigInt     @id @default(autoincrement())
+  userId       BigInt     @unique
+  businessName String     @db.VarChar(200)
+  gstNumber    String?    @db.VarChar(50)
+  address      String?    @db.Text
+  status       UserStatus @default(active)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  user         User       @relation("dealerProfile", fields: [userId], references: [id])
+  users        User[]     @relation("dealerUsers")
+  farmers      Farmer[]
+  orders       Order[]
+  inventoryItems InventoryItem[]
+
+  @@map("dealers")
+}
+
+model InventoryItem {
+  id            BigInt   @id @default(autoincrement())
+  productId     BigInt
+  distributorId BigInt?
+  dealerId      BigInt?
+  quantity      Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  product       Product  @relation(fields: [productId], references: [id])
+  distributor   Distributor? @relation(fields: [distributorId], references: [id])
+  dealer        Dealer?  @relation(fields: [dealerId], references: [id])
+
+  @@unique([productId, distributorId])
+  @@unique([productId, dealerId])
+  @@map("inventoryItems")
+}
+
+model ActivityLog {
+  id         BigInt   @id @default(autoincrement())
+  userId     BigInt
+  action     String   @db.VarChar(100) // "create", "update", "delete", "trigger"
+  entityType String   @db.VarChar(100) // "field", "zone", "valve", "schedule", "command"
+  entityId   BigInt
+  details    String?  @db.Text
+  createdAt  DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@map("activityLogs")
+}

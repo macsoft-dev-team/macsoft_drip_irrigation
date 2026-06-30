@@ -1,0 +1,13 @@
+systemctl status redis-server
+systemctl
+grep -i redis
+ps aux
+grep redis
+ss -lntp
+grep 1883
+docker ps
+docker ps -a
+/usr/sbin/nginx -T
+
+
+npx tsc --noEmit

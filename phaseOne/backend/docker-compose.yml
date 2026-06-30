@@ -1,0 +1,35 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: dripMysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: Welcome123!
+      MYSQL_DATABASE: dripirrigation
+      MYSQL_USER: drip
+      MYSQL_PASSWORD: dripPassword
+    ports:
+      - "3309:3306"
+    volumes:
+      - dripMysqlData:/var/lib/mysql
+    command: ["mysqld", "--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
+
+  redis:
+    image: redis:7-alpine
+    container_name: dripRedis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+
+  mqtt:
+    image: eclipse-mosquitto:2
+    container_name: dripMqtt
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./docker/mosquitto.conf:/mosquitto/config/mosquitto.conf
+
+volumes:
+  dripMysqlData:
