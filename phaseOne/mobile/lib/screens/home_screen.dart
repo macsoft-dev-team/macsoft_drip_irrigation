@@ -1,9 +1,14 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:http/http.dart' as http;
 import '../services/app_state.dart';
 import '../models/field.dart';
 import '../models/zone.dart';
 import '../widgets/dashboard_metric_card.dart';
+import '../widgets/tank_level_indicator.dart';
+import '../widgets/field_card.dart';
+import '../widgets/animated_farm_scene.dart';
 import 'field_details_screen.dart';
 import 'notifications_screen.dart';
 
@@ -20,9 +25,56 @@ class _HomeScreenState extends State<HomeScreen> {
   // AI Recommendation simulation
   bool _aiRecommendationApplied = false;
 
+  // Live Weather stats
+  double _temp = 28.0;
+  String _condition = "Partly Cloudy";
+  String _humidity = "60%";
+  String _wind = "12 km/h";
+  bool _weatherLoading = false;
+
+  Future<void> _fetchWeather() async {
+    if (!mounted) return;
+    setState(() => _weatherLoading = true);
+    try {
+      final response = await http.get(Uri.parse(
+          'https://api.open-meteo.com/v1/forecast?latitude=30.9&longitude=75.85&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code'));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final current = data['current'];
+        final double temp = (current['temperature_2m'] as num).toDouble();
+        final int humidity = (current['relative_humidity_2m'] as num).toInt();
+        final double wind = (current['wind_speed_10m'] as num).toDouble();
+        final int code = (current['weather_code'] as num).toInt();
+
+        String condition = "Clear Sky";
+        if (code >= 1 && code <= 3) condition = "Partly Cloudy";
+        else if (code == 45 || code == 48) condition = "Foggy";
+        else if (code >= 51 && code <= 55) condition = "Drizzle";
+        else if (code >= 61 && code <= 65) condition = "Rainy";
+        else if (code >= 80 && code <= 82) condition = "Showers";
+        else if (code >= 95) condition = "Thunderstorm";
+
+        if (mounted) {
+          setState(() {
+            _temp = temp;
+            _condition = condition;
+            _humidity = "$humidity%";
+            _wind = "${wind.toStringAsFixed(1)} km/h";
+            _weatherLoading = false;
+          });
+        }
+      } else {
+        if (mounted) setState(() => _weatherLoading = false);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _weatherLoading = false);
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    _fetchWeather();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final state = context.read<AppState>();
       state.loadFields();
@@ -84,6 +136,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return RefreshIndicator(
       onRefresh: () async {
+        await _fetchWeather();
         await state.loadFields();
         await state.loadAlerts();
         await state.loadSchedules();
@@ -98,9 +151,14 @@ class _HomeScreenState extends State<HomeScreen> {
             _buildGreeting(context, state, fields),
             const SizedBox(height: 16),
 
+            // Unified Weather details with Tractor Animation
+            _buildWeatherTractorCard(),
+            const SizedBox(height: 16),
+
             // Master Controller Status Card
             _buildMasterStatus(state, selectedField),
             const SizedBox(height: 16),
+
 
             // Core Telemetry Metrics Grid (Tank, Moisture, Water Usage, Running Zone)
             _buildTelemetryGrid(context, state, selectedField, mc, runningZone),
@@ -120,6 +178,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
             // Recent alerts listing
             _buildRecentAlerts(context, state),
+            
+            // Bottom margin to prevent overlap with floating glass navbar
+            const SizedBox(height: 95),
           ],
         ),
       ),
@@ -256,8 +317,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildTelemetryGrid(BuildContext context, AppState state, Field field, dynamic mc, Zone? runningZone) {
-    final double cardWidth = (MediaQuery.of(context).size.width - 44) / 2;
-
     String runningText = "None";
     if (runningZone != null) {
       runningText = runningZone.name;
@@ -267,106 +326,42 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final tankLevel = mc?.tankLevel ?? 0;
 
-    return Wrap(
-      spacing: 12,
-      runSpacing: 12,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Tank Card
-        _buildTelemetryCard(
-          width: cardWidth,
-          icon: Icons.water_drop_rounded,
-          iconColor: Colors.blue,
-          title: "Tank Level",
-          value: tankLevel > 0 ? "$tankLevel%" : "N/A",
-          subtitle: tankLevel > 0 ? "Sensor Connected" : "No telemetry",
+        // Animated Water Tank indicator
+        TankLevelIndicator(level: tankLevel.toDouble()),
+        const SizedBox(height: 16),
+
+        Row(
+          children: [
+            Expanded(
+              child: DashboardMetricCard(
+                title: "Soil Moisture",
+                value: "46%",
+                icon: Icons.grass,
+                color: Colors.orange,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: DashboardMetricCard(
+                title: "Today's Water",
+                value: "1,200 L",
+                icon: Icons.speed_rounded,
+                color: Colors.teal,
+              ),
+            ),
+          ],
         ),
-        // Soil Moisture (Simulated standard or average sensor if exists)
-        _buildTelemetryCard(
-          width: cardWidth,
-          icon: Icons.grass,
-          iconColor: Colors.orange,
-          title: "Soil Moisture",
-          value: "46%",
-          subtitle: "Normal range",
-        ),
-        // Today's Water
-        _buildTelemetryCard(
-          width: cardWidth,
-          icon: Icons.speed_rounded,
-          iconColor: Colors.teal,
-          title: "Today's Water",
-          value: "1,200 L",
-          subtitle: "Target: 1,500 L",
-        ),
-        // Running Zone
-        _buildTelemetryCard(
-          width: cardWidth,
-          icon: Icons.timer,
-          iconColor: runningZone != null ? Colors.green : Colors.grey,
-          title: "Active Zone",
+        const SizedBox(height: 12),
+        DashboardMetricCard(
+          title: "Active Irrigation Zone",
           value: runningText,
-          subtitle: runningZone != null ? "Valves Open" : "System Idle",
+          icon: Icons.timer,
+          color: runningZone != null ? Colors.green : Colors.grey,
         ),
       ],
-    );
-  }
-
-  Widget _buildTelemetryCard({
-    required double width,
-    required IconData icon,
-    required Color iconColor,
-    required String title,
-    required String value,
-    required String subtitle,
-  }) {
-    return Container(
-      width: width,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.02),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          )
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Icon(icon, color: iconColor, size: 28),
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: iconColor.withOpacity(0.4),
-                  shape: BoxShape.circle,
-                ),
-              )
-            ],
-          ),
-          const SizedBox(height: 14),
-          Text(
-            title,
-            style: const TextStyle(fontSize: 12, color: Colors.black45, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.black87),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            subtitle,
-            style: const TextStyle(fontSize: 10, color: Colors.black54),
-          ),
-        ],
-      ),
     );
   }
 
@@ -450,39 +445,14 @@ class _HomeScreenState extends State<HomeScreen> {
           separatorBuilder: (c, i) => const SizedBox(height: 8),
           itemBuilder: (context, idx) {
             final f = fields[idx];
-            final bool fRunning = f.zones.any((z) => z.valves.any((v) => v.status == 'open'));
-
-            return Card(
-              child: ListTile(
-                leading: const Icon(Icons.landscape, color: Color(0xFF1E4D2B)),
-                title: Text(f.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: Text("${f.zones.length} Zones • ${f.locationName ?? 'No location'}"),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (fRunning)
-                      Container(
-                        margin: const EdgeInsets.only(right: 8),
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.green.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Text(
-                          "ACTIVE",
-                          style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    const Icon(Icons.arrow_forward_ios, size: 14),
-                  ],
-                ),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (c) => FieldDetailScreen(fieldId: f.id)),
-                  );
-                },
-              ),
+            return FieldCard(
+              field: f,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (c) => FieldDetailScreen(fieldId: f.id)),
+                );
+              },
             );
           },
         ),
@@ -620,7 +590,107 @@ class _HomeScreenState extends State<HomeScreen> {
       ],
     );
   }
+
+  Widget _buildWeatherTractorCard() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+            child: Row(
+              children: [
+                Text(
+                  _condition.contains("Rain") || _condition.contains("Showers")
+                      ? '🌧️'
+                      : _condition.contains("Cloud")
+                          ? '🌤️'
+                          : '☀️',
+                  style: const TextStyle(fontSize: 32),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${_temp.toStringAsFixed(1)}°C',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF1E2A1F),
+                        ),
+                      ),
+                      Text(
+                        _condition,
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                _weatherInfoColumn('Humidity', _humidity),
+                const SizedBox(width: 14),
+                _weatherInfoColumn('Wind', _wind),
+              ],
+            ),
+          ),
+          SizedBox(
+            height: 110,
+            width: double.infinity,
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(22),
+              ),
+              child: const AnimatedFarmScene(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _weatherInfoColumn(String title, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            color: Colors.grey,
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Color(0xFF1E2A1F),
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    );
+  }
 }
+
 
 class QuickStartCardForm extends StatefulWidget {
   final Field field;

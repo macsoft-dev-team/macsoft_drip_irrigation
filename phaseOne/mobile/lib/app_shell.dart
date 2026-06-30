@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'services/app_state.dart';
@@ -37,10 +38,7 @@ class _AppShellState extends State<AppShell> {
   void _initSockets() {
     final state = context.read<AppState>();
     if (state.token != null) {
-      // Connect to websocket backend
       SocketService.instance.connect(state.token!);
-      
-      // Join fields rooms
       for (final field in state.fields) {
         SocketService.instance.joinField(field.id);
       }
@@ -53,9 +51,93 @@ class _AppShellState extends State<AppShell> {
     super.dispose();
   }
 
+  Widget _buildBottomNav() {
+    final activeColor = const Color(0xFF1E4D2B);
+    final inactiveColor = Colors.grey.shade400;
+
+    final icons = [
+      (Icons.home_outlined, Icons.home, "Home"),
+      (Icons.water_drop_outlined, Icons.water_drop, "Irrigation"),
+      (Icons.calendar_today_outlined, Icons.calendar_today, "Schedule"),
+      (Icons.smart_toy_outlined, Icons.smart_toy, "AI"),
+      (Icons.person_outline, Icons.person, "Profile"),
+    ];
+
+    return Container(
+      height: 66,
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.grey.shade100, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 8.0, sigmaY: 8.0),
+          child: Container(
+            color: Colors.white.withOpacity(0.90),
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: List.generate(icons.length, (idx) {
+                final isSelected = _currentIndex == idx;
+                final config = icons[idx];
+                final icon = isSelected ? config.$2 : config.$1;
+                final label = config.$3;
+
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _currentIndex = idx;
+                    });
+                  },
+                  behavior: HitTestBehavior.opaque,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 220),
+                    curve: Curves.easeOut,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: isSelected ? activeColor.withOpacity(0.08) : Colors.transparent,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(icon, color: isSelected ? activeColor : inactiveColor, size: 22),
+                        if (isSelected) ...[
+                          const SizedBox(width: 6),
+                          Text(
+                            label,
+                            style: TextStyle(
+                              color: activeColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 11.5,
+                            ),
+                          ),
+                        ]
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true,
       appBar: AppBar(
         title: const Row(
           children: [
@@ -90,37 +172,8 @@ class _AppShellState extends State<AppShell> {
         index: _currentIndex,
         children: _screens,
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.06),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: (index) {
-            setState(() {
-              _currentIndex = index;
-            });
-          },
-          type: BottomNavigationBarType.fixed,
-          selectedItemColor: const Color(0xFF1E4D2B),
-          unselectedItemColor: Colors.grey.shade400,
-          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-          unselectedLabelStyle: const TextStyle(fontSize: 12),
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: "Home"),
-            BottomNavigationBarItem(icon: Icon(Icons.water_drop_outlined), activeIcon: Icon(Icons.water_drop), label: "Irrigation"),
-            BottomNavigationBarItem(icon: Icon(Icons.calendar_today_outlined), activeIcon: Icon(Icons.calendar_today), label: "Schedule"),
-            BottomNavigationBarItem(icon: Icon(Icons.smart_toy_outlined), activeIcon: Icon(Icons.smart_toy), label: "AI"),
-            BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: "Profile"),
-          ],
-        ),
-      ),
+      bottomNavigationBar: _buildBottomNav(),
     );
   }
 }
+

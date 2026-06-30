@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/app_state.dart';
+import '../widgets/field_card.dart';
 import 'field_details_screen.dart';
 
 class FieldsScreen extends StatelessWidget {
@@ -39,58 +40,16 @@ class FieldsScreen extends StatelessWidget {
                 separatorBuilder: (c, i) => const SizedBox(height: 12),
                 itemBuilder: (context, idx) {
                   final f = fields[idx];
-                  final bool isRunning = f.zones.any((z) => z.valves.any((v) => v.status == 'open'));
-                  final activeValvesCount = f.zones.fold<int>(
-                    0,
-                    (sum, z) => sum + z.valves.where((v) => v.status == 'open').length,
-                  );
-
-                  return Card(
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                      leading: Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1E4D2B).withOpacity(0.1),
-                          shape: BoxShape.circle,
+                  return FieldCard(
+                    field: f,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (c) => FieldDetailScreen(fieldId: f.id),
                         ),
-                        child: const Icon(Icons.landscape_rounded, color: Color(0xFF1E4D2B)),
-                      ),
-                      title: Text(
-                        f.name,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                      ),
-                      subtitle: Text(
-                        "${f.zones.length} Zones configured • ${f.areaAcres ?? 0.0} Acres\nStatus: ${f.status.toUpperCase()}",
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (isRunning)
-                            Container(
-                              margin: const EdgeInsets.only(right: 8),
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.green.withOpacity(0.12),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                "$activeValvesCount Valves Running",
-                                style: const TextStyle(color: Colors.green, fontSize: 11, fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                          const Icon(Icons.arrow_forward_ios, size: 16),
-                        ],
-                      ),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (c) => FieldDetailScreen(fieldId: f.id),
-                          ),
-                        );
-                      },
-                    ),
+                      );
+                    },
                   );
                 },
               ),
@@ -98,3 +57,4 @@ class FieldsScreen extends StatelessWidget {
     );
   }
 }
+
