@@ -38,11 +38,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    border: Border.all(color: const Color(0xFF1E4D2B), width: 2),
+                    border: Border.all(color: const Color(0xFF2D7A3A), width: 2),
                   ),
                   child: const CircleAvatar(
                     radius: 46,
-                    backgroundColor: Color(0xFF1E4D2B),
+                    backgroundColor: Color(0xFF2D7A3A),
                     child: Icon(Icons.person, size: 54, color: Colors.white),
                   ),
                 ),
@@ -59,12 +59,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   margin: const EdgeInsets.only(top: 8),
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1E4D2B).withOpacity(0.12),
+                    color: const Color(0xFF2D7A3A).withOpacity(0.12),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     "Role: ${(user?.role?.toString() ?? 'FARMER').toUpperCase()}",
-                    style: const TextStyle(color: Color(0xFF1E4D2B), fontSize: 11, fontWeight: FontWeight.bold),
+                    style: const TextStyle(color: Color(0xFF2D7A3A), fontSize: 11, fontWeight: FontWeight.bold),
                   ),
                 ),
               ],
@@ -73,7 +73,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 28),
 
           // Farm Info Card
-          const Text("Farm Information", style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E4D2B))),
+          const Text("Farm Information", style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2D7A3A))),
           const SizedBox(height: 8),
           Card(
             child: Padding(
@@ -91,7 +91,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 20),
 
           // Settings Card
-          const Text("Application Settings", style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E4D2B))),
+          const Text("Application Settings", style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2D7A3A))),
           const SizedBox(height: 8),
           Card(
             child: Padding(
@@ -101,13 +101,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   SwitchListTile(
                     title: const Text("Offline Notifications Cache", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
                     value: true,
-                    activeColor: const Color(0xFF1E4D2B),
+                    activeColor: const Color(0xFF2D7A3A),
                     onChanged: (v) {},
                   ),
                   SwitchListTile(
                     title: const Text("AI Telemetry Optimization", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
                     value: true,
-                    activeColor: const Color(0xFF1E4D2B),
+                    activeColor: const Color(0xFF2D7A3A),
                     onChanged: (v) {},
                   ),
                 ],
@@ -117,7 +117,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 20),
 
           // Password reset card
-          const Text("Security Settings", style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E4D2B))),
+          const Text("Security Settings", style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2D7A3A))),
           const SizedBox(height: 8),
           Card(
             child: Padding(

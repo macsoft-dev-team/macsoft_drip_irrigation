@@ -14,7 +14,7 @@ class IrrigationScreen extends StatefulWidget {
 class _IrrigationScreenState extends State<IrrigationScreen> {
   String? _selectedFieldId;
   String? _selectedZoneId;
-  int _selectedDuration = 15;
+  int _selectedDuration = 30;
 
   @override
   Widget build(BuildContext context) {
@@ -50,7 +50,7 @@ class _IrrigationScreenState extends State<IrrigationScreen> {
             Text(
               runningZone!.name,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF1E4D2B)),
+              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF2D7A3A)),
             ),
             Text(
               "Active in ${runningField!.name}",
@@ -92,7 +92,7 @@ class _IrrigationScreenState extends State<IrrigationScreen> {
                             action: 'close',
                           );
                         },
-                        child: const Text("STOP IRRIGATION"),
+                        child: const Text("STOP IRRIGATION", style: TextStyle(fontWeight: FontWeight.bold)),
                       ),
                       const SizedBox(height: 12),
                       ElevatedButton(
@@ -101,13 +101,11 @@ class _IrrigationScreenState extends State<IrrigationScreen> {
                           minimumSize: const Size.fromHeight(56),
                         ),
                         onPressed: () async {
-                          // Emergency stop: Close the zone
                           await state.executeCommand(
                             targetType: 'zone',
                             targetId: runningZone!.id,
                             action: 'close',
                           );
-                          // Also stop master motor if available
                           if (runningField!.masterController != null) {
                             await state.controlMotor(runningField!.masterController!.id, 'stop');
                           }
@@ -128,7 +126,6 @@ class _IrrigationScreenState extends State<IrrigationScreen> {
       );
     }
 
-    // Wizard Selection screen
     if (fields.isEmpty) {
       return const Center(child: Text("No farms configured."));
     }
@@ -143,83 +140,85 @@ class _IrrigationScreenState extends State<IrrigationScreen> {
     }
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20.0),
+      padding: const EdgeInsets.all(24.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const Text(
-            "Configure Irrigation Run",
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1E4D2B)),
-          ),
-          const SizedBox(height: 4),
-          const Text("Manually trigger output zone relays directly.", style: TextStyle(color: Colors.black54)),
-          const SizedBox(height: 28),
-
-          // 1. Select Field
-          const Text("1. Select Farm Field Location", style: TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          Column(
-            children: fields.map((f) {
-              bool isSelected = _selectedFieldId == f.id;
-              return Card(
-                color: isSelected ? const Color(0xFF1E4D2B) : Colors.white,
-                child: ListTile(
-                  title: Text(
-                    f.name,
-                    style: TextStyle(
-                      color: isSelected ? Colors.white : Colors.black87,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  trailing: isSelected ? const Icon(Icons.check_circle, color: Color(0xFF00E676)) : null,
-                  onTap: () {
-                    setState(() {
-                      _selectedFieldId = f.id;
-                      _selectedZoneId = f.zones.isNotEmpty ? f.zones.first.id : null;
-                    });
-                  },
-                ),
-              );
-            }).toList(),
+            "Start Irrigation",
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF2D7A3A)),
           ),
           const SizedBox(height: 24),
 
-          // 2. Select Zone
-          const Text("2. Select Irrigation Zone", style: TextStyle(fontWeight: FontWeight.bold)),
+          // 1. Select Field Card
+          const Text("Select Field", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey)),
           const SizedBox(height: 8),
-          if (activeField.zones.isEmpty)
-            const Text("No zones available in this field.")
-          else
-            DropdownButtonFormField<String>(
-              value: _selectedZoneId,
-              decoration: const InputDecoration(labelText: "Irrigation Zone"),
-              items: activeField.zones.map((z) {
-                return DropdownMenuItem<String>(
-                  value: z.id,
-                  child: Text(z.name),
-                );
-              }).toList(),
-              onChanged: (val) {
-                setState(() {
-                  _selectedZoneId = val;
-                });
-              },
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade200),
             ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButtonFormField<String>(
+                value: _selectedFieldId,
+                decoration: const InputDecoration(border: InputBorder.none, filled: false),
+                items: fields.map((f) {
+                  return DropdownMenuItem<String>(value: f.id, child: Text(f.name, style: const TextStyle(fontWeight: FontWeight.bold)));
+                }).toList(),
+                onChanged: (val) {
+                  setState(() {
+                    _selectedFieldId = val;
+                    final f = fields.firstWhere((element) => element.id == val);
+                    _selectedZoneId = f.zones.isNotEmpty ? f.zones.first.id : null;
+                  });
+                },
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // 2. Select Zone Card
+          const Text("Select Zone", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey)),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButtonFormField<String>(
+                value: _selectedZoneId,
+                decoration: const InputDecoration(border: InputBorder.none, filled: false),
+                items: activeField.zones.map((z) {
+                  return DropdownMenuItem<String>(value: z.id, child: Text(z.name, style: const TextStyle(fontWeight: FontWeight.bold)));
+                }).toList(),
+                onChanged: (val) {
+                  setState(() {
+                    _selectedZoneId = val;
+                  });
+                },
+              ),
+            ),
+          ),
           const SizedBox(height: 24),
 
           // 3. Select Duration
-          const Text("3. Select Watering Duration", style: TextStyle(fontWeight: FontWeight.bold)),
+          const Text("Duration", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey)),
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [5, 10, 15, 30, 45, 60].map<Widget>((t) {
+            children: [15, 30, 45, 60].map((t) {
               bool isSel = _selectedDuration == t;
               return ChoiceChip(
-                label: Text("$t Min"),
+                label: Text("$t min"),
                 selected: isSel,
-                selectedColor: const Color(0xFF1E4D2B),
+                selectedColor: const Color(0xFF2D7A3A),
                 labelStyle: TextStyle(color: isSel ? Colors.white : Colors.black87, fontWeight: FontWeight.bold),
-                onSelected: (bool selected) {
+                onPressed: () {
                   setState(() {
                     _selectedDuration = t;
                   });
@@ -227,13 +226,19 @@ class _IrrigationScreenState extends State<IrrigationScreen> {
               );
             }).toList(),
           ),
-          const SizedBox(height: 48),
+          const SizedBox(height: 56),
 
+          // 4. Start Button
           state.commandLoading
               ? const Center(child: CircularProgressIndicator())
               : ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2D7A3A),
+                    minimumSize: const Size.fromHeight(60),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
                   onPressed: () async {
-                    if (_selectedFieldId != null && _selectedZoneId != null) {
+                    if (_selectedZoneId != null) {
                       await state.executeCommand(
                         targetType: 'zone',
                         targetId: _selectedZoneId!,
@@ -241,7 +246,10 @@ class _IrrigationScreenState extends State<IrrigationScreen> {
                       );
                     }
                   },
-                  child: const Text("START IRRIGATION ZONE"),
+                  child: const Text(
+                    "START",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 1),
+                  ),
                 ),
         ],
       ),
@@ -253,7 +261,7 @@ class _IrrigationScreenState extends State<IrrigationScreen> {
       children: [
         Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
         const SizedBox(height: 4),
-        Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E4D2B))),
+        Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2D7A3A))),
       ],
     );
   }
@@ -294,14 +302,14 @@ class _LiveIrrigationPulsarState extends State<LiveIrrigationPulsar> with Single
           height: 140,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: const Color(0xFF1E4D2B).withOpacity(0.05),
+            color: const Color(0xFF2D7A3A).withOpacity(0.05),
             border: Border.all(
-              color: const Color(0xFF1E4D2B).withOpacity(1.0 - _controller.value),
+              color: const Color(0xFF2D7A3A).withOpacity(1.0 - _controller.value),
               width: _controller.value * 20,
             ),
           ),
           child: const Center(
-            child: Icon(Icons.water, size: 64, color: Color(0xFF1E4D2B)),
+            child: Icon(Icons.water, size: 64, color: Color(0xFF2D7A3A)),
           ),
         );
       },

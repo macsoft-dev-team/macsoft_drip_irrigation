@@ -61,6 +61,13 @@ class AppState extends ChangeNotifier {
   final Map<String, int> _cart = {}; // productId -> quantity
   Map<String, int> get cart => _cart;
 
+  // ── Tab Navigation State ───────────────────────────────────────────────────
+  int currentTab = 0;
+  void setTab(int index) {
+    currentTab = index;
+    notifyListeners();
+  }
+
   // ── Support Tickets state ──────────────────────────────────────────────────
   List<SupportTicket> tickets = [];
   bool ticketsLoading = false;

@@ -28,9 +28,9 @@ void main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  static const primaryColor = Color(0xFF1E4D2B); // Deep Forest Green
+  static const primaryColor = Color(0xFF2D7A3A); // Dynamic Drip Green
   static const accentColor = Color(0xFF00E676);  // Vibrant Mint Green
-  static const backgroundColor = Color(0xFFF5F7FB); // Off-White Canvas
+  static const backgroundColor = Color(0xFFF4F6FA); // Modern Cool Canvas
 
   @override
   Widget build(BuildContext context) {
@@ -58,12 +58,11 @@ class MyApp extends StatelessWidget {
             fontWeight: FontWeight.bold,
           ),
         ),
-        cardTheme: CardThemeData(
+        cardTheme: const CardTheme(
           color: Colors.white,
-          elevation: 2,
-          shadowColor: Colors.black.withOpacity(0.04),
+          elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.all(Radius.circular(16)),
           ),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(

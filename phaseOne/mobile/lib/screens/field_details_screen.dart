@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../services/app_state.dart';
 import '../models/field.dart';
 import '../models/zone.dart';
+import '../widgets/tank_level_indicator.dart';
 import 'zone_details_screen.dart';
 
 class FieldDetailScreen extends StatelessWidget {
@@ -22,267 +23,306 @@ class FieldDetailScreen extends StatelessWidget {
     }
 
     final field = state.fields[fieldIdx];
-    final bool isRunning = field.zones.any((z) => z.valves.any((v) => v.status == 'open'));
 
-    return DefaultTabController(
-      length: 5,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(field.name),
-          bottom: const TabBar(
-            isScrollable: true,
-            indicatorColor: Color(0xFF1E4D2B),
-            labelColor: Color(0xFF1E4D2B),
-            unselectedLabelColor: Colors.grey,
-            tabs: [
-              Tab(text: "Overview"),
-              Tab(text: "Zones"),
-              Tab(text: "Monitoring"),
-              Tab(text: "Schedules"),
-              Tab(text: "History"),
-            ],
-          ),
-        ),
-        body: TabBarView(
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(field.name),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildOverviewTab(context, state, field, isRunning),
-            _buildZonesTab(context, state, field),
-            _buildMonitoringTab(context, state, field),
-            _buildSchedulesTab(context, state, field),
-            _buildHistoryTab(context, state, field),
+            // 1. Master Connection status card
+            _buildMasterCard(field),
+            const SizedBox(height: 16),
+
+            // 2. Zones card
+            _buildZonesCard(context, field),
+            const SizedBox(height: 16),
+
+            // 3. Schedules card
+            _buildSchedulesCard(state, field),
+            const SizedBox(height: 16),
+
+            // 4. Monitoring card
+            _buildMonitoringCard(field),
+
+            const SizedBox(height: 48),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildOverviewTab(BuildContext context, AppState state, Field field, bool isRunning) {
+  Widget _buildMasterCard(Field field) {
     final mc = field.masterController;
-    final isOnline = mc?.status == 'online';
+    final bool isOnline = mc?.status == 'online';
 
-    // Find first open zone
-    String runningZoneName = "None";
-    for (var z in field.zones) {
-      if (z.valves.any((v) => v.status == 'open')) {
-        runningZoneName = z.name;
-        break;
-      }
-    }
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)],
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Master Hub Info",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey),
             ),
-            child: Column(
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Icon(Icons.landscape, size: 48, color: Color(0xFF1E4D2B)),
-                const SizedBox(height: 12),
-                Text(field.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 4),
                 Text(
-                  "Area size: ${field.areaAcres ?? 0.0} Acres • Location: ${field.locationName ?? 'Not set'}",
-                  style: const TextStyle(color: Colors.black54),
-                  textAlign: TextAlign.center,
+                  mc?.deviceUid ?? "Offline Controller",
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1E2A1F)),
                 ),
-                const SizedBox(height: 20),
-                const Divider(),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _buildOverviewIndicator("Master Controller", isOnline ? "🟢 Online" : "🔴 Offline"),
-                    _buildOverviewIndicator("Running Zone", runningZoneName),
-                  ],
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: (isOnline ? Colors.green : Colors.red).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    isOnline ? "🟢 Online" : "🔴 Offline",
+                    style: TextStyle(color: isOnline ? Colors.green : Colors.red, fontWeight: FontWeight.bold, fontSize: 11),
+                  ),
                 ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _buildOverviewIndicator("Water Used Today", "1,200 L"),
-                    _buildOverviewIndicator("System Pressure", "2.4 Bar (Normal)"),
-                  ],
-                )
               ],
             ),
-          )
-        ],
-      ),
-    );
-  }
-
-  Widget _buildOverviewIndicator(String title, String val) {
-    return Column(
-      children: [
-        Text(title, style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 4),
-        Text(val, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-      ],
-    );
-  }
-
-  Widget _buildZonesTab(BuildContext context, AppState state, Field field) {
-    if (field.zones.isEmpty) {
-      return const Center(child: Text("No zones configured."));
-    }
-
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: field.zones.length,
-      separatorBuilder: (c, i) => const SizedBox(height: 12),
-      itemBuilder: (context, idx) {
-        final z = field.zones[idx];
-        final bool isRunning = z.valves.any((v) => v.status == 'open');
-
-        return Card(
-          child: ListTile(
-            leading: Icon(
-              Icons.grid_on,
-              color: isRunning ? Colors.green : Colors.grey,
-              size: 28,
-            ),
-            title: Text(z.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text("${z.valves.length} Valves assigned (${z.status})"),
-            trailing: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: (isRunning ? Colors.green : Colors.grey.shade200).withOpacity(0.2),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                isRunning ? "RUNNING" : "STOPPED",
-                style: TextStyle(
-                  color: isRunning ? Colors.green : Colors.black54,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 11,
-                ),
-              ),
-            ),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (c) => ZoneDetailScreen(fieldId: field.id, zoneId: z.id),
-                ),
-              );
-            },
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildMonitoringTab(BuildContext context, AppState state, Field field) {
-    final mc = field.masterController;
-    final tankLevel = mc?.tankLevel ?? 0;
-    final isOnline = mc?.status == 'online';
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          _buildMonitorRow("Water Tank Capacity", tankLevel > 0 ? "$tankLevel%" : "Sensor Offline", Icons.water_drop, Colors.blue),
-          _buildMonitorRow("Drip System Pressure", "2.4 Bar (Normal)", Icons.speed, Colors.purple),
-          _buildMonitorRow("Flow Rate Sensor", "14.2 L/min", Icons.compare_arrows, Colors.teal),
-          _buildMonitorRow("Soil Moisture Sensor", "46% (Moisture Low)", Icons.grass, Colors.orange),
-          _buildMonitorRow("Master Controller Connection", isOnline ? "Heartbeat Ok" : "Disconnected", Icons.wifi, Colors.green),
-          _buildMonitorRow("Slaves Signals RSSI", "Excellent (-64 dBm)", Icons.settings_input_antenna, Colors.indigo),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMonitorRow(String name, String value, IconData icon, Color color) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        leading: Icon(icon, color: color),
-        title: Text(name, style: const TextStyle(fontWeight: FontWeight.w500)),
-        trailing: Text(
-          value,
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF1E4D2B)),
+            const Divider(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _miniSpecCol("Battery", "92%"),
+                _miniSpecCol("Signal Status", "Excellent (-64dB)"),
+                _miniSpecCol("Network Type", mc?.connectionType?.toUpperCase() ?? "GSM 4G"),
+              ],
+            )
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildSchedulesTab(BuildContext context, AppState state, Field field) {
+  Widget _miniSpecCol(String label, String val) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 2),
+        Text(val, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.black87)),
+      ],
+    );
+  }
+
+  Widget _buildZonesCard(BuildContext context, Field field) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              "Zones",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey),
+            ),
+            const SizedBox(height: 10),
+            if (field.zones.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8.0),
+                child: Text("No irrigation zones configured."),
+              )
+            else
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: field.zones.length,
+                separatorBuilder: (c, i) => const Divider(height: 16),
+                itemBuilder: (context, idx) {
+                  final z = field.zones[idx];
+                  final bool isRunning = z.valves.any((v) => v.status == 'open');
+
+                  return InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (c) => ZoneDetailScreen(fieldId: field.id, zoneId: z.id),
+                        ),
+                      );
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(z.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                              Text("${z.valves.length} Valves assigned", style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                            ],
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: (isRunning ? Colors.green : Colors.grey.shade100).withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              isRunning ? "🟢 Running" : "⚪ Stopped",
+                              style: TextStyle(
+                                color: isRunning ? Colors.green : Colors.grey.shade700,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSchedulesCard(AppState state, Field field) {
     final list = state.schedules.where((s) => s.fieldId == field.id).toList();
 
-    if (list.isEmpty) {
-      return const Center(child: Text("No schedules configured for this field."));
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: list.length,
-      itemBuilder: (context, idx) {
-        final sch = list[idx];
-        final isActive = sch.status == 'active';
-
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          child: ListTile(
-            title: Text(sch.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text(
-              "Start: ${sch.startTime} • Duration: ${sch.durationMinutes} min\nRepeat: ${sch.repeatDays.join(', ')}",
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              "Schedules",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey),
             ),
-            trailing: Switch(
-              value: isActive,
-              activeColor: const Color(0xFF00E676),
-              onChanged: (val) async {
-                await state.toggleScheduleStatus(sch.id);
-              },
-            ),
-          ),
-        );
-      },
+            const SizedBox(height: 10),
+            if (list.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8.0),
+                child: Text("No irrigation schedules set."),
+              )
+            else
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: list.length,
+                separatorBuilder: (c, i) => const Divider(height: 16),
+                itemBuilder: (context, idx) {
+                  final s = list[idx];
+                  final bool isActive = s.status == 'active';
+
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(s.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                          Text(
+                            "Start: ${s.startTime} • ${s.durationMinutes} min",
+                            style: const TextStyle(fontSize: 11, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                      Switch(
+                        value: isActive,
+                        activeColor: const Color(0xFF00E676),
+                        onChanged: (val) async {
+                          await state.toggleScheduleStatus(s.id);
+                        },
+                      ),
+                    ],
+                  );
+                },
+              ),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _buildHistoryTab(BuildContext context, AppState state, Field field) {
-    // Return standard mock logging items for the field
-    return ListView(
-      padding: const EdgeInsets.all(16),
+  Widget _buildMonitoringCard(Field field) {
+    final mc = field.masterController;
+    final tankLevel = mc?.tankLevel ?? 82;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              "Monitoring",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey),
+            ),
+            const SizedBox(height: 14),
+
+            // Tank Level Visual Gauge
+            const Text("Water Tank Storage", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+            const SizedBox(height: 8),
+            TankLevelIndicator(level: tankLevel.toDouble()),
+            const Divider(height: 24),
+
+            // Soil Moisture Gauge
+            const Text("Soil Moisture average", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+            const SizedBox(height: 6),
+            _meterBar(0.46, "46%"),
+            const Divider(height: 24),
+
+            // System Pressure stats
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _specMonitorVal("Drip System Pressure", "2.4 Bar"),
+                _specMonitorVal("Telemetry Flow", "14.2 L/min"),
+              ],
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _meterBar(double pct, String label) {
+    return Row(
       children: [
-        _buildHistoryItem("Today", "Tomato Block Run", "45 min cycle complete", "1,800 L used", true),
-        _buildHistoryItem("Yesterday", "Banana Section Run", "20 min cycle complete", "950 L used", true),
-        _buildHistoryItem("June 28", "Cotton Row Run", "30 min cycle complete", "1,200 L used", true),
-        _buildHistoryItem("June 26", "Tomato Block Run", "Automatic cycle error (Valve mismatch)", "250 L used", false),
+        Expanded(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              value: pct,
+              minHeight: 12,
+              backgroundColor: Colors.grey.shade100,
+              valueColor: const AlwaysStoppedAnimation(Color(0xFF2D7A3A)),
+            ),
+          ),
+        ),
+        const SizedBox(width: 14),
+        Text(
+          label,
+          style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2D7A3A), fontSize: 14),
+        ),
       ],
     );
   }
 
-  Widget _buildHistoryItem(String time, String title, String desc, String quantity, bool isSuccess) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        leading: Icon(
-          isSuccess ? Icons.check_circle_outline : Icons.error_outline,
-          color: isSuccess ? Colors.green : Colors.red,
-        ),
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-            Text(time, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-          ],
-        ),
-        subtitle: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(child: Text(desc, style: const TextStyle(fontSize: 12))),
-            Text(quantity, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF1E4D2B))),
-          ],
-        ),
-      ),
+  Widget _specMonitorVal(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 4),
+        Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2D7A3A))),
+      ],
     );
   }
 }

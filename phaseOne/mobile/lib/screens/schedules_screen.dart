@@ -45,12 +45,12 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
                       leading: Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: (isActive ? const Color(0xFF1E4D2B) : Colors.grey).withOpacity(0.12),
+                          color: (isActive ? const Color(0xFF2D7A3A) : Colors.grey).withOpacity(0.12),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
                           Icons.alarm,
-                          color: isActive ? const Color(0xFF1E4D2B) : Colors.grey,
+                          color: isActive ? const Color(0xFF2D7A3A) : Colors.grey,
                         ),
                       ),
                       title: Text(
@@ -100,7 +100,7 @@ class _SchedulesScreenState extends State<SchedulesScreen> {
               ),
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color(0xFF1E4D2B),
+        backgroundColor: const Color(0xFF2D7A3A),
         foregroundColor: Colors.white,
         onPressed: () {
           Navigator.push(
@@ -294,7 +294,7 @@ class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
                   return FilterChip(
                     label: Text(day[0].toUpperCase() + day.substring(1, 3)),
                     selected: isSel,
-                    selectedColor: const Color(0xFF1E4D2B),
+                    selectedColor: const Color(0xFF2D7A3A),
                     checkmarkColor: Colors.white,
                     labelStyle: TextStyle(color: isSel ? Colors.white : Colors.black87),
                     onSelected: (selected) {

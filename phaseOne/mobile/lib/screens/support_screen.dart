@@ -44,8 +44,8 @@ class _SupportScreenState extends State<SupportScreen> {
         child: Column(
           children: [
             const TabBar(
-              indicatorColor: Color(0xFF1E4D2B),
-              labelColor: Color(0xFF1E4D2B),
+              indicatorColor: Color(0xFF2D7A3A),
+              labelColor: Color(0xFF2D7A3A),
               tabs: [
                 Tab(text: "My Tickets"),
                 Tab(text: "Contact Help"),
@@ -63,7 +63,7 @@ class _SupportScreenState extends State<SupportScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: const Color(0xFF1E4D2B),
+        backgroundColor: const Color(0xFF2D7A3A),
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add_comment),
         label: const Text("New Ticket"),
@@ -148,14 +148,14 @@ class _SupportScreenState extends State<SupportScreen> {
         children: [
           const Text(
             "Need Technical Support?",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E4D2B)),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2D7A3A)),
           ),
           const SizedBox(height: 8),
           const Text("Our network engineers are available to diagnose Modbus RTU / slave configuration issues offline or over-the-air."),
           const SizedBox(height: 36),
           Card(
             child: ListTile(
-              leading: const Icon(Icons.phone, color: Color(0xFF1E4D2B)),
+              leading: const Icon(Icons.phone, color: Color(0xFF2D7A3A)),
               title: const Text("Helpline Phone"),
               subtitle: const Text("+91 1800 123 4567 (Toll-Free)"),
               trailing: const Icon(Icons.arrow_forward_ios, size: 14),
@@ -165,7 +165,7 @@ class _SupportScreenState extends State<SupportScreen> {
           const SizedBox(height: 12),
           Card(
             child: ListTile(
-              leading: const Icon(Icons.email, color: Color(0xFF1E4D2B)),
+              leading: const Icon(Icons.email, color: Color(0xFF2D7A3A)),
               title: const Text("Helpline Email"),
               subtitle: const Text("support@macsoftdrip.com"),
               trailing: const Icon(Icons.arrow_forward_ios, size: 14),
@@ -211,7 +211,7 @@ class _SupportScreenState extends State<SupportScreen> {
                             child: ChoiceChip(
                               label: Text(p.toUpperCase()),
                               selected: isSel,
-                              selectedColor: const Color(0xFF1E4D2B),
+                              selectedColor: const Color(0xFF2D7A3A),
                               labelStyle: TextStyle(color: isSel ? Colors.white : Colors.black87, fontSize: 11),
                               onSelected: (selected) {
                                 if (selected) {

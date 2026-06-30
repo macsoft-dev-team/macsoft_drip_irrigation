@@ -51,8 +51,8 @@ class _AppShellState extends State<AppShell> {
     super.dispose();
   }
 
-  Widget _buildBottomNav() {
-    final activeColor = const Color(0xFF1E4D2B);
+  Widget _buildBottomNav(AppState state) {
+    final activeColor = const Color(0xFF2D7A3A);
     final inactiveColor = Colors.grey.shade400;
 
     final icons = [
@@ -64,70 +64,62 @@ class _AppShellState extends State<AppShell> {
     ];
 
     return Container(
-      height: 66,
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.grey.shade100, width: 1.5),
+        border: Border(top: BorderSide(color: Colors.grey.shade200, width: 1)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 8.0, sigmaY: 8.0),
-          child: Container(
-            color: Colors.white.withOpacity(0.90),
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: List.generate(icons.length, (idx) {
-                final isSelected = _currentIndex == idx;
-                final config = icons[idx];
-                final icon = isSelected ? config.$2 : config.$1;
-                final label = config.$3;
+      child: SafeArea(
+        top: false,
+        child: Container(
+          height: 60,
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: List.generate(icons.length, (idx) {
+              final isSelected = state.currentTab == idx;
+              final config = icons[idx];
+              final icon = isSelected ? config.$2 : config.$1;
+              final label = config.$3;
 
-                return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _currentIndex = idx;
-                    });
-                  },
-                  behavior: HitTestBehavior.opaque,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 220),
-                    curve: Curves.easeOut,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: isSelected ? activeColor.withOpacity(0.08) : Colors.transparent,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(icon, color: isSelected ? activeColor : inactiveColor, size: 22),
-                        if (isSelected) ...[
-                          const SizedBox(width: 6),
-                          Text(
-                            label,
-                            style: TextStyle(
-                              color: activeColor,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 11.5,
-                            ),
-                          ),
-                        ]
-                      ],
-                    ),
+              return GestureDetector(
+                onTap: () {
+                  state.setTab(idx);
+                },
+                behavior: HitTestBehavior.opaque,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOut,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isSelected ? activeColor.withOpacity(0.08) : Colors.transparent,
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                );
-              }),
-            ),
+                  child: Row(
+                    children: [
+                      Icon(icon, color: isSelected ? activeColor : inactiveColor, size: 22),
+                      if (isSelected) ...[
+                        const SizedBox(width: 6),
+                        Text(
+                          label,
+                          style: TextStyle(
+                            color: activeColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ]
+                    ],
+                  ),
+                ),
+              );
+            }),
           ),
         ),
       ),
@@ -136,12 +128,14 @@ class _AppShellState extends State<AppShell> {
 
   @override
   Widget build(BuildContext context) {
+    final state = Provider.of<AppState>(context);
+
     return Scaffold(
-      extendBody: true,
+      extendBody: false,
       appBar: AppBar(
         title: const Row(
           children: [
-            Icon(Icons.opacity, color: Color(0xFF1E4D2B)),
+            Icon(Icons.opacity, color: Color(0xFF2D7A3A)),
             SizedBox(width: 8),
             Text("MACSOFT DRIP"),
           ],
@@ -169,10 +163,10 @@ class _AppShellState extends State<AppShell> {
         ],
       ),
       body: IndexedStack(
-        index: _currentIndex,
+        index: state.currentTab,
         children: _screens,
       ),
-      bottomNavigationBar: _buildBottomNav(),
+      bottomNavigationBar: _buildBottomNav(state),
     );
   }
 }
