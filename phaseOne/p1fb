@@ -1,0 +1,415 @@
+ goal is to build a **commercial irrigation platform**, then these components should exist **from Phase 1**, even if some are implemented in a simple form.
+
+## Overall Architecture
+
+```text
+                    ┌─────────────────────┐
+                    │   Farmer Mobile     │
+                    └──────────┬──────────┘
+                               │
+                    ┌──────────▼──────────┐
+                    │    Admin Web App    │
+                    └──────────┬──────────┘
+                               │
+                      HTTP / WebSocket
+                               │
+                    ┌──────────▼──────────┐
+                    │    Node.js Backend  │
+                    │                     │
+                    │ Authentication      │
+                    │ REST API            │
+                    │ WebSocket           │
+                    │ Business Logic      │
+                    └──────────┬──────────┘
+                               │
+                     Local WiFi Network
+                               │
+                    HTTP / WebSocket
+                               │
+                    ┌──────────▼──────────┐
+                    │ Raspberry Pi Master │
+                    │                     │
+                    │ Local API           │
+                    │ Command Manager     │
+                    │ Modbus TCP Client   │
+                    │ Scheduler           │
+                    └──────────┬──────────┘
+                               │
+                       Modbus TCP
+                               │
+          ┌────────────────────┼────────────────────┐
+          │                    │                    │
+          ▼                    ▼                    ▼
+    ESP32 Slave 1        ESP32 Slave 2       ESP32 Slave 3
+    TCP Server           TCP Server          TCP Server
+          │                    │                    │
+       Valves               Valves              Valves
+```
+
+---
+
+# Backend Responsibilities
+
+```text
+Authentication
+
+Users
+
+Farmers
+
+Fields
+
+Devices
+
+Zones
+
+Schedules
+
+Commands
+
+Monitoring
+
+Support
+
+WebSocket
+
+Database
+```
+
+Backend **does not** communicate directly with slaves.
+
+It only knows about the **Master**.
+
+---
+
+# Master Responsibilities
+
+This is the most important component.
+
+```text
+Receive Commands
+
+↓
+
+Resolve Zone
+
+↓
+
+Connect Slave
+
+↓
+
+Modbus TCP
+
+↓
+
+Execute Command
+
+↓
+
+Collect Response
+
+↓
+
+Return Status
+
+↓
+
+Send Heartbeat
+```
+
+The Master is your **gateway**.
+
+---
+
+# Slave Responsibilities
+
+Each slave should only do one job.
+
+```text
+Start Modbus TCP Server
+
+↓
+
+Wait For Request
+
+↓
+
+Receive Coil Command
+
+↓
+
+Switch Relay
+
+↓
+
+Return Response
+```
+
+Nothing else.
+
+No database.
+
+No schedules.
+
+No business logic.
+
+---
+
+# Mobile Responsibilities
+
+```text
+Login
+
+Dashboard
+
+Fields
+
+Irrigation
+
+Schedules
+
+AI
+
+Support
+```
+
+No Modbus knowledge.
+
+No device configuration.
+
+---
+
+# Admin Responsibilities
+
+```text
+Users
+
+Farmers
+
+Fields
+
+Devices
+
+Zones
+
+Schedules
+
+Support
+```
+
+---
+
+# Required APIs
+
+## Backend
+
+```text
+/auth
+
+/users
+
+/farmers
+
+/fields
+
+/zones
+
+/schedules
+
+/dashboard
+
+/commands
+
+/monitoring
+
+/support
+```
+
+---
+
+## Master
+
+```text
+POST /commands
+
+GET  /heartbeat
+
+GET  /status
+
+POST /sync
+
+GET  /devices
+```
+
+---
+
+## Slave
+
+No REST API required.
+
+Only:
+
+```text
+Modbus TCP Server
+```
+
+Listening on
+
+```text
+Port 502
+```
+
+---
+
+# Database
+
+```text
+User
+
+↓
+
+Farmer
+
+↓
+
+Field
+
+↓
+
+Master
+
+↓
+
+Slave
+
+↓
+
+Valve
+
+↓
+
+Zone
+```
+
+---
+
+# Communication
+
+```text
+Mobile
+
+↓
+
+Backend
+
+↓
+
+Master
+
+↓
+
+Slave
+
+↓
+
+Valve
+```
+
+---
+
+# Monitoring
+
+```text
+Slave
+
+↓
+
+Master
+
+↓
+
+Backend
+
+↓
+
+WebSocket
+
+↓
+
+Mobile/Admin
+```
+
+---
+
+# Heartbeat
+
+```text
+Slave
+
+↓
+
+Master
+
+↓
+
+Backend
+
+↓
+
+Dashboard
+```
+
+---
+
+# Future Ready
+
+Later you can replace
+
+```text
+Master
+
+↓
+
+Modbus TCP
+
+↓
+
+Slave
+```
+
+with
+
+```text
+Master
+
+↓
+
+RS485 Modbus RTU
+
+↓
+
+Slave
+```
+
+without changing:
+
+* ✅ Mobile App
+* ✅ Admin Panel
+* ✅ Backend APIs
+* ✅ Database
+* ✅ Business Logic
+
+---
+
+## My Recommendation
+
+Keep these **five services** from the beginning:
+
+1. **Admin Web App** (React)
+2. **Farmer Mobile App** (Flutter)
+3. **Node.js Backend** (REST API, WebSocket, Business Logic)
+4. **Master Service** (Raspberry Pi - HTTP/WebSocket + Modbus TCP Client)
+5. **Slave Firmware** (ESP32 - Modbus TCP Server)
+
+This separation gives you a clean, scalable architecture. As you move from a local WiFi MVP to a cloud-connected production system (MQTT, RS485, remote deployments), each component can evolve independently without requiring major changes to the rest of the system.
